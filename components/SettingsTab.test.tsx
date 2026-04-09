@@ -7,6 +7,13 @@ jest.mock('next-themes', () => ({
   useTheme: () => ({ theme: 'light', setTheme: mockSetTheme }),
 }))
 
+beforeEach(() => {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ health_check_interval: '5s' }),
+  })
+})
+
 afterEach(() => jest.clearAllMocks())
 
 describe('SettingsTab', () => {

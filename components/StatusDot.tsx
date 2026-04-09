@@ -1,45 +1,25 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useHealthStatus } from './HealthCheckContext'
 
-type HealthStatus = 'up' | 'down' | 'unknown'
-
-const COLORS: Record<HealthStatus, string> = {
+const COLORS = {
   up: 'bg-green-400',
   down: 'bg-red-400',
   unknown: 'bg-gray-400',
-}
+} as const
 
-const LABELS: Record<HealthStatus, string> = {
+const LABELS = {
   up: 'online',
   down: 'offline',
   unknown: 'checking',
-}
+} as const
 
 interface StatusDotProps {
   url: string
-  intervalMs: number
 }
 
-export function StatusDot({ url, intervalMs }: StatusDotProps) {
-  const [status, setStatus] = useState<HealthStatus>('unknown')
-
-  useEffect(() => {
-    let cancelled = false
-    const check = async () => {
-      try {
-        const r = await fetch(`/api/health?url=${encodeURIComponent(url)}`)
-        const data = await r.json()
-        if (!cancelled) setStatus(data.status ?? 'unknown')
-      } catch {
-        if (!cancelled) setStatus('down')
-      }
-    }
-    check()
-    const id = setInterval(check, intervalMs)
-    return () => { cancelled = true; clearInterval(id) }
-  }, [url, intervalMs])
-
+export function StatusDot({ url }: StatusDotProps) {
+  const status = useHealthStatus(url)
   return (
     <span
       role="status"

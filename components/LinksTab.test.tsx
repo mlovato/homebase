@@ -47,6 +47,7 @@ const baseProps: LinksTabProps = {
   handleUpdateLink: jest.fn(),
   handleDeleteLink: jest.fn(),
   handleDragEnd: jest.fn(),
+  intervalMs: 10000,
 }
 
 afterEach(() => jest.clearAllMocks())

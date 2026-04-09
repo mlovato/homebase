@@ -1,13 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { LinkCard } from './LinkCard'
+import { HealthCheckContext } from './HealthCheckContext'
 import type { Link } from '@/lib/types'
-
-beforeEach(() => {
-  global.fetch = jest.fn().mockResolvedValue({
-    ok: true,
-    json: async () => ({ status: 'up' }),
-  })
-})
 
 const baseLink: Link = {
   id: 1,
@@ -89,8 +83,22 @@ describe('LinkCard', () => {
     expect(screen.getByRole('img')).toHaveAttribute('src', expect.stringContaining('myservice-light.svg'))
   })
 
-  it('renders a status dot', () => {
-    render(<LinkCard link={baseLink} />)
+  it('shows status dot when intervalMs is a number', () => {
+    render(
+      <HealthCheckContext.Provider value={{ [baseLink.url]: 'up' }}>
+        <LinkCard link={baseLink} intervalMs={10000} />
+      </HealthCheckContext.Provider>
+    )
     expect(screen.getByRole('status')).toBeInTheDocument()
+  })
+
+  it('hides status dot when intervalMs is null', () => {
+    render(<LinkCard link={baseLink} intervalMs={null} />)
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('hides status dot when intervalMs is not provided', () => {
+    render(<LinkCard link={baseLink} />)
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 })

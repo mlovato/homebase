@@ -2,53 +2,40 @@
  * @jest-environment jsdom
  */
 import React from 'react'
-import { render, screen, act } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
+import { HealthCheckContext } from './HealthCheckContext'
 import { StatusDot } from './StatusDot'
 
-function mockFetch(status: 'up' | 'down' | 'unknown') {
-  return jest.fn().mockResolvedValue({
-    ok: true,
-    json: async () => ({ status }),
-  })
+function renderWithStatus(url: string, status: string) {
+  render(
+    <HealthCheckContext.Provider value={{ [url]: status as never }}>
+      <StatusDot url={url} />
+    </HealthCheckContext.Provider>
+  )
 }
 
 describe('StatusDot', () => {
-  beforeEach(() => {
-    jest.useFakeTimers()
+  it('shows checking when url not in context', () => {
+    render(
+      <HealthCheckContext.Provider value={{}}>
+        <StatusDot url="http://plex.local" />
+      </HealthCheckContext.Provider>
+    )
+    expect(screen.getByRole('status')).toHaveAttribute('aria-label', 'checking')
   })
 
-  afterEach(() => {
-    jest.useRealTimers()
+  it('shows online when status is up', () => {
+    renderWithStatus('http://plex.local', 'up')
+    expect(screen.getByRole('status')).toHaveAttribute('aria-label', 'online')
   })
 
-  it('renders grey dot while loading', () => {
-    global.fetch = mockFetch('up')
-    render(<StatusDot url="http://plex.local:32400" />)
-    const dot = screen.getByRole('status')
-    expect(dot).toHaveAttribute('aria-label', 'checking')
+  it('shows offline when status is down', () => {
+    renderWithStatus('http://broken.local', 'down')
+    expect(screen.getByRole('status')).toHaveAttribute('aria-label', 'offline')
   })
 
-  it('renders green dot when service is up', async () => {
-    global.fetch = mockFetch('up')
-    render(<StatusDot url="http://plex.local:32400" />)
-    await act(async () => { jest.runOnlyPendingTimers() })
-    const dot = screen.getByRole('status')
-    expect(dot).toHaveAttribute('aria-label', 'online')
-  })
-
-  it('renders red dot when service is down', async () => {
-    global.fetch = mockFetch('down')
-    render(<StatusDot url="http://broken.local" />)
-    await act(async () => { jest.runOnlyPendingTimers() })
-    const dot = screen.getByRole('status')
-    expect(dot).toHaveAttribute('aria-label', 'offline')
-  })
-
-  it('renders grey dot for unknown status (non-http url)', async () => {
-    global.fetch = mockFetch('unknown')
-    render(<StatusDot url="ftp://something.local" />)
-    await act(async () => { jest.runOnlyPendingTimers() })
-    const dot = screen.getByRole('status')
-    expect(dot).toHaveAttribute('aria-label', 'checking')
+  it('shows checking when status is unknown', () => {
+    renderWithStatus('ftp://something.local', 'unknown')
+    expect(screen.getByRole('status')).toHaveAttribute('aria-label', 'checking')
   })
 })

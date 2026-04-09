@@ -1,7 +1,10 @@
 import { getDb } from '@/lib/db'
 import { getCategoriesWithLinks, getUncategorizedLinks } from '@/lib/repositories/categories'
+import { getHealthCheckInterval } from '@/lib/repositories/settings'
+import { INTERVAL_TO_MS } from '@/lib/types'
 import { CategorySection } from '@/components/CategorySection'
 import { LinkCard } from '@/components/LinkCard'
+import { HealthCheckProvider } from '@/components/HealthCheckContext'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,8 +12,51 @@ export default function DashboardPage() {
   const db = getDb()
   const categories = getCategoriesWithLinks(db)
   const uncategorized = getUncategorizedLinks(db)
+  const intervalMs = INTERVAL_TO_MS[getHealthCheckInterval(db)]
+
+  const allUrls = [
+    ...categories.flatMap(c => c.links.map(l => l.url)),
+    ...uncategorized.map(l => l.url),
+  ]
 
   const hasContent = categories.some(c => c.links.length > 0) || uncategorized.length > 0
+
+  const content = (
+    <div className="max-w-screen-2xl mx-auto px-6 py-8">
+      {!hasContent && (
+        <div className="flex flex-col items-center justify-center py-24 text-center text-gray-400 dark:text-gray-500">
+          <div className="text-6xl mb-4">🗂️</div>
+          <p className="text-xl font-medium mb-2">No links yet</p>
+          <p className="text-sm">
+            Go to{' '}
+            <a href="/admin" className="text-indigo-500 hover:underline">
+              Admin
+            </a>{' '}
+            to add your first link.
+          </p>
+        </div>
+      )}
+
+      {categories
+        .filter(c => c.links.length > 0)
+        .map(category => (
+          <CategorySection key={category.id} category={category} intervalMs={intervalMs} />
+        ))}
+
+      {uncategorized.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-500 dark:text-gray-400 retro:text-retro-dim uppercase tracking-wider mb-4 px-1">
+            Other
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+            {uncategorized.map(link => (
+              <LinkCard key={link.id} link={link} intervalMs={intervalMs} />
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  )
 
   return (
     <main className="min-h-screen retro:bg-retro-bg">
@@ -27,40 +73,9 @@ export default function DashboardPage() {
         </a>
       </header>
 
-      <div className="max-w-screen-2xl mx-auto px-6 py-8">
-        {!hasContent && (
-          <div className="flex flex-col items-center justify-center py-24 text-center text-gray-400 dark:text-gray-500">
-            <div className="text-6xl mb-4">🗂️</div>
-            <p className="text-xl font-medium mb-2">No links yet</p>
-            <p className="text-sm">
-              Go to{' '}
-              <a href="/admin" className="text-indigo-500 hover:underline">
-                Admin
-              </a>{' '}
-              to add your first link.
-            </p>
-          </div>
-        )}
-
-        {categories
-          .filter(c => c.links.length > 0)
-          .map(category => (
-            <CategorySection key={category.id} category={category} />
-          ))}
-
-        {uncategorized.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-500 dark:text-gray-400 retro:text-retro-dim uppercase tracking-wider mb-4 px-1">
-              Other
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-              {uncategorized.map(link => (
-                <LinkCard key={link.id} link={link} />
-              ))}
-            </div>
-          </section>
-        )}
-      </div>
+      {intervalMs !== null
+        ? <HealthCheckProvider urls={allUrls} intervalMs={intervalMs}>{content}</HealthCheckProvider>
+        : content}
     </main>
   )
 }

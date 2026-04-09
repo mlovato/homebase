@@ -1,6 +1,9 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
+import type { HealthCheckInterval } from '@/lib/types'
+import { HEALTH_CHECK_INTERVALS } from '@/lib/types'
 
 const THEME_OPTIONS: { value: string; label: string; icon: React.ReactNode }[] = [
   {
@@ -41,14 +44,43 @@ const THEME_OPTIONS: { value: string; label: string; icon: React.ReactNode }[] =
   },
 ]
 
-export function SettingsTab() {
+const INTERVAL_LABELS: Record<HealthCheckInterval, string> = {
+  '10s': '10s',
+  '30s': '30s',
+  '60s': '60s',
+  'never': 'Never',
+}
+
+interface SettingsTabProps {
+  onIntervalChange?: (value: HealthCheckInterval) => void
+}
+
+export function SettingsTab({ onIntervalChange }: SettingsTabProps = {}) {
   const { theme, setTheme } = useTheme()
+  const [interval, setInterval] = useState<HealthCheckInterval>('30s')
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(data => { if (data.health_check_interval) setInterval(data.health_check_interval) })
+      .catch(() => {})
+  }, [])
+
+  function updateInterval(value: HealthCheckInterval) {
+    setInterval(value)
+    onIntervalChange?.(value)
+    fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ health_check_interval: value }),
+    }).catch(() => {})
+  }
 
   return (
     <div className="max-w-lg">
       <h2 className="text-xl font-semibold retro:text-retro-green mb-8">Settings</h2>
 
-      <section>
+      <section className="mb-10">
         <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 retro:text-retro-dim uppercase tracking-wider mb-4">
           Appearance
         </h3>
@@ -68,6 +100,30 @@ export function SettingsTab() {
             </button>
           ))}
         </div>
+      </section>
+
+      <section>
+        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 retro:text-retro-dim uppercase tracking-wider mb-4">
+          Status Check Interval
+        </h3>
+        <div className="flex flex-wrap gap-3">
+          {HEALTH_CHECK_INTERVALS.map(value => (
+            <button
+              key={value}
+              onClick={() => updateInterval(value)}
+              className={`px-5 py-3 rounded-xl retro:rounded-none border-2 text-sm font-medium transition-colors ${
+                interval === value
+                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 retro:bg-transparent retro:border-retro-green retro:text-retro-green text-indigo-600 dark:text-indigo-400'
+                  : 'border-gray-200 dark:border-gray-600 retro:border-retro-dim hover:border-gray-300 dark:hover:border-gray-500 retro:hover:border-retro-green text-gray-600 dark:text-gray-400 retro:text-retro-dim retro:hover:text-retro-green'
+              }`}
+            >
+              {INTERVAL_LABELS[value]}
+            </button>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-gray-400 dark:text-gray-500 retro:text-retro-dim">
+          How often to ping each service. Set to Never to hide status indicators.
+        </p>
       </section>
     </div>
   )

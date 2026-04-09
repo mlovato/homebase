@@ -19,6 +19,11 @@ const SCHEMA = `
     icon_value TEXT,
     sort_order INTEGER DEFAULT 0
   );
+
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
 `
 
 let _db: Database.Database | null = null

@@ -3,8 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import type { CategoryWithLinks, Link, Category, CreateLinkInput, UpdateLinkInput } from '@/lib/types'
+import { HEALTH_CHECK_INTERVALS, INTERVAL_TO_MS } from '@/lib/types'
 import { LinksTab, type LinksTabProps } from '@/components/LinksTab'
 import { SettingsTab } from '@/components/SettingsTab'
+import { HealthCheckProvider } from '@/components/HealthCheckContext'
 import {
   PointerSensor,
   useSensor,
@@ -24,6 +26,7 @@ export default function AdminPage() {
   const [modal, setModal] = useState<Modal>({ type: 'none' })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [intervalMs, setIntervalMs] = useState<number | null>(null)
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function showError(msg: string) {
@@ -42,6 +45,15 @@ export default function AdminPage() {
 
   useEffect(() => {
     loadCategories().finally(() => setLoading(false))
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(data => {
+        const interval = data.health_check_interval
+        if (interval && HEALTH_CHECK_INTERVALS.includes(interval)) {
+          setIntervalMs(INTERVAL_TO_MS[interval as keyof typeof INTERVAL_TO_MS])
+        }
+      })
+      .catch(() => {})
   }, [loadCategories])
 
   async function handleLogout() {
@@ -201,25 +213,37 @@ export default function AdminPage() {
               <button onClick={() => setError(null)} className="shrink-0 text-red-400 hover:text-red-600 retro:text-retro-dim retro:hover:text-retro-green">✕</button>
             </div>
           )}
-          {tab === 'links' && (
-            <LinksTab
-              categories={categories}
-              uncategorized={uncategorized}
-              allCategories={allCategories}
-              loading={loading}
-              modal={modal}
-              setModal={setModal}
-              sensors={sensors}
-              handleCreateCategory={handleCreateCategory}
-              handleUpdateCategory={handleUpdateCategory}
-              handleDeleteCategory={handleDeleteCategory}
-              handleCreateLink={handleCreateLink}
-              handleUpdateLink={handleUpdateLink}
-              handleDeleteLink={handleDeleteLink}
-              handleDragEnd={handleDragEnd}
-            />
+          {tab === 'links' && (() => {
+            const allUrls = [
+              ...categories.flatMap(c => c.links.map(l => l.url)),
+              ...uncategorized.map(l => l.url),
+            ]
+            const linksTab = (
+              <LinksTab
+                categories={categories}
+                uncategorized={uncategorized}
+                allCategories={allCategories}
+                loading={loading}
+                modal={modal}
+                setModal={setModal}
+                sensors={sensors}
+                handleCreateCategory={handleCreateCategory}
+                handleUpdateCategory={handleUpdateCategory}
+                handleDeleteCategory={handleDeleteCategory}
+                handleCreateLink={handleCreateLink}
+                handleUpdateLink={handleUpdateLink}
+                handleDeleteLink={handleDeleteLink}
+                handleDragEnd={handleDragEnd}
+                intervalMs={intervalMs}
+              />
+            )
+            return intervalMs !== null
+              ? <HealthCheckProvider urls={allUrls} intervalMs={intervalMs}>{linksTab}</HealthCheckProvider>
+              : linksTab
+          })()}
+          {tab === 'settings' && (
+            <SettingsTab onIntervalChange={v => setIntervalMs(INTERVAL_TO_MS[v])} />
           )}
-          {tab === 'settings' && <SettingsTab />}
         </main>
       </div>
     </div>

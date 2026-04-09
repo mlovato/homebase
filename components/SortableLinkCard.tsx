@@ -9,9 +9,10 @@ interface SortableLinkCardProps {
   link: Link
   onEdit: (link: Link) => void
   onDelete: (id: number) => void
+  intervalMs: number | null
 }
 
-export function SortableLinkCard({ link, onEdit, onDelete }: SortableLinkCardProps) {
+export function SortableLinkCard({ link, onEdit, onDelete, intervalMs }: SortableLinkCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: link.id,
   })
@@ -42,7 +43,7 @@ export function SortableLinkCard({ link, onEdit, onDelete }: SortableLinkCardPro
         </svg>
       </div>
 
-      <LinkCard link={link} tooltip={false} />
+      <LinkCard link={link} tooltip={false} intervalMs={intervalMs} />
 
       {/* Edit/Delete overlay */}
       <div className="absolute inset-0 rounded-2xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none group-hover:pointer-events-auto">

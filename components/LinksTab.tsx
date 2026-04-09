@@ -34,12 +34,13 @@ export interface LinksTabProps {
   handleUpdateLink: (id: number, data: Partial<UpdateLinkInput>) => Promise<void>
   handleDeleteLink: (id: number) => Promise<void>
   handleDragEnd: (event: DragEndEvent, categoryId: number | null) => Promise<void>
+  intervalMs: number | null
 }
 
 export function LinksTab({
   categories, uncategorized, allCategories, loading, modal, setModal,
   sensors, handleCreateCategory, handleUpdateCategory, handleDeleteCategory,
-  handleCreateLink, handleUpdateLink, handleDeleteLink, handleDragEnd,
+  handleCreateLink, handleUpdateLink, handleDeleteLink, handleDragEnd, intervalMs,
 }: LinksTabProps) {
   if (loading) {
     return <div className="flex items-center justify-center py-16 text-gray-400">Loading…</div>
@@ -104,7 +105,7 @@ export function LinksTab({
               <SortableContext items={category.links.map(l => l.id)} strategy={rectSortingStrategy}>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
                   {category.links.map(link => (
-                    <SortableLinkCard key={link.id} link={link} onEdit={l => setModal({ type: 'edit-link', link: l })} onDelete={handleDeleteLink} />
+                    <SortableLinkCard key={link.id} link={link} onEdit={l => setModal({ type: 'edit-link', link: l })} onDelete={handleDeleteLink} intervalMs={intervalMs} />
                   ))}
                 </div>
               </SortableContext>
@@ -122,7 +123,7 @@ export function LinksTab({
             <SortableContext items={uncategorized.map(l => l.id)} strategy={rectSortingStrategy}>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
                 {uncategorized.map(link => (
-                  <SortableLinkCard key={link.id} link={link} onEdit={l => setModal({ type: 'edit-link', link: l })} onDelete={handleDeleteLink} />
+                  <SortableLinkCard key={link.id} link={link} onEdit={l => setModal({ type: 'edit-link', link: l })} onDelete={handleDeleteLink} intervalMs={intervalMs} />
                 ))}
               </div>
             </SortableContext>

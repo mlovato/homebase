@@ -2,13 +2,6 @@ import { render, screen } from '@testing-library/react'
 import { CategorySection } from './CategorySection'
 import type { CategoryWithLinks } from '@/lib/types'
 
-beforeEach(() => {
-  global.fetch = jest.fn().mockResolvedValue({
-    ok: true,
-    json: async () => ({ status: 'up' }),
-  })
-})
-
 const category: CategoryWithLinks = {
   id: 1,
   name: 'Media',
@@ -21,19 +14,19 @@ const category: CategoryWithLinks = {
 
 describe('CategorySection', () => {
   it('renders the category name as a heading', () => {
-    render(<CategorySection category={category} />)
+    render(<CategorySection category={category} intervalMs={10000} />)
     expect(screen.getByRole('heading', { name: 'Media' })).toBeInTheDocument()
   })
 
   it('renders all link cards', () => {
-    render(<CategorySection category={category} />)
+    render(<CategorySection category={category} intervalMs={10000} />)
     expect(screen.getByText('Plex')).toBeInTheDocument()
     expect(screen.getByText('Jellyfin')).toBeInTheDocument()
   })
 
   it('renders nothing when there are no links', () => {
     const empty: CategoryWithLinks = { ...category, links: [] }
-    const { container } = render(<CategorySection category={empty} />)
+    const { container } = render(<CategorySection category={empty} intervalMs={null} />)
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 })
