@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import type { Category, IconType } from '@/lib/types'
+import * as simpleIcons from 'simple-icons'
 
 interface InitialValues {
   name: string
@@ -34,14 +35,8 @@ interface SimpleIcon {
 
 function getBuiltinIcon(slug: string): SimpleIcon | null {
   if (!slug) return null
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const icons = require('simple-icons')
-    const key = `si${slug.charAt(0).toUpperCase()}${slug.slice(1)}`
-    return (icons[key] as SimpleIcon) ?? null
-  } catch {
-    return null
-  }
+  const key = `si${slug.charAt(0).toUpperCase()}${slug.slice(1)}`
+  return ((simpleIcons as Record<string, SimpleIcon | undefined>)[key]) ?? null
 }
 
 function findIconSlug(name: string): string | null {
