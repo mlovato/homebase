@@ -17,13 +17,16 @@ type Modal =
 export default function AdminPage() {
   const router = useRouter()
   const [categories, setCategories] = useState<CategoryWithLinks[]>([])
+  const [uncategorized, setUncategorized] = useState<Link[]>([])
   const [modal, setModal] = useState<Modal>({ type: 'none' })
   const [loading, setLoading] = useState(true)
 
   const loadCategories = useCallback(async () => {
     const res = await fetch('/api/categories')
     if (!res.ok) return
-    setCategories(await res.json())
+    const data = await res.json()
+    setCategories(data.categories)
+    setUncategorized(data.uncategorized)
   }, [])
 
   useEffect(() => {
@@ -222,6 +225,38 @@ export default function AdminPage() {
             )}
           </section>
         ))}
+
+        {/* Uncategorized links */}
+        {uncategorized.length > 0 && (
+          <section className="mb-10">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Uncategorized
+              </h3>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+              {uncategorized.map(link => (
+                <div key={link.id} className="relative group">
+                  <LinkCard link={link} />
+                  <div className="absolute inset-0 rounded-2xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none group-hover:pointer-events-auto">
+                    <button
+                      onClick={e => { e.preventDefault(); setModal({ type: 'edit-link', link }) }}
+                      className="px-2 py-1 text-xs bg-white text-gray-800 rounded-md hover:bg-gray-100 transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={e => { e.preventDefault(); handleDeleteLink(link.id) }}
+                      className="px-2 py-1 text-xs bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Add uncategorized link */}
         <div className="mt-4">

@@ -22,17 +22,18 @@ afterEach(() => {
 })
 
 describe('handleGetCategories', () => {
-  it('returns empty array when no categories', () => {
+  it('returns empty categories and uncategorized arrays when no data', () => {
     const result = handleGetCategories(db)
-    expect(result).toEqual([])
+    expect(result.categories).toEqual([])
+    expect(result.uncategorized).toEqual([])
   })
 
   it('returns categories with embedded links', () => {
     createCategory(db, { name: 'Media' })
     const result = handleGetCategories(db)
-    expect(result).toHaveLength(1)
-    expect(result[0].name).toBe('Media')
-    expect(result[0].links).toEqual([])
+    expect(result.categories).toHaveLength(1)
+    expect(result.categories[0].name).toBe('Media')
+    expect(result.categories[0].links).toEqual([])
   })
 })
 

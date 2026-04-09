@@ -6,11 +6,15 @@ import {
   deleteCategory,
   getCategoryById,
   getCategoriesWithLinks,
+  getUncategorizedLinks,
 } from '@/lib/repositories/categories'
 import type { CreateCategoryInput, UpdateCategoryInput } from '@/lib/types'
 
 export function handleGetCategories(db: Database.Database) {
-  return getCategoriesWithLinks(db)
+  return {
+    categories: getCategoriesWithLinks(db),
+    uncategorized: getUncategorizedLinks(db),
+  }
 }
 
 export function handleCreateCategory(
