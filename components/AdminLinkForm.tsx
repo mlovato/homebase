@@ -100,6 +100,16 @@ export function AdminLinkForm({ categories, initialValues, onSubmit, onCancel }:
     setIconUserEdited(true)
   }
 
+  // Last-chance auto-fill: runs on name blur and on submit when no icon is set yet
+  function tryAutoFillIcon(currentName: string) {
+    if (iconTab !== 'builtin' || serviceSearch.trim()) return
+    const slug = findIconSlug(currentName)
+    if (slug) {
+      setServiceSearch(slug)
+      setIconAutoSlug(slug)
+    }
+  }
+
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -132,7 +142,24 @@ export function AdminLinkForm({ categories, initialValues, onSubmit, onCancel }:
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim() || !url.trim()) return
-    const { icon_type, icon_value } = resolvedIconValue()
+
+    // If no icon set yet, do a last-chance lookup synchronously
+    let effectiveSearch = serviceSearch.trim()
+    if (iconTab === 'builtin' && !effectiveSearch) {
+      const slug = findIconSlug(name)
+      if (slug) {
+        effectiveSearch = slug
+        setServiceSearch(slug)
+        setIconAutoSlug(slug)
+      }
+    }
+
+    const icon_type = iconTab
+    const icon_value =
+      iconTab === 'builtin' ? (effectiveSearch || null) :
+      iconTab === 'upload' ? uploadPath :
+      (iconUrl.trim() || null)
+
     onSubmit({ name: name.trim(), url: url.trim(), icon_type, icon_value, category_id: categoryId })
   }
 
@@ -157,6 +184,7 @@ export function AdminLinkForm({ categories, initialValues, onSubmit, onCancel }:
           type="text"
           value={name}
           onChange={e => handleNameChange(e.target.value)}
+          onBlur={e => tryAutoFillIcon(e.target.value)}
           placeholder="e.g. Plex"
           required
           className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
