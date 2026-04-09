@@ -42,7 +42,7 @@ export function SortableLinkCard({ link, onEdit, onDelete }: SortableLinkCardPro
         </svg>
       </div>
 
-      <LinkCard link={link} />
+      <LinkCard link={link} tooltip={false} />
 
       {/* Edit/Delete overlay */}
       <div className="absolute inset-0 rounded-2xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none group-hover:pointer-events-auto">
