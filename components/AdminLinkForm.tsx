@@ -59,7 +59,7 @@ function findIconSlug(name: string): string | null {
 }
 
 export function AdminLinkForm({ categories, initialValues, onSubmit, onCancel }: AdminLinkFormProps) {
-  const isEdit = initialValues !== undefined
+  const isEdit = !!(initialValues?.name)
   const [name, setName] = useState(initialValues?.name ?? '')
   const [url, setUrl] = useState(initialValues?.url ?? '')
   const [categoryId, setCategoryId] = useState<number | null>(initialValues?.category_id ?? null)
