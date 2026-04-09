@@ -14,9 +14,10 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen retro:bg-retro-bg">
-      <header className="border-b border-gray-200 dark:border-gray-700 retro:border-retro-dim bg-white dark:bg-gray-800 retro:bg-retro-bg px-6 py-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight text-indigo-600 dark:text-indigo-400 retro:text-retro-green">
-          Homebase
+      <header className="border-b border-gray-200 dark:border-gray-700 retro:border-retro-dim bg-white dark:bg-gray-800 retro:bg-retro-bg px-6 py-2 flex items-center justify-between">
+        <h1>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icon.png" alt="Homebase" className="w-16 h-16 object-contain" />
         </h1>
         <a
           href="/admin"

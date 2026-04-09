@@ -33,7 +33,10 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 retro:bg-retro-bg px-4">
       <div className="w-full max-w-sm bg-white dark:bg-gray-800 retro:bg-retro-surface retro:border retro:border-retro-dim retro:rounded-none rounded-2xl shadow-lg p-8">
-        <h1 className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 retro:text-retro-green mb-1">Homebase</h1>
+        <h1 className="mb-1">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icon.png" alt="Homebase" className="w-16 h-16 object-contain" />
+        </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 retro:text-retro-dim mb-6">Admin login</p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
