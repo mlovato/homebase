@@ -85,6 +85,17 @@ describe('handleUpdateLink', () => {
     expect(result.status).toBe(401)
   })
 
+  it('returns 400 when id is NaN', () => {
+    const result = handleUpdateLink(db, NaN, { name: 'Ghost' }, true)
+    expect(result.status).toBe(400)
+  })
+
+  it('returns 400 when icon_type is invalid', () => {
+    const link = createLink(db, { name: 'App', url: 'http://app', icon_type: 'builtin' })
+    const result = handleUpdateLink(db, link.id, { icon_type: 'invalid' as any }, true)
+    expect(result.status).toBe(400)
+  })
+
   it('returns 404 when link not found', () => {
     const result = handleUpdateLink(db, 999, { name: 'Ghost' }, true)
     expect(result.status).toBe(404)
@@ -102,6 +113,11 @@ describe('handleDeleteLink', () => {
     const link = createLink(db, { name: 'App', url: 'http://app', icon_type: 'builtin' })
     const result = handleDeleteLink(db, link.id, false)
     expect(result.status).toBe(401)
+  })
+
+  it('returns 400 when id is NaN', () => {
+    const result = handleDeleteLink(db, NaN, true)
+    expect(result.status).toBe(400)
   })
 
   it('returns 404 when link not found', () => {

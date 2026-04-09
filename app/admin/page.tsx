@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import type { CategoryWithLinks, Link, Category, CreateLinkInput, UpdateLinkInput } from '@/lib/types'
 import { LinksTab, type LinksTabProps } from '@/components/LinksTab'
@@ -23,10 +23,18 @@ export default function AdminPage() {
   const [uncategorized, setUncategorized] = useState<Link[]>([])
   const [modal, setModal] = useState<Modal>({ type: 'none' })
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function showError(msg: string) {
+    setError(msg)
+    if (errorTimerRef.current) clearTimeout(errorTimerRef.current)
+    errorTimerRef.current = setTimeout(() => setError(null), 5000)
+  }
 
   const loadCategories = useCallback(async () => {
     const res = await fetch('/api/categories')
-    if (!res.ok) return
+    if (!res.ok) { showError('Failed to load links. Please refresh.'); return }
     const data = await res.json()
     setCategories(data.categories)
     setUncategorized(data.uncategorized)
@@ -44,54 +52,62 @@ export default function AdminPage() {
 
   // ── Category handlers ─────────────────────────────────────────────────────
 
+  async function apiCall(fn: () => Promise<Response>, successFn?: () => void): Promise<boolean> {
+    try {
+      const res = await fn()
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        showError(data.error ?? `Request failed (${res.status})`)
+        return false
+      }
+      successFn?.()
+      return true
+    } catch {
+      showError('Network error — please check your connection.')
+      return false
+    }
+  }
+
   async function handleCreateCategory(data: { name: string }) {
-    const res = await fetch('/api/categories', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    })
-    if (res.ok) { setModal({ type: 'none' }); await loadCategories() }
+    const ok = await apiCall(
+      () => fetch('/api/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+    )
+    if (ok) { setModal({ type: 'none' }); await loadCategories() }
   }
 
   async function handleUpdateCategory(id: number, data: { name: string }) {
-    const res = await fetch(`/api/categories/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    })
-    if (res.ok) { setModal({ type: 'none' }); await loadCategories() }
+    const ok = await apiCall(
+      () => fetch(`/api/categories/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+    )
+    if (ok) { setModal({ type: 'none' }); await loadCategories() }
   }
 
   async function handleDeleteCategory(id: number) {
     if (!confirm('Delete this category? Links will become uncategorized.')) return
-    await fetch(`/api/categories/${id}`, { method: 'DELETE' })
-    await loadCategories()
+    const ok = await apiCall(() => fetch(`/api/categories/${id}`, { method: 'DELETE' }))
+    if (ok) await loadCategories()
   }
 
   // ── Link handlers ─────────────────────────────────────────────────────────
 
   async function handleCreateLink(data: CreateLinkInput) {
-    const res = await fetch('/api/links', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    })
-    if (res.ok) { setModal({ type: 'none' }); await loadCategories() }
+    const ok = await apiCall(
+      () => fetch('/api/links', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+    )
+    if (ok) { setModal({ type: 'none' }); await loadCategories() }
   }
 
   async function handleUpdateLink(id: number, data: Partial<UpdateLinkInput>) {
-    const res = await fetch(`/api/links/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    })
-    if (res.ok) { setModal({ type: 'none' }); await loadCategories() }
+    const ok = await apiCall(
+      () => fetch(`/api/links/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+    )
+    if (ok) { setModal({ type: 'none' }); await loadCategories() }
   }
 
   async function handleDeleteLink(id: number) {
     if (!confirm('Delete this link?')) return
-    await fetch(`/api/links/${id}`, { method: 'DELETE' })
-    await loadCategories()
+    const ok = await apiCall(() => fetch(`/api/links/${id}`, { method: 'DELETE' }))
+    if (ok) await loadCategories()
   }
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
@@ -176,6 +192,12 @@ export default function AdminPage() {
         </aside>
 
         <main className="flex-1 overflow-y-auto p-8 retro:bg-retro-bg">
+          {error && (
+            <div className="mb-6 flex items-center justify-between gap-4 px-4 py-3 rounded-lg bg-red-50 dark:bg-red-900/20 retro:bg-transparent retro:border retro:border-retro-green border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 retro:text-retro-green text-sm">
+              <span>{error}</span>
+              <button onClick={() => setError(null)} className="shrink-0 text-red-400 hover:text-red-600 retro:text-retro-dim retro:hover:text-retro-green">✕</button>
+            </div>
+          )}
           {tab === 'links' && (
             <LinksTab
               categories={categories}

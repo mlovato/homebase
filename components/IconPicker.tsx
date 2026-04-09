@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useIconSearch } from '@/lib/hooks/useIconSearch'
 import type { IconType } from '@/lib/types'
 import { DASHBOARD_ICONS_CDN } from '@/lib/constants'
@@ -31,6 +31,9 @@ export function IconPicker({ value, onChange, serviceName }: IconPickerProps) {
   const [userEdited, setUserEdited] = useState(!!value.icon_value)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  // Stable ref so effects always call the latest onChange without it as a dep
+  const onChangeRef = useRef(onChange)
+  useEffect(() => { onChangeRef.current = onChange })
 
   const { suggestions } = useIconSearch(searchQuery)
 
@@ -41,13 +44,15 @@ export function IconPicker({ value, onChange, serviceName }: IconPickerProps) {
   }, [serviceName, userEdited, tab])
 
   // Auto-select first suggestion from service name auto-search
+  const autoSelect = useCallback((slug: string) => {
+    setSlug(slug)
+    onChangeRef.current({ icon_type: 'builtin', icon_value: slug })
+  }, [])
+
   useEffect(() => {
     if (userEdited || tab !== 'builtin') return
-    if (suggestions.length > 0) {
-      setSlug(suggestions[0].slug)
-      onChange({ icon_type: 'builtin', icon_value: suggestions[0].slug })
-    }
-  }, [suggestions, userEdited, tab]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (suggestions.length > 0) autoSelect(suggestions[0].slug)
+  }, [suggestions, userEdited, tab, autoSelect])
 
   // Close dropdown on outside click
   useEffect(() => {

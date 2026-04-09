@@ -75,6 +75,11 @@ describe('handleUpdateCategory', () => {
     expect(result.status).toBe(401)
   })
 
+  it('returns 400 when id is NaN', () => {
+    const result = handleUpdateCategory(db, NaN, { name: 'Ghost' }, true)
+    expect(result.status).toBe(400)
+  })
+
   it('returns 404 when category not found', () => {
     const result = handleUpdateCategory(db, 999, { name: 'Ghost' }, true)
     expect(result.status).toBe(404)
@@ -92,6 +97,11 @@ describe('handleDeleteCategory', () => {
     const cat = createCategory(db, { name: 'Safe' })
     const result = handleDeleteCategory(db, cat.id, false)
     expect(result.status).toBe(401)
+  })
+
+  it('returns 400 when id is NaN', () => {
+    const result = handleDeleteCategory(db, NaN, true)
+    expect(result.status).toBe(400)
   })
 
   it('returns 404 when category not found', () => {
