@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import type { CategoryWithLinks, Link, Category, CreateLinkInput, UpdateLinkInput } from '@/lib/types'
 import { HEALTH_CHECK_INTERVALS, INTERVAL_TO_MS } from '@/lib/types'
@@ -156,6 +156,10 @@ export default function AdminPage() {
   }
 
   const allCategories: Category[] = categories.map(({ links: _, ...c }) => c)
+  const allUrls = useMemo(
+    () => [...categories.flatMap(c => c.links.map(l => l.url)), ...uncategorized.map(l => l.url)],
+    [categories, uncategorized]
+  )
 
   const navItem = (t: Tab, label: string, icon: React.ReactNode) => (
     <button
@@ -213,12 +217,8 @@ export default function AdminPage() {
               <button onClick={() => setError(null)} className="shrink-0 text-red-400 hover:text-red-600 retro:text-retro-dim retro:hover:text-retro-green">✕</button>
             </div>
           )}
-          {tab === 'links' && (() => {
-            const allUrls = [
-              ...categories.flatMap(c => c.links.map(l => l.url)),
-              ...uncategorized.map(l => l.url),
-            ]
-            const linksTab = (
+          {tab === 'links' && (
+            <HealthCheckProvider urls={allUrls} intervalMs={intervalMs}>
               <LinksTab
                 categories={categories}
                 uncategorized={uncategorized}
@@ -236,11 +236,8 @@ export default function AdminPage() {
                 handleDragEnd={handleDragEnd}
                 intervalMs={intervalMs}
               />
-            )
-            return intervalMs !== null
-              ? <HealthCheckProvider urls={allUrls} intervalMs={intervalMs}>{linksTab}</HealthCheckProvider>
-              : linksTab
-          })()}
+            </HealthCheckProvider>
+          )}
           {tab === 'settings' && (
             <SettingsTab onIntervalChange={v => setIntervalMs(INTERVAL_TO_MS[v])} />
           )}

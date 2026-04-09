@@ -73,9 +73,7 @@ export default function DashboardPage() {
         </a>
       </header>
 
-      {intervalMs !== null
-        ? <HealthCheckProvider urls={allUrls} intervalMs={intervalMs}>{content}</HealthCheckProvider>
-        : content}
+      <HealthCheckProvider urls={allUrls} intervalMs={intervalMs}>{content}</HealthCheckProvider>
     </main>
   )
 }

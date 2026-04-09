@@ -9,6 +9,7 @@ function mockXhr(response: Record<string, string>) {
   const xhr = {
     open: jest.fn(),
     send: jest.fn(),
+    abort: jest.fn(),
     onload: null as (() => void) | null,
     onerror: null as (() => void) | null,
     responseText: JSON.stringify(response),
@@ -92,6 +93,16 @@ describe('HealthCheckProvider', () => {
     const xhr = mockXhr({})
     render(
       <HealthCheckProvider urls={[]} intervalMs={10000}>
+        <span />
+      </HealthCheckProvider>
+    )
+    expect(xhr.send).not.toHaveBeenCalled()
+  })
+
+  it('does not make a request when intervalMs is null', () => {
+    const xhr = mockXhr({})
+    render(
+      <HealthCheckProvider urls={['http://a.local']} intervalMs={null}>
         <span />
       </HealthCheckProvider>
     )
