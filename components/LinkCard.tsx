@@ -2,42 +2,21 @@
 
 import type { Link } from '@/lib/types'
 
-interface SimpleIcon {
-  title: string
-  hex: string
-  path: string
-}
-
-function getBuiltinIcon(slug: string): SimpleIcon | null {
-  try {
-    // Dynamic require to keep component testable without ESM issues
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const icons = require('simple-icons')
-    const key = `si${slug.charAt(0).toUpperCase()}${slug.slice(1)}`
-    return (icons[key] as SimpleIcon) ?? null
-  } catch {
-    return null
-  }
-}
+const CDN_BASE = 'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg'
 
 function IconDisplay({ link }: { link: Link }) {
   const initial = link.name.charAt(0).toUpperCase()
 
   if (link.icon_type === 'builtin' && link.icon_value) {
-    const icon = getBuiltinIcon(link.icon_value)
-    if (icon) {
-      return (
-        <svg
-          role="img"
-          viewBox="0 0 24 24"
-          className="w-12 h-12"
-          fill={`#${icon.hex}`}
-          aria-label={link.name}
-        >
-          <path d={icon.path} />
-        </svg>
-      )
-    }
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={`${CDN_BASE}/${link.icon_value}.svg`}
+        alt={link.name}
+        className="w-12 h-12 object-contain"
+        onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+      />
+    )
   }
 
   if ((link.icon_type === 'upload' || link.icon_type === 'url') && link.icon_value) {
@@ -51,7 +30,6 @@ function IconDisplay({ link }: { link: Link }) {
     )
   }
 
-  // Fallback: letter avatar
   return (
     <div className="w-12 h-12 rounded-full retro:rounded-none bg-indigo-500 retro:bg-transparent retro:border retro:border-retro-green flex items-center justify-center text-white retro:text-retro-green text-xl font-bold select-none">
       {initial}
