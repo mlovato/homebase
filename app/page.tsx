@@ -13,14 +13,14 @@ export default function DashboardPage() {
   const hasContent = categories.some(c => c.links.length > 0) || uncategorized.length > 0
 
   return (
-    <main className="min-h-screen">
-      <header className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight text-indigo-600 dark:text-indigo-400">
+    <main className="min-h-screen retro:bg-retro-bg">
+      <header className="border-b border-gray-200 dark:border-gray-700 retro:border-retro-dim bg-white dark:bg-gray-800 retro:bg-retro-bg px-6 py-4 flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight text-indigo-600 dark:text-indigo-400 retro:text-retro-green">
           Dashy
         </h1>
         <a
           href="/admin"
-          className="text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+          className="text-sm text-gray-500 dark:text-gray-400 retro:text-retro-dim hover:text-indigo-600 dark:hover:text-indigo-400 retro:hover:text-retro-green transition-colors"
         >
           Admin
         </a>
@@ -49,7 +49,7 @@ export default function DashboardPage() {
 
         {uncategorized.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 px-1">
+            <h2 className="text-lg font-semibold text-gray-500 dark:text-gray-400 retro:text-retro-dim uppercase tracking-wider mb-4 px-1">
               Other
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">

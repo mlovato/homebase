@@ -3,11 +3,67 @@
 /* Enable class-based dark mode for manual theme switching */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Retro terminal theme variant */
+@custom-variant retro (&:where(.retro, .retro *));
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Retro palette — available as bg-retro-*, text-retro-*, border-retro-* */
+  --color-retro-bg:      #0a0a0a;
+  --color-retro-surface: #0f0f0f;
+  --color-retro-green:   #00ff41;
+  --color-retro-dim:     #00882b;
 }
 
 body {
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ── Retro theme global overrides ────────────────────────────────────────── */
+
+html.retro {
+  font-family: 'Courier New', Courier, monospace;
+  color-scheme: dark;
+}
+
+/* Scanline overlay */
+html.retro body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.07) 2px,
+    rgba(0, 0, 0, 0.07) 4px
+  );
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* Form controls */
+html.retro input,
+html.retro select,
+html.retro textarea {
+  background-color: #0a0a0a !important;
+  color: #00ff41 !important;
+  border-color: #00882b !important;
+}
+html.retro input:focus,
+html.retro select:focus,
+html.retro textarea:focus {
+  border-color: #00ff41 !important;
+  box-shadow: 0 0 0 2px rgba(0, 255, 65, 0.25) !important;
+  outline: none !important;
+}
+html.retro input::placeholder,
+html.retro textarea::placeholder {
+  color: #005219 !important;
+}
+html.retro option {
+  background-color: #0a0a0a;
+  color: #00ff41;
 }

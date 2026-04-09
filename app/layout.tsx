@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={`${geist.variable} h-full antialiased`}>
-      <body suppressHydrationWarning className="min-h-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+      <body suppressHydrationWarning className="min-h-full bg-gray-50 dark:bg-gray-900 retro:bg-retro-bg text-gray-900 dark:text-gray-100 retro:text-retro-green">
         <ThemeProvider>
           {children}
         </ThemeProvider>
