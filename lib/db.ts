@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3'
 import path from 'path'
 
-const DB_PATH = path.join(process.cwd(), 'dashy.db')
+const DB_PATH = process.env.DATABASE_PATH ?? path.join(process.cwd(), 'dashy.db')
 
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS categories (
