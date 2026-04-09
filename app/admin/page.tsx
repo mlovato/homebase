@@ -5,7 +5,16 @@ import { useRouter } from 'next/navigation'
 import type { CategoryWithLinks, Link, Category } from '@/lib/types'
 import { AdminCategoryForm } from '@/components/AdminCategoryForm'
 import { AdminLinkForm } from '@/components/AdminLinkForm'
-import { LinkCard } from '@/components/LinkCard'
+import { SortableLinkCard } from '@/components/SortableLinkCard'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
 
 type Modal =
   | { type: 'none' }
@@ -101,6 +110,46 @@ export default function AdminPage() {
     if (!confirm('Delete this link?')) return
     await fetch(`/api/links/${id}`, { method: 'DELETE' })
     await loadCategories()
+  }
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+
+  async function handleDragEnd(event: DragEndEvent, categoryId: number | null) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const isCategorized = categoryId !== null
+    const list = isCategorized
+      ? categories.find(c => c.id === categoryId)?.links ?? []
+      : uncategorized
+
+    const oldIndex = list.findIndex(l => l.id === active.id)
+    const newIndex = list.findIndex(l => l.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    // Optimistically reorder in state
+    const reordered = [...list]
+    const [moved] = reordered.splice(oldIndex, 1)
+    reordered.splice(newIndex, 0, moved)
+
+    if (isCategorized) {
+      setCategories(prev =>
+        prev.map(c => c.id === categoryId ? { ...c, links: reordered } : c)
+      )
+    } else {
+      setUncategorized(reordered)
+    }
+
+    // Persist new sort_order for each affected link
+    await Promise.all(
+      reordered.map((link, index) =>
+        fetch(`/api/links/${link.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sort_order: index }),
+        })
+      )
+    )
   }
 
   const allCategories: Category[] = categories.map(({ links: _, ...c }) => c)
@@ -200,28 +249,20 @@ export default function AdminPage() {
                 </button>
               </p>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-                {category.links.map(link => (
-                  <div key={link.id} className="relative group">
-                    <LinkCard link={link} />
-                    {/* Edit/Delete overlay */}
-                    <div className="absolute inset-0 rounded-2xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none group-hover:pointer-events-auto">
-                      <button
-                        onClick={e => { e.preventDefault(); setModal({ type: 'edit-link', link }) }}
-                        className="px-2 py-1 text-xs bg-white text-gray-800 rounded-md hover:bg-gray-100 transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={e => { e.preventDefault(); handleDeleteLink(link.id) }}
-                        className="px-2 py-1 text-xs bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={e => handleDragEnd(e, category.id)}>
+                <SortableContext items={category.links.map(l => l.id)} strategy={rectSortingStrategy}>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+                    {category.links.map(link => (
+                      <SortableLinkCard
+                        key={link.id}
+                        link={link}
+                        onEdit={link => setModal({ type: 'edit-link', link })}
+                        onDelete={handleDeleteLink}
+                      />
+                    ))}
                   </div>
-                ))}
-              </div>
+                </SortableContext>
+              </DndContext>
             )}
           </section>
         ))}
@@ -234,27 +275,20 @@ export default function AdminPage() {
                 Uncategorized
               </h3>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-              {uncategorized.map(link => (
-                <div key={link.id} className="relative group">
-                  <LinkCard link={link} />
-                  <div className="absolute inset-0 rounded-2xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none group-hover:pointer-events-auto">
-                    <button
-                      onClick={e => { e.preventDefault(); setModal({ type: 'edit-link', link }) }}
-                      className="px-2 py-1 text-xs bg-white text-gray-800 rounded-md hover:bg-gray-100 transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={e => { e.preventDefault(); handleDeleteLink(link.id) }}
-                      className="px-2 py-1 text-xs bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-                    >
-                      Delete
-                    </button>
-                  </div>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={e => handleDragEnd(e, null)}>
+              <SortableContext items={uncategorized.map(l => l.id)} strategy={rectSortingStrategy}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+                  {uncategorized.map(link => (
+                    <SortableLinkCard
+                      key={link.id}
+                      link={link}
+                      onEdit={link => setModal({ type: 'edit-link', link })}
+                      onDelete={handleDeleteLink}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           </section>
         )}
 
