@@ -69,10 +69,10 @@ export function LinkCard({ link }: LinkCardProps) {
       href={link.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-white dark:bg-gray-800 shadow hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group"
+      className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl bg-white dark:bg-gray-800 shadow hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group h-32 w-full"
     >
       <IconDisplay link={link} />
-      <span className="text-sm font-medium text-gray-700 dark:text-gray-200 text-center leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+      <span className="text-sm font-medium text-gray-700 dark:text-gray-200 text-center leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 w-full truncate px-1">
         {link.name}
       </span>
     </a>
