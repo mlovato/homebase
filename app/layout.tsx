@@ -11,6 +11,10 @@ const geist = Geist({
 export const metadata: Metadata = {
   title: "Homebase",
   description: "Your personal service dashboard",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({
