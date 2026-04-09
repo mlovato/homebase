@@ -187,12 +187,7 @@ export default function AdminPage() {
             v{process.env.NEXT_PUBLIC_APP_VERSION}
           </span>
         </div>
-        <div className="flex items-center gap-4">
-          <a href="/" className="text-sm text-gray-500 retro:text-retro-dim hover:text-indigo-600 retro:hover:text-retro-green transition-colors">← Dashboard</a>
-          <button onClick={handleLogout} className="text-sm text-gray-500 retro:text-retro-dim hover:text-red-500 retro:hover:text-retro-green transition-colors">
-            Sign out
-          </button>
-        </div>
+        <a href="/" className="text-sm text-gray-500 retro:text-retro-dim hover:text-indigo-600 retro:hover:text-retro-green transition-colors">← Dashboard</a>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
@@ -208,6 +203,17 @@ export default function AdminPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           )}
+          <div className="mt-auto pt-2 border-t border-gray-200 dark:border-gray-700 retro:border-retro-dim">
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg retro:rounded-none text-sm font-medium text-gray-600 dark:text-gray-400 retro:text-retro-dim hover:bg-gray-100 dark:hover:bg-gray-700 retro:hover:bg-transparent hover:text-red-500 retro:hover:text-retro-green transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Sign out
+            </button>
+          </div>
         </aside>
 
         <main className="flex-1 overflow-y-auto p-8 retro:bg-retro-bg">
