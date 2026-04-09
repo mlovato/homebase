@@ -33,6 +33,29 @@ export function isValidShortcut(shortcut: string): boolean {
   return /^(mod\+)?[a-z0-9`~!@#$%^&*()\-=[\]\\;',./ ]$/i.test(shortcut)
 }
 
+export const VALID_ICON_TYPES: IconType[] = ['builtin', 'upload', 'url']
+
+export interface ExportedLink {
+  name: string
+  url: string
+  icon_type: IconType
+  icon_value: string | null
+  sort_order: number
+}
+
+export interface ExportedCategory {
+  name: string
+  sort_order: number
+  links: ExportedLink[]
+}
+
+export interface ExportData {
+  version: 1
+  exported_at: string
+  categories: ExportedCategory[]
+  uncategorized: ExportedLink[]
+}
+
 export interface Category {
   id: number
   name: string

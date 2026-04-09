@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTheme } from 'next-themes'
 import type { HealthCheckInterval, SearchShortcut } from '@/lib/types'
 import { HEALTH_CHECK_INTERVALS, DEFAULT_SEARCH_SHORTCUT, isValidShortcut } from '@/lib/types'
@@ -52,6 +52,8 @@ const INTERVAL_LABELS: Record<HealthCheckInterval, string> = {
   'never': 'Never',
 }
 
+const actionButtonClass = 'px-4 py-2 rounded-lg retro:rounded-none border-2 border-gray-200 dark:border-gray-600 retro:border-retro-dim text-sm font-medium text-gray-600 dark:text-gray-300 retro:text-retro-green hover:border-indigo-400 dark:hover:border-indigo-500 retro:hover:border-retro-green transition-colors'
+
 interface SettingsTabProps {
   onIntervalChange?: (value: HealthCheckInterval) => void
 }
@@ -60,6 +62,8 @@ export function SettingsTab({ onIntervalChange }: SettingsTabProps = {}) {
   const { theme, setTheme } = useTheme()
   const [interval, setInterval] = useState<HealthCheckInterval>('30s')
   const [shortcut, setShortcut] = useState<SearchShortcut>(DEFAULT_SEARCH_SHORTCUT)
+  const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetch('/api/settings')
@@ -79,6 +83,47 @@ export function SettingsTab({ onIntervalChange }: SettingsTabProps = {}) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ health_check_interval: value }),
     }).catch(() => {})
+  }
+
+  async function handleExport() {
+    const res = await fetch('/api/export')
+    if (!res.ok) return
+    const data = await res.json()
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `homebase-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+
+    const text = await file.text()
+    try { JSON.parse(text) } catch {
+      setImportMsg({ ok: false, text: 'Invalid JSON file.' })
+      return
+    }
+
+    if (!confirm('This will replace ALL existing links and categories. Continue?')) return
+
+    const res = await fetch('/api/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: text,
+    }).catch(() => null)
+
+    if (!res || !res.ok) {
+      const err = await res?.json().catch(() => ({}))
+      setImportMsg({ ok: false, text: err?.error ?? 'Import failed.' })
+    } else {
+      setImportMsg({ ok: true, text: 'Imported successfully.' })
+      setTimeout(() => setImportMsg(null), 4000)
+    }
   }
 
   function updateShortcut(value: SearchShortcut) {
@@ -124,6 +169,29 @@ export function SettingsTab({ onIntervalChange }: SettingsTabProps = {}) {
           <span className="text-sm text-gray-600 dark:text-gray-300 retro:text-retro-green w-28">Open search</span>
           <ShortcutRecorder value={shortcut} onChange={updateShortcut} />
         </div>
+      </section>
+
+      <section className="mb-10">
+        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 retro:text-retro-dim uppercase tracking-wider mb-4">
+          Import / Export
+        </h3>
+        <div className="flex gap-3">
+          <button onClick={handleExport} className={actionButtonClass}>
+            Export JSON
+          </button>
+          <button onClick={() => fileInputRef.current?.click()} className={actionButtonClass}>
+            Import JSON
+          </button>
+          <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportFile} />
+        </div>
+        {importMsg && (
+          <p className={`mt-3 text-xs ${importMsg.ok ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'} retro:text-retro-green`}>
+            {importMsg.text}
+          </p>
+        )}
+        <p className="mt-3 text-xs text-gray-400 dark:text-gray-500 retro:text-retro-dim">
+          Export saves all links and categories to a JSON file. Import replaces all existing data.
+        </p>
       </section>
 
       <section>

@@ -7,8 +7,7 @@ import {
   getLinkById,
 } from '@/lib/repositories/links'
 import type { CreateLinkInput, UpdateLinkInput, IconType } from '@/lib/types'
-
-const VALID_ICON_TYPES: IconType[] = ['builtin', 'upload', 'url']
+import { VALID_ICON_TYPES } from '@/lib/types'
 
 export function handleGetLinks(db: Database.Database) {
   return getAllLinks(db)
