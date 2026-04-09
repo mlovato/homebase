@@ -2,6 +2,13 @@ import { render, screen } from '@testing-library/react'
 import { CategorySection } from './CategorySection'
 import type { CategoryWithLinks } from '@/lib/types'
 
+beforeEach(() => {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ status: 'up' }),
+  })
+})
+
 const category: CategoryWithLinks = {
   id: 1,
   name: 'Media',

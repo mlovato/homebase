@@ -2,6 +2,13 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { LinkCard } from './LinkCard'
 import type { Link } from '@/lib/types'
 
+beforeEach(() => {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ status: 'up' }),
+  })
+})
+
 const baseLink: Link = {
   id: 1,
   category_id: 1,
@@ -80,5 +87,10 @@ describe('LinkCard', () => {
     render(<LinkCard link={{ ...baseLink, icon_value: 'myservice' }} />)
     fireEvent.error(screen.getByRole('img'))
     expect(screen.getByRole('img')).toHaveAttribute('src', expect.stringContaining('myservice-light.svg'))
+  })
+
+  it('renders a status dot', () => {
+    render(<LinkCard link={baseLink} />)
+    expect(screen.getByRole('status')).toBeInTheDocument()
   })
 })

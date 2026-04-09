@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { Link } from '@/lib/types'
 import { DASHBOARD_ICONS_CDN } from '@/lib/constants'
+import { StatusDot } from './StatusDot'
 
 // Tries base slug → -light variant → -dark variant → letter avatar
 function BuiltinIcon({ slug, name }: { slug: string; name: string }) {
@@ -65,8 +66,9 @@ export function LinkCard({ link, tooltip = true }: LinkCardProps) {
       target="_blank"
       rel="noopener noreferrer"
       title={tooltip ? link.name : undefined}
-      className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl bg-white dark:bg-gray-800 retro:bg-retro-surface retro:rounded-none retro:border retro:border-retro-dim retro:shadow-none retro:hover:border-retro-green shadow hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group h-32 w-full"
+      className="relative flex flex-col items-center justify-center gap-3 p-5 rounded-2xl bg-white dark:bg-gray-800 retro:bg-retro-surface retro:rounded-none retro:border retro:border-retro-dim retro:shadow-none retro:hover:border-retro-green shadow hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group h-32 w-full"
     >
+      <StatusDot url={link.url} />
       <IconDisplay link={link} />
       <span className="text-sm font-medium text-gray-700 dark:text-gray-200 retro:text-retro-green text-center leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 retro:group-hover:text-retro-green w-full truncate px-1">
         {link.name}
