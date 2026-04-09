@@ -1,22 +1,38 @@
 'use client'
 
+import { useState } from 'react'
 import type { Link } from '@/lib/types'
 
 const CDN_BASE = 'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg'
 
-function IconDisplay({ link }: { link: Link }) {
-  const initial = link.name.charAt(0).toUpperCase()
+// Tries base slug → -light variant → -dark variant → letter avatar
+function BuiltinIcon({ slug, name }: { slug: string; name: string }) {
+  const variants = [`${slug}.svg`, `${slug}-light.svg`, `${slug}-dark.svg`]
+  const [attempt, setAttempt] = useState(0)
+  const initial = name.charAt(0).toUpperCase()
 
-  if (link.icon_type === 'builtin' && link.icon_value) {
+  if (attempt >= variants.length) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={`${CDN_BASE}/${link.icon_value}.svg`}
-        alt={link.name}
-        className="w-12 h-12 object-contain"
-        onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-      />
+      <div className="w-12 h-12 rounded-full retro:rounded-none bg-indigo-500 retro:bg-transparent retro:border retro:border-retro-green flex items-center justify-center text-white retro:text-retro-green text-xl font-bold select-none">
+        {initial}
+      </div>
     )
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`${CDN_BASE}/${variants[attempt]}`}
+      alt={name}
+      className="w-12 h-12 object-contain"
+      onError={() => setAttempt(a => a + 1)}
+    />
+  )
+}
+
+function IconDisplay({ link }: { link: Link }) {
+  if (link.icon_type === 'builtin' && link.icon_value) {
+    return <BuiltinIcon slug={link.icon_value} name={link.name} />
   }
 
   if ((link.icon_type === 'upload' || link.icon_type === 'url') && link.icon_value) {
@@ -30,6 +46,7 @@ function IconDisplay({ link }: { link: Link }) {
     )
   }
 
+  const initial = link.name.charAt(0).toUpperCase()
   return (
     <div className="w-12 h-12 rounded-full retro:rounded-none bg-indigo-500 retro:bg-transparent retro:border retro:border-retro-green flex items-center justify-center text-white retro:text-retro-green text-xl font-bold select-none">
       {initial}
