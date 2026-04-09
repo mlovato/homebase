@@ -16,7 +16,9 @@ export async function checkHealth(
       redirect: 'follow',
     })
     clearTimeout(timer)
-    return res.ok ? 'up' : 'down'
+    // Any HTTP response means the service is reachable (401/403 = auth required but running)
+    void res
+    return 'up'
   } catch {
     return 'down'
   }

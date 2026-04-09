@@ -21,14 +21,19 @@ describe('checkHealth', () => {
     expect(result).toBe<HealthStatus>('up')
   })
 
-  it('returns "down" for a 500 response', async () => {
+  it('returns "up" for a 500 response (service is reachable)', async () => {
     const result = await checkHealth('http://broken.local', mockFetch(500))
-    expect(result).toBe<HealthStatus>('down')
+    expect(result).toBe<HealthStatus>('up')
   })
 
-  it('returns "down" for a 404 response', async () => {
+  it('returns "up" for a 401 response (auth required but running)', async () => {
+    const result = await checkHealth('http://plex.local:32400', mockFetch(401))
+    expect(result).toBe<HealthStatus>('up')
+  })
+
+  it('returns "up" for a 404 response (server responded)', async () => {
     const result = await checkHealth('http://missing.local', mockFetch(404))
-    expect(result).toBe<HealthStatus>('down')
+    expect(result).toBe<HealthStatus>('up')
   })
 
   it('returns "down" when fetch throws (host unreachable)', async () => {
