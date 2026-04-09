@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3'
-import type { HealthCheckInterval } from '@/lib/types'
-import { DEFAULT_HEALTH_CHECK_INTERVAL, HEALTH_CHECK_INTERVALS } from '@/lib/types'
+import type { HealthCheckInterval, SearchShortcut } from '@/lib/types'
+import { DEFAULT_HEALTH_CHECK_INTERVAL, HEALTH_CHECK_INTERVALS, DEFAULT_SEARCH_SHORTCUT } from '@/lib/types'
 
 export function getSetting(db: Database.Database, key: string): string | undefined {
   const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as { value: string } | undefined
@@ -17,4 +17,8 @@ export function getHealthCheckInterval(db: Database.Database): HealthCheckInterv
     return stored as HealthCheckInterval
   }
   return DEFAULT_HEALTH_CHECK_INTERVAL
+}
+
+export function getSearchShortcut(db: Database.Database): SearchShortcut {
+  return getSetting(db, 'search_shortcut') ?? DEFAULT_SEARCH_SHORTCUT
 }

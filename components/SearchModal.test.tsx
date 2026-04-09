@@ -12,30 +12,32 @@ const links = [
   { id: 3, name: 'Gitea', url: 'http://gitea.local', icon_type: 'builtin' as const, icon_value: 'gitea' },
 ]
 
-function open() {
-  fireEvent.keyDown(document, { key: 'k', metaKey: true })
+function open(shortcut = 'mod+k') {
+  if (shortcut === 'mod+k') fireEvent.keyDown(document, { key: 'k', metaKey: true })
+  else if (shortcut === '/') fireEvent.keyDown(document, { key: '/' })
+  else if (shortcut === 'mod+/') fireEvent.keyDown(document, { key: '/', metaKey: true })
 }
 
 describe('SearchModal', () => {
   it('is closed by default', () => {
-    render(<SearchModal links={links} />)
+    render(<SearchModal links={links} shortcut="mod+k" />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('opens on ⌘K', () => {
-    render(<SearchModal links={links} />)
+    render(<SearchModal links={links} shortcut="mod+k" />)
     open()
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
   it('opens on Ctrl+K', () => {
-    render(<SearchModal links={links} />)
+    render(<SearchModal links={links} shortcut="mod+k" />)
     fireEvent.keyDown(document, { key: 'k', ctrlKey: true })
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
   it('shows all links when query is empty', () => {
-    render(<SearchModal links={links} />)
+    render(<SearchModal links={links} shortcut="mod+k" />)
     open()
     expect(screen.getByText('Grafana')).toBeInTheDocument()
     expect(screen.getByText('Prometheus')).toBeInTheDocument()
@@ -43,7 +45,7 @@ describe('SearchModal', () => {
   })
 
   it('filters results by name (case-insensitive)', async () => {
-    render(<SearchModal links={links} />)
+    render(<SearchModal links={links} shortcut="mod+k" />)
     open()
     await userEvent.type(screen.getByRole('combobox'), 'GIT')
     expect(screen.queryByText('Grafana')).not.toBeInTheDocument()
@@ -52,21 +54,21 @@ describe('SearchModal', () => {
   })
 
   it('shows a no-results message when nothing matches', async () => {
-    render(<SearchModal links={links} />)
+    render(<SearchModal links={links} shortcut="mod+k" />)
     open()
     await userEvent.type(screen.getByRole('combobox'), 'zzznomatch')
     expect(screen.getByText(/no results/i)).toBeInTheDocument()
   })
 
   it('closes on Escape', () => {
-    render(<SearchModal links={links} />)
+    render(<SearchModal links={links} shortcut="mod+k" />)
     open()
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('clears query when reopened', async () => {
-    render(<SearchModal links={links} />)
+    render(<SearchModal links={links} shortcut="mod+k" />)
     open()
     await userEvent.type(screen.getByRole('combobox'), 'git')
     fireEvent.keyDown(document, { key: 'Escape' })
@@ -75,7 +77,7 @@ describe('SearchModal', () => {
   })
 
   it('first result is selected by default', () => {
-    render(<SearchModal links={links} />)
+    render(<SearchModal links={links} shortcut="mod+k" />)
     open()
     const options = screen.getAllByRole('option')
     expect(options[0]).toHaveAttribute('aria-selected', 'true')
@@ -83,7 +85,7 @@ describe('SearchModal', () => {
   })
 
   it('ArrowDown moves selection to next item', () => {
-    render(<SearchModal links={links} />)
+    render(<SearchModal links={links} shortcut="mod+k" />)
     open()
     fireEvent.keyDown(screen.getByRole('combobox'), { key: 'ArrowDown' })
     const options = screen.getAllByRole('option')
@@ -92,7 +94,7 @@ describe('SearchModal', () => {
   })
 
   it('ArrowUp moves selection to previous item', () => {
-    render(<SearchModal links={links} />)
+    render(<SearchModal links={links} shortcut="mod+k" />)
     open()
     fireEvent.keyDown(screen.getByRole('combobox'), { key: 'ArrowDown' })
     fireEvent.keyDown(screen.getByRole('combobox'), { key: 'ArrowUp' })
@@ -101,7 +103,7 @@ describe('SearchModal', () => {
   })
 
   it('ArrowDown wraps from last to first', () => {
-    render(<SearchModal links={links} />)
+    render(<SearchModal links={links} shortcut="mod+k" />)
     open()
     fireEvent.keyDown(screen.getByRole('combobox'), { key: 'ArrowDown' })
     fireEvent.keyDown(screen.getByRole('combobox'), { key: 'ArrowDown' })
@@ -111,18 +113,36 @@ describe('SearchModal', () => {
   })
 
   it('Enter navigates to selected result url', () => {
-    render(<SearchModal links={links} />)
+    render(<SearchModal links={links} shortcut="mod+k" />)
     open()
     const options = screen.getAllByRole('option')
     expect(options[0].closest('a')).toHaveAttribute('href', 'http://grafana.local')
   })
 
   it('resets selection to first when query changes', async () => {
-    render(<SearchModal links={links} />)
+    render(<SearchModal links={links} shortcut="mod+k" />)
     open()
     fireEvent.keyDown(screen.getByRole('combobox'), { key: 'ArrowDown' })
     await userEvent.type(screen.getByRole('combobox'), 'a')
     const options = screen.getAllByRole('option')
     expect(options[0]).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('opens with / shortcut', () => {
+    render(<SearchModal links={links} shortcut="/" />)
+    open('/')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('does not open with mod+k when shortcut is /', () => {
+    render(<SearchModal links={links} shortcut="/" />)
+    open('mod+k')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('opens with mod+/ shortcut', () => {
+    render(<SearchModal links={links} shortcut="mod+/" />)
+    open('mod+/')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 })

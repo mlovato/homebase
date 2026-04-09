@@ -1,6 +1,6 @@
 import { getDb } from '@/lib/db'
 import { getCategoriesWithLinks, getUncategorizedLinks } from '@/lib/repositories/categories'
-import { getHealthCheckInterval } from '@/lib/repositories/settings'
+import { getHealthCheckInterval, getSearchShortcut } from '@/lib/repositories/settings'
 import { INTERVAL_TO_MS } from '@/lib/types'
 import { CategorySection } from '@/components/CategorySection'
 import { LinkCard } from '@/components/LinkCard'
@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const categories = getCategoriesWithLinks(db)
   const uncategorized = getUncategorizedLinks(db)
   const intervalMs = INTERVAL_TO_MS[getHealthCheckInterval(db)]
+  const searchShortcut = getSearchShortcut(db)
 
   const allUrls = [
     ...categories.flatMap(c => c.links.map(l => l.url)),
@@ -77,7 +78,7 @@ export default function DashboardPage() {
         </a>
       </header>
 
-      <SearchModal links={searchLinks} />
+      <SearchModal links={searchLinks} shortcut={searchShortcut} />
       <HealthCheckProvider urls={allUrls} intervalMs={intervalMs}>{content}</HealthCheckProvider>
     </main>
   )
