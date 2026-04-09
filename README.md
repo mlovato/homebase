@@ -1,36 +1,101 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Dashy
 
-## Getting Started
+A self-hosted service dashboard. Add links to all your local services and external URLs, organised into categories, with a password-protected admin panel.
 
-First, run the development server:
+---
+
+## Deploy with Docker Compose (NAS / Portainer)
+
+### 1. Build the Docker image
+
+On the machine where you have the source code:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker build -t dashy:latest .
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Transfer the image to your NAS
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+docker save dashy:latest | gzip > dashy.tar.gz
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Copy `dashy.tar.gz` to your NAS (via SCP, SMB share, etc.), then on the NAS:
 
-## Learn More
+```bash
+docker load < dashy.tar.gz
+```
 
-To learn more about Next.js, take a look at the following resources:
+> **ARM NAS (e.g. some Synology models):** build for the right architecture on your Mac with:
+> ```bash
+> docker buildx build --platform linux/arm64 -t dashy:latest .
+> ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 3. Generate a JWT secret
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The JWT secret is used to sign admin session cookies. Generate a strong random value:
 
-## Deploy on Vercel
+```bash
+openssl rand -base64 32
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 4. Deploy via Portainer
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. In Portainer go to **Stacks → Add Stack**
+2. Paste the contents of `docker-compose.yml`
+3. Edit the two environment variables before deploying:
+
+```yaml
+environment:
+  - ADMIN_PASSWORD=your-admin-password
+  - JWT_SECRET=paste-the-openssl-output-here
+  - DATABASE_PATH=/data/dashy.db
+```
+
+4. Click **Deploy the stack**
+
+Dashy will be available at `http://<nas-ip>:3000`.
+
+The admin panel is at `http://<nas-ip>:3000/admin`.
+
+### Persistent data
+
+Two named Docker volumes are created automatically:
+
+| Volume | Contents |
+|---|---|
+| `dashy-data` | SQLite database (`dashy.db`) |
+| `dashy-uploads` | Custom uploaded icons |
+
+These survive container restarts and image upgrades.
+
+### Upgrading
+
+```bash
+# Rebuild the image with the new code
+docker build -t dashy:latest .
+docker save dashy:latest | gzip > dashy.tar.gz
+
+# Load it on the NAS
+docker load < dashy.tar.gz
+```
+
+Then in Portainer: **Stacks → dashy → Editor → Update the stack** (or simply restart the container — it will pick up the new image).
+
+---
+
+## Local development
+
+```bash
+cp .env.local.example .env.local   # edit ADMIN_PASSWORD and JWT_SECRET
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+Run tests:
+
+```bash
+npm test
+```
