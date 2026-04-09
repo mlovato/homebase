@@ -2,7 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(pkill -f \"next dev\")",
-      "Bash(npm --prefix /Users/mlovato/code/dashy run dev)",
+      "Bash(npm --prefix /Users/mlovato/code/homebase run dev)",
       "Bash(npx jest:*)"
     ]
   }

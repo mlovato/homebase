@@ -31,7 +31,7 @@ describe('StatusDot', () => {
   it('renders green dot when service is up', async () => {
     global.fetch = mockFetch('up')
     render(<StatusDot url="http://plex.local:32400" />)
-    await act(async () => { jest.runAllTimers() })
+    await act(async () => { jest.runOnlyPendingTimers() })
     const dot = screen.getByRole('status')
     expect(dot).toHaveAttribute('aria-label', 'online')
   })
@@ -39,7 +39,7 @@ describe('StatusDot', () => {
   it('renders red dot when service is down', async () => {
     global.fetch = mockFetch('down')
     render(<StatusDot url="http://broken.local" />)
-    await act(async () => { jest.runAllTimers() })
+    await act(async () => { jest.runOnlyPendingTimers() })
     const dot = screen.getByRole('status')
     expect(dot).toHaveAttribute('aria-label', 'offline')
   })
@@ -47,7 +47,7 @@ describe('StatusDot', () => {
   it('renders grey dot for unknown status (non-http url)', async () => {
     global.fetch = mockFetch('unknown')
     render(<StatusDot url="ftp://something.local" />)
-    await act(async () => { jest.runAllTimers() })
+    await act(async () => { jest.runOnlyPendingTimers() })
     const dot = screen.getByRole('status')
     expect(dot).toHaveAttribute('aria-label', 'checking')
   })

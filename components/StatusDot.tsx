@@ -25,11 +25,15 @@ export function StatusDot({ url }: StatusDotProps) {
 
   useEffect(() => {
     let cancelled = false
-    fetch(`/api/health?url=${encodeURIComponent(url)}`)
-      .then(r => r.json())
-      .then(data => { if (!cancelled) setStatus(data.status ?? 'unknown') })
-      .catch(() => { if (!cancelled) setStatus('down') })
-    return () => { cancelled = true }
+    const check = () => {
+      fetch(`/api/health?url=${encodeURIComponent(url)}`)
+        .then(r => r.json())
+        .then(data => { if (!cancelled) setStatus(data.status ?? 'unknown') })
+        .catch(() => { if (!cancelled) setStatus('down') })
+    }
+    check()
+    const id = setInterval(check, 5000)
+    return () => { cancelled = true; clearInterval(id) }
   }, [url])
 
   return (
