@@ -60,7 +60,7 @@ export default function DashboardPage() {
   )
 
   const searchLinks = [...categories.flatMap(c => c.links), ...uncategorized]
-    .map(({ id, name, url }) => ({ id, name, url }))
+    .map(({ id, name, url, icon_type, icon_value }) => ({ id, name, url, icon_type, icon_value }))
 
   return (
     <main className="min-h-screen retro:bg-retro-bg">

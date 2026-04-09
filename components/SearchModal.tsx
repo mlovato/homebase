@@ -1,11 +1,15 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import type { IconType } from '@/lib/types'
+import { LinkIcon } from './LinkIcon'
 
 interface SearchLink {
   id: number
   name: string
   url: string
+  icon_type: IconType
+  icon_value: string | null
 }
 
 interface SearchModalProps {
@@ -131,9 +135,7 @@ export function SearchModal({ links }: SearchModalProps) {
                     : 'text-gray-700 dark:text-gray-300 retro:text-retro-dim hover:bg-gray-50 dark:hover:bg-gray-700 retro:hover:bg-transparent'
                 }`}
               >
-                <span className="w-7 h-7 shrink-0 rounded-full retro:rounded-none bg-indigo-100 dark:bg-indigo-900/40 retro:bg-transparent retro:border retro:border-retro-dim flex items-center justify-center text-xs font-bold text-indigo-600 dark:text-indigo-400 retro:text-retro-green select-none">
-                  {link.name.charAt(0).toUpperCase()}
-                </span>
+                <LinkIcon name={link.name} iconType={link.icon_type} iconValue={link.icon_value} size="sm" />
                 <span className="flex-1 truncate font-medium">{link.name}</span>
                 <span className="text-xs text-gray-400 retro:text-retro-dim truncate max-w-[160px]">{link.url}</span>
               </a>

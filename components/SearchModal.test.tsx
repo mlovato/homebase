@@ -7,9 +7,9 @@ import userEvent from '@testing-library/user-event'
 import { SearchModal } from './SearchModal'
 
 const links = [
-  { id: 1, name: 'Grafana', url: 'http://grafana.local' },
-  { id: 2, name: 'Prometheus', url: 'http://prometheus.local' },
-  { id: 3, name: 'Gitea', url: 'http://gitea.local' },
+  { id: 1, name: 'Grafana', url: 'http://grafana.local', icon_type: 'builtin' as const, icon_value: 'grafana' },
+  { id: 2, name: 'Prometheus', url: 'http://prometheus.local', icon_type: 'builtin' as const, icon_value: 'prometheus' },
+  { id: 3, name: 'Gitea', url: 'http://gitea.local', icon_type: 'builtin' as const, icon_value: 'gitea' },
 ]
 
 function open() {
