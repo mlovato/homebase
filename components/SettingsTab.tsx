@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
-import type { HealthCheckInterval } from '@/lib/types'
-import { HEALTH_CHECK_INTERVALS } from '@/lib/types'
+import type { HealthCheckInterval, SearchShortcut } from '@/lib/types'
+import { HEALTH_CHECK_INTERVALS, DEFAULT_SEARCH_SHORTCUT, isValidShortcut } from '@/lib/types'
+import { ShortcutRecorder } from './ShortcutRecorder'
 
 const THEME_OPTIONS: { value: string; label: string; icon: React.ReactNode }[] = [
   {
@@ -58,11 +59,15 @@ interface SettingsTabProps {
 export function SettingsTab({ onIntervalChange }: SettingsTabProps = {}) {
   const { theme, setTheme } = useTheme()
   const [interval, setInterval] = useState<HealthCheckInterval>('30s')
+  const [shortcut, setShortcut] = useState<SearchShortcut>(DEFAULT_SEARCH_SHORTCUT)
 
   useEffect(() => {
     fetch('/api/settings')
       .then(r => r.json())
-      .then(data => { if (data.health_check_interval) setInterval(data.health_check_interval) })
+      .then(data => {
+        if (data.health_check_interval) setInterval(data.health_check_interval)
+        if (data.search_shortcut && isValidShortcut(data.search_shortcut)) setShortcut(data.search_shortcut)
+      })
       .catch(() => {})
   }, [])
 
@@ -73,6 +78,15 @@ export function SettingsTab({ onIntervalChange }: SettingsTabProps = {}) {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ health_check_interval: value }),
+    }).catch(() => {})
+  }
+
+  function updateShortcut(value: SearchShortcut) {
+    setShortcut(value)
+    fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ search_shortcut: value }),
     }).catch(() => {})
   }
 
@@ -99,6 +113,16 @@ export function SettingsTab({ onIntervalChange }: SettingsTabProps = {}) {
               <span className="text-sm font-medium">{opt.label}</span>
             </button>
           ))}
+        </div>
+      </section>
+
+      <section className="mb-10">
+        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 retro:text-retro-dim uppercase tracking-wider mb-4">
+          Keyboard Shortcuts
+        </h3>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-600 dark:text-gray-300 retro:text-retro-green w-28">Open search</span>
+          <ShortcutRecorder value={shortcut} onChange={updateShortcut} />
         </div>
       </section>
 

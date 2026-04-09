@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import type { IconType } from '@/lib/types'
+import type { IconType, SearchShortcut } from '@/lib/types'
+import { parseShortcut } from '@/lib/types'
 import { LinkIcon } from './LinkIcon'
 
 interface SearchLink {
@@ -14,9 +15,15 @@ interface SearchLink {
 
 interface SearchModalProps {
   links: SearchLink[]
+  shortcut: SearchShortcut
 }
 
-export function SearchModal({ links }: SearchModalProps) {
+function matchesShortcut(e: KeyboardEvent, shortcut: SearchShortcut): boolean {
+  const { mod, key } = parseShortcut(shortcut)
+  return (e.metaKey || e.ctrlKey) === mod && e.key.toLowerCase() === key.toLowerCase()
+}
+
+export function SearchModal({ links, shortcut }: SearchModalProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -37,7 +44,7 @@ export function SearchModal({ links }: SearchModalProps) {
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if (matchesShortcut(e, shortcut)) {
         e.preventDefault()
         setOpen(prev => !prev)
         setQuery('')
@@ -49,7 +56,7 @@ export function SearchModal({ links }: SearchModalProps) {
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [close])
+  }, [close, shortcut])
 
   useEffect(() => {
     if (open) inputRef.current?.focus()
