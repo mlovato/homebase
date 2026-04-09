@@ -230,32 +230,31 @@ export function AdminLinkForm({ categories, initialValues, onSubmit, onCancel }:
                 </span>
               )}
             </div>
-            {previewIcon ? (
-              <div className="flex items-center gap-3 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40">
-                <svg
-                  role="img"
-                  viewBox="0 0 24 24"
-                  className="w-8 h-8 shrink-0"
-                  fill={`#${previewIcon.hex}`}
-                  aria-label={previewIcon.title}
-                >
-                  <path d={previewIcon.path} />
-                </svg>
-                <span className="text-sm text-gray-600 dark:text-gray-400">{previewIcon.title}</span>
-              </div>
-            ) : serviceSearch.trim() ? (
-              <p className="text-xs text-amber-600 dark:text-amber-400">
-                No icon found for &ldquo;{serviceSearch.trim()}&rdquo; — check the slug at{' '}
-                <a
-                  href="https://simpleicons.org"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline"
-                >
-                  simpleicons.org
-                </a>
-              </p>
-            ) : null}
+            <div className="flex items-center gap-3 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40 min-h-[52px]">
+              {previewIcon ? (
+                <>
+                  <svg
+                    role="img"
+                    viewBox="0 0 24 24"
+                    className="w-8 h-8 shrink-0"
+                    fill={`#${previewIcon.hex}`}
+                    aria-label={previewIcon.title}
+                  >
+                    <path d={previewIcon.path} />
+                  </svg>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{previewIcon.title}</span>
+                </>
+              ) : serviceSearch.trim() ? (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  No icon found for &ldquo;{serviceSearch.trim()}&rdquo; — check the slug at{' '}
+                  <a href="https://simpleicons.org" target="_blank" rel="noopener noreferrer" className="underline">
+                    simpleicons.org
+                  </a>
+                </p>
+              ) : (
+                <span className="text-xs text-gray-400 dark:text-gray-500">Icon preview</span>
+              )}
+            </div>
           </div>
         )}
 
