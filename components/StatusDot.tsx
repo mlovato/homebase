@@ -18,23 +18,27 @@ const LABELS: Record<HealthStatus, string> = {
 
 interface StatusDotProps {
   url: string
+  intervalMs: number
 }
 
-export function StatusDot({ url }: StatusDotProps) {
+export function StatusDot({ url, intervalMs }: StatusDotProps) {
   const [status, setStatus] = useState<HealthStatus>('unknown')
 
   useEffect(() => {
     let cancelled = false
-    const check = () => {
-      fetch(`/api/health?url=${encodeURIComponent(url)}`)
-        .then(r => r.json())
-        .then(data => { if (!cancelled) setStatus(data.status ?? 'unknown') })
-        .catch(() => { if (!cancelled) setStatus('down') })
+    const check = async () => {
+      try {
+        const r = await fetch(`/api/health?url=${encodeURIComponent(url)}`)
+        const data = await r.json()
+        if (!cancelled) setStatus(data.status ?? 'unknown')
+      } catch {
+        if (!cancelled) setStatus('down')
+      }
     }
     check()
-    const id = setInterval(check, 5000)
+    const id = setInterval(check, intervalMs)
     return () => { cancelled = true; clearInterval(id) }
-  }, [url])
+  }, [url, intervalMs])
 
   return (
     <span
