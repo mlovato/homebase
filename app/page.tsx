@@ -5,6 +5,7 @@ import { INTERVAL_TO_MS } from '@/lib/types'
 import { CategorySection } from '@/components/CategorySection'
 import { LinkCard } from '@/components/LinkCard'
 import { HealthCheckProvider } from '@/components/HealthCheckContext'
+import { SearchModal } from '@/components/SearchModal'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,6 +59,9 @@ export default function DashboardPage() {
     </div>
   )
 
+  const searchLinks = [...categories.flatMap(c => c.links), ...uncategorized]
+    .map(({ id, name, url }) => ({ id, name, url }))
+
   return (
     <main className="min-h-screen retro:bg-retro-bg">
       <header className="border-b border-gray-200 dark:border-gray-700 retro:border-retro-dim bg-white dark:bg-gray-800 retro:bg-retro-bg px-6 py-4 flex items-center justify-between">
@@ -73,6 +77,7 @@ export default function DashboardPage() {
         </a>
       </header>
 
+      <SearchModal links={searchLinks} />
       <HealthCheckProvider urls={allUrls} intervalMs={intervalMs}>{content}</HealthCheckProvider>
     </main>
   )
