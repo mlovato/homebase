@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AdminLinkForm } from './AdminLinkForm'
 import type { Category } from '@/lib/types'
@@ -7,6 +7,18 @@ const categories: Category[] = [
   { id: 1, name: 'Media', sort_order: 0 },
   { id: 2, name: 'Tools', sort_order: 1 },
 ]
+
+// Mock fetch for icon search API
+beforeEach(() => {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ results: [] }),
+  } as unknown as Response)
+})
+
+afterEach(() => {
+  jest.restoreAllMocks()
+})
 
 describe('AdminLinkForm', () => {
   it('renders name, url, and category inputs', () => {
@@ -36,10 +48,9 @@ describe('AdminLinkForm', () => {
     expect(onCancel).toHaveBeenCalled()
   })
 
-  it('shows icon service search input when builtin tab is selected', () => {
+  it('shows icon search input when builtin tab is selected (default)', () => {
     render(<AdminLinkForm onSubmit={jest.fn()} onCancel={jest.fn()} categories={categories} />)
-    // Default is builtin — service search should be visible
-    expect(screen.getByPlaceholderText(/search service/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/search icon/i)).toBeInTheDocument()
   })
 
   it('shows upload input when upload tab is selected', async () => {
@@ -65,5 +76,30 @@ describe('AdminLinkForm', () => {
     )
     expect(screen.getByDisplayValue('Plex')).toBeInTheDocument()
     expect(screen.getByDisplayValue('http://localhost:32400')).toBeInTheDocument()
+  })
+
+  it('shows suggestion dropdown when icon search returns results', async () => {
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        results: [
+          { slug: 'plex', name: 'Plex', url: 'https://cdn.example.com/plex.svg' },
+        ],
+      }),
+    } as unknown as Response)
+
+    render(<AdminLinkForm onSubmit={jest.fn()} onCancel={jest.fn()} categories={categories} />)
+    await userEvent.type(screen.getByPlaceholderText(/search icon/i), 'pl')
+
+    await waitFor(() => {
+      expect(screen.getByText('Plex')).toBeInTheDocument()
+    })
+  })
+
+  it('does not call onSubmit when name is empty', () => {
+    const onSubmit = jest.fn()
+    render(<AdminLinkForm onSubmit={onSubmit} onCancel={jest.fn()} categories={categories} />)
+    fireEvent.click(screen.getByRole('button', { name: /create|save/i }))
+    expect(onSubmit).not.toHaveBeenCalled()
   })
 })
