@@ -118,6 +118,9 @@ export default function AdminPage() {
           <a href="/" className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
             Dashy
           </a>
+          <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-mono">
+            v{process.env.NEXT_PUBLIC_APP_VERSION}
+          </span>
           <span className="text-sm text-gray-400 dark:text-gray-500 font-medium">Admin</span>
         </div>
         <div className="flex items-center gap-3">
