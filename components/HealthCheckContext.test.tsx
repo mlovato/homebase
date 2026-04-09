@@ -108,4 +108,22 @@ describe('HealthCheckProvider', () => {
     )
     expect(xhr.send).not.toHaveBeenCalled()
   })
+
+  it('restarts health checks when tab becomes visible', async () => {
+    const xhr = mockXhr({})
+    render(
+      <HealthCheckProvider urls={['http://a.local']} intervalMs={10000}>
+        <span />
+      </HealthCheckProvider>
+    )
+    expect(xhr.send).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    expect(xhr.send).toHaveBeenCalledTimes(2)
+  })
+
 })

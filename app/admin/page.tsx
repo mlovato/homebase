@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import NextLink from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { CategoryWithLinks, Link, Category, CreateLinkInput, UpdateLinkInput } from '@/lib/types'
 import { HEALTH_CHECK_INTERVALS, INTERVAL_TO_MS } from '@/lib/types'
@@ -179,15 +180,15 @@ export default function AdminPage() {
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-gray-200 dark:border-gray-700 retro:border-retro-dim bg-white dark:bg-gray-800 retro:bg-retro-bg px-6 py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <a href="/">
+          <NextLink href="/">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/icon.png" alt="Homebase" className="w-10 h-10 object-contain" />
-          </a>
+          </NextLink>
           <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-mono">
             v{process.env.NEXT_PUBLIC_APP_VERSION}
           </span>
         </div>
-        <a href="/" className="text-sm text-gray-500 retro:text-retro-dim hover:text-indigo-600 retro:hover:text-retro-green transition-colors">← Dashboard</a>
+        <NextLink href="/" className="text-sm text-gray-500 retro:text-retro-dim hover:text-indigo-600 retro:hover:text-retro-green transition-colors">← Dashboard</NextLink>
       </header>
 
       <div className="flex flex-1 overflow-hidden">

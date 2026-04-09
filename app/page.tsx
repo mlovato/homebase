@@ -2,6 +2,7 @@ import { getDb } from '@/lib/db'
 import { getCategoriesWithLinks, getUncategorizedLinks } from '@/lib/repositories/categories'
 import { getHealthCheckInterval, getSearchShortcut } from '@/lib/repositories/settings'
 import { INTERVAL_TO_MS } from '@/lib/types'
+import Link from 'next/link'
 import { CategorySection } from '@/components/CategorySection'
 import { LinkCard } from '@/components/LinkCard'
 import { HealthCheckProvider } from '@/components/HealthCheckContext'
@@ -70,12 +71,12 @@ export default function DashboardPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icon.png" alt="Homebase" className="w-10 h-10 object-contain" />
         </h1>
-        <a
+        <Link
           href="/admin"
           className="text-sm text-gray-500 dark:text-gray-400 retro:text-retro-dim hover:text-indigo-600 dark:hover:text-indigo-400 retro:hover:text-retro-green transition-colors"
         >
           Admin
-        </a>
+        </Link>
       </header>
 
       <SearchModal links={searchLinks} shortcut={searchShortcut} />

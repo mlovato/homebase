@@ -26,6 +26,7 @@ export function HealthCheckProvider({ urls, intervalMs, children }: HealthCheckP
     if (urls.length === 0 || intervalMs === null) return
 
     let cancelled = false
+    let intervalId: ReturnType<typeof setInterval>
 
     const check = () => {
       xhrRef.current?.abort()
@@ -48,12 +49,27 @@ export function HealthCheckProvider({ urls, intervalMs, children }: HealthCheckP
       xhr.send()
     }
 
-    check()
-    const id = setInterval(check, intervalMs)
+    const startChecking = () => {
+      clearInterval(intervalId)
+      xhrRef.current?.abort()
+      cancelled = false
+      check()
+      intervalId = setInterval(check, intervalMs)
+    }
+
+    startChecking()
+
+    function onVisibilityChange() {
+      if (document.visibilityState === 'visible') startChecking()
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange)
+
     return () => {
       cancelled = true
       xhrRef.current?.abort()
-      clearInterval(id)
+      clearInterval(intervalId)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlsKey, intervalMs])
