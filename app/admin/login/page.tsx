@@ -35,7 +35,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm bg-white dark:bg-gray-800 retro:bg-retro-surface retro:border retro:border-retro-dim retro:rounded-none rounded-2xl shadow-lg p-8">
         <h1 className="mb-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon.png" alt="Homebase" className="w-16 h-16 object-contain" />
+          <img src="/icon.png" alt="Homebase" className="w-10 h-10 object-contain" />
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 retro:text-retro-dim mb-6">Admin login</p>
 
