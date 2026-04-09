@@ -1,18 +1,18 @@
 services:
-  dashy:
-    image: dashy:latest
-    container_name: dashy
+  homebase:
+    image: homebase:latest
+    container_name: homebase
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       - ADMIN_PASSWORD=changeme
       - JWT_SECRET=change-this-to-a-long-random-secret
-      - DATABASE_PATH=/data/dashy.db
+      - DATABASE_PATH=/data/homebase.db
     volumes:
-      - dashy-data:/data
-      - dashy-uploads:/app/public/uploads
+      - homebase-data:/data
+      - homebase-uploads:/app/public/uploads
 
 volumes:
-  dashy-data:
-  dashy-uploads:
+  homebase-data:
+  homebase-uploads:

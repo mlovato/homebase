@@ -9,7 +9,7 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Dashy",
+  title: "Homebase",
   description: "Your personal service dashboard",
 };
 

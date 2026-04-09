@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose'
 
 const TOKEN_EXPIRY = '24h'
-const COOKIE_NAME = 'dashy_session'
+const COOKIE_NAME = 'homebase_session'
 
 export function verifyPassword(submitted: string, expected: string): boolean {
   return submitted.length > 0 && submitted === expected

@@ -161,7 +161,7 @@ export default function AdminPage() {
       {/* Top header */}
       <header className="border-b border-gray-200 dark:border-gray-700 retro:border-retro-dim bg-white dark:bg-gray-800 retro:bg-retro-bg px-6 py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <a href="/" className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 retro:text-retro-green">Dashy</a>
+          <a href="/" className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 retro:text-retro-green">Homebase</a>
           <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-mono">
             v{process.env.NEXT_PUBLIC_APP_VERSION}
           </span>

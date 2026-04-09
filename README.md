@@ -1,4 +1,4 @@
-# Dashy
+# Homebase
 
 A self-hosted service dashboard. Add links to all your local services and external URLs, organised into categories, with a password-protected admin panel.
 
@@ -11,24 +11,24 @@ A self-hosted service dashboard. Add links to all your local services and extern
 On the machine where you have the source code:
 
 ```bash
-docker build -t dashy:latest .
+docker build -t homebase:latest .
 ```
 
 ### 2. Transfer the image to your NAS
 
 ```bash
-docker save dashy:latest | gzip > dashy.tar.gz
+docker save homebase:latest | gzip > homebase.tar.gz
 ```
 
-Copy `dashy.tar.gz` to your NAS (via SCP, SMB share, etc.), then on the NAS:
+Copy `homebase.tar.gz` to your NAS (via SCP, SMB share, etc.), then on the NAS:
 
 ```bash
-docker load < dashy.tar.gz
+docker load < homebase.tar.gz
 ```
 
 > **ARM NAS (e.g. some Synology models):** build for the right architecture on your Mac with:
 > ```bash
-> docker buildx build --platform linux/arm64 -t dashy:latest .
+> docker buildx build --platform linux/arm64 -t homebase:latest .
 > ```
 
 ### 3. Generate a JWT secret
@@ -49,12 +49,12 @@ openssl rand -base64 32
 environment:
   - ADMIN_PASSWORD=your-admin-password
   - JWT_SECRET=paste-the-openssl-output-here
-  - DATABASE_PATH=/data/dashy.db
+  - DATABASE_PATH=/data/homebase.db
 ```
 
 4. Click **Deploy the stack**
 
-Dashy will be available at `http://<nas-ip>:3000`.
+Homebase will be available at `http://<nas-ip>:3000`.
 
 The admin panel is at `http://<nas-ip>:3000/admin`.
 
@@ -64,8 +64,8 @@ Two named Docker volumes are created automatically:
 
 | Volume | Contents |
 |---|---|
-| `dashy-data` | SQLite database (`dashy.db`) |
-| `dashy-uploads` | Custom uploaded icons |
+| `homebase-data` | SQLite database (`homebase.db`) |
+| `homebase-uploads` | Custom uploaded icons |
 
 These survive container restarts and image upgrades.
 
@@ -73,14 +73,14 @@ These survive container restarts and image upgrades.
 
 ```bash
 # Rebuild the image with the new code
-docker build -t dashy:latest .
-docker save dashy:latest | gzip > dashy.tar.gz
+docker build -t homebase:latest .
+docker save homebase:latest | gzip > homebase.tar.gz
 
 # Load it on the NAS
-docker load < dashy.tar.gz
+docker load < homebase.tar.gz
 ```
 
-Then in Portainer: **Stacks → dashy → Editor → Update the stack** (or simply restart the container — it will pick up the new image).
+Then in Portainer: **Stacks → homebase → Editor → Update the stack** (or simply restart the container — it will pick up the new image).
 
 ---
 
