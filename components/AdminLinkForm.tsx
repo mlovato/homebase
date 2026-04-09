@@ -46,8 +46,6 @@ function getBuiltinIcon(slug: string): SimpleIcon | null {
 
 function findIconSlug(name: string): string | null {
   if (!name.trim()) return null
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const icons = require('simple-icons')
 
   // Try progressively looser normalizations
   const candidates = [
@@ -60,9 +58,7 @@ function findIconSlug(name: string): string | null {
   ]
 
   for (const slug of candidates) {
-    if (!slug) continue
-    const key = `si${slug.charAt(0).toUpperCase()}${slug.slice(1)}`
-    if (key in icons) return slug
+    if (slug && getBuiltinIcon(slug)) return slug
   }
   return null
 }
