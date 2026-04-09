@@ -2,8 +2,7 @@
 
 import { useState } from 'react'
 import type { Link } from '@/lib/types'
-
-const CDN_BASE = 'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg'
+import { DASHBOARD_ICONS_CDN } from '@/lib/constants'
 
 // Tries base slug → -light variant → -dark variant → letter avatar
 function BuiltinIcon({ slug, name }: { slug: string; name: string }) {
@@ -22,7 +21,7 @@ function BuiltinIcon({ slug, name }: { slug: string; name: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={`${CDN_BASE}/${variants[attempt]}`}
+      src={`${DASHBOARD_ICONS_CDN}/${variants[attempt]}`}
       alt={name}
       className="w-12 h-12 object-contain"
       onError={() => setAttempt(a => a + 1)}

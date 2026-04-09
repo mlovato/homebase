@@ -3,8 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useIconSearch } from '@/lib/hooks/useIconSearch'
 import type { IconType } from '@/lib/types'
-
-export const CDN_BASE = 'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg'
+import { DASHBOARD_ICONS_CDN } from '@/lib/constants'
 
 export interface IconPickerValue {
   icon_type: IconType
@@ -157,7 +156,7 @@ export function IconPicker({ value, onChange, serviceName }: IconPickerProps) {
             {slug.trim() ? (
               <>
                 <img
-                  src={`${CDN_BASE}/${slug.trim()}.svg`}
+                  src={`${DASHBOARD_ICONS_CDN}/${slug.trim()}.svg`}
                   alt={slug}
                   className="w-8 h-8 object-contain shrink-0"
                   onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}

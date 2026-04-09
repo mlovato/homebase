@@ -1,7 +1,8 @@
 /**
  * @jest-environment node
  */
-import { searchIcons, clearCache, METADATA_URL, CDN_BASE } from './handler'
+import { searchIcons, clearCache, METADATA_URL } from './handler'
+import { DASHBOARD_ICONS_CDN as CDN_BASE } from '@/lib/constants'
 
 const MOCK_METADATA = {
   plex: { base: 'svg', aliases: ['plex media server'], categories: ['Media'] },

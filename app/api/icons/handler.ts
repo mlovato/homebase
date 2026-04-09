@@ -1,5 +1,7 @@
-export const METADATA_URL = 'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/meta/metadata.json'
-export const CDN_BASE = 'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg'
+import { DASHBOARD_ICONS_CDN, DASHBOARD_ICONS_METADATA_URL } from '@/lib/constants'
+
+export const METADATA_URL = DASHBOARD_ICONS_METADATA_URL
+export const CDN_BASE = DASHBOARD_ICONS_CDN
 
 interface RawMeta {
   aliases?: string[]
