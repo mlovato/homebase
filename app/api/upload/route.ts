@@ -8,7 +8,7 @@ const ALLOWED_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.w
 const MAX_SIZE_BYTES = 2 * 1024 * 1024 // 2 MB
 
 export async function POST(request: NextRequest) {
-  const isAdmin = await isAdminRequest()
+  const isAdmin = await isAdminRequest(request)
   if (!isAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

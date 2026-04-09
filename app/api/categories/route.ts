@@ -9,7 +9,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const isAdmin = await isAdminRequest()
+  const isAdmin = await isAdminRequest(request)
   const body = await request.json().catch(() => ({}))
   const result = handleCreateCategory(getDb(), body, isAdmin)
 

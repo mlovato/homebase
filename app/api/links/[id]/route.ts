@@ -9,7 +9,7 @@ interface Params {
 
 export async function PUT(request: NextRequest, { params }: Params) {
   const { id } = await params
-  const isAdmin = await isAdminRequest()
+  const isAdmin = await isAdminRequest(request)
   const body = await request.json().catch(() => ({}))
   const result = handleUpdateLink(getDb(), parseInt(id, 10), body, isAdmin)
 
@@ -21,7 +21,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
 export async function DELETE(request: NextRequest, { params }: Params) {
   const { id } = await params
-  const isAdmin = await isAdminRequest()
+  const isAdmin = await isAdminRequest(request)
   const result = handleDeleteLink(getDb(), parseInt(id, 10), isAdmin)
 
   if (result.error) {
