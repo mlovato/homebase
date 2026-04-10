@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { handleLogin, COOKIE_NAME } from './handler'
+import { COOKIE_NAME } from '@/lib/auth'
+import { handleLogin } from './handler'
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}))
   const result = await handleLogin(
     body,
     getDb(),
-    process.env.ADMIN_PASSWORD ?? '',
     process.env.JWT_SECRET ?? ''
   )
 
