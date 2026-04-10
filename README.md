@@ -1,6 +1,18 @@
 # Homebase
 
-A self-hosted service dashboard. Add links to all your local services and external URLs, organised into categories, with a password-protected admin panel.
+A self-hosted, multi-user service dashboard. Add links to all your local services and external URLs, organised into categories, with per-user data isolation and a password-protected admin panel.
+
+---
+
+## Features
+
+- **Multi-user** — each user has their own links, categories, and settings
+- **Admin panel** — admins can create, edit, and delete users with emoji avatars
+- **Categories** — organise links into collapsible groups with drag-and-drop reordering
+- **Health checks** — configurable status pings for each service
+- **Themes** — light, dark, system, and retro modes
+- **Import/Export** — backup and restore links as JSON
+- **Keyboard shortcuts** — configurable search shortcut
 
 ---
 
@@ -11,8 +23,10 @@ A self-hosted service dashboard. Add links to all your local services and extern
 On the machine where you have the source code:
 
 ```bash
-docker build -t homebase:latest .
+docker buildx build --platform linux/amd64 -t homebase:latest .
 ```
+
+> **ARM NAS (e.g. some Synology models):** use `--platform linux/arm64` instead.
 
 ### 2. Transfer the image to your NAS
 
@@ -26,14 +40,9 @@ Copy `homebase.tar.gz` to your NAS (via SCP, SMB share, etc.), then on the NAS:
 docker load < homebase.tar.gz
 ```
 
-> **ARM NAS (e.g. some Synology models):** build for the right architecture on your Mac with:
-> ```bash
-> docker buildx build --platform linux/arm64 -t homebase:latest .
-> ```
-
 ### 3. Generate a JWT secret
 
-The JWT secret is used to sign admin session cookies. Generate a strong random value:
+The JWT secret is used to sign session cookies. Generate a strong random value:
 
 ```bash
 openssl rand -base64 32
@@ -43,10 +52,11 @@ openssl rand -base64 32
 
 1. In Portainer go to **Stacks → Add Stack**
 2. Paste the contents of `docker-compose.yml`
-3. Edit the two environment variables before deploying:
+3. Edit the environment variables before deploying:
 
 ```yaml
 environment:
+  - ADMIN_EMAIL=your-email@example.com
   - ADMIN_PASSWORD=your-admin-password
   - JWT_SECRET=paste-the-openssl-output-here
   - DATABASE_PATH=/data/homebase.db
@@ -56,7 +66,7 @@ environment:
 
 Homebase will be available at `http://<nas-ip>:3000`.
 
-The admin panel is at `http://<nas-ip>:3000/admin`.
+On first startup, an admin user is automatically created from `ADMIN_EMAIL` and `ADMIN_PASSWORD`. Log in with those credentials.
 
 ### Persistent data
 
@@ -73,7 +83,7 @@ These survive container restarts and image upgrades.
 
 ```bash
 # Rebuild the image with the new code
-docker build -t homebase:latest .
+docker buildx build --platform linux/amd64 -t homebase:latest .
 docker save homebase:latest | gzip > homebase.tar.gz
 
 # Load it on the NAS
@@ -87,9 +97,8 @@ Then in Portainer: **Stacks → homebase → Editor → Update the stack** (or s
 ## Local development
 
 ```bash
-cp .env.local.example .env.local   # edit ADMIN_PASSWORD and JWT_SECRET
 npm install
-npm run dev
+ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=changeme JWT_SECRET=dev-secret npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
