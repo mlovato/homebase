@@ -278,6 +278,9 @@ export default function AdminPage() {
               </svg>
               Sign out
             </button>
+            <span className="block px-3 pt-2 text-xs text-gray-400 dark:text-gray-500 retro:text-retro-dim font-mono md:hidden">
+              v{process.env.NEXT_PUBLIC_APP_VERSION}
+            </span>
           </div>
         </aside>
 
