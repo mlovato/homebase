@@ -44,6 +44,7 @@ export function getDb(): Database.Database {
   if (!_db) {
     _db = new Database(DB_PATH)
     _db.pragma('journal_mode = WAL')
+    _db.pragma('foreign_keys = ON')
     _db.exec(SCHEMA)
   }
   return _db
@@ -119,6 +120,7 @@ function migrateSettings(db: Database.Database): void {
 export function createTestDb(): Database.Database {
   const db = new Database(':memory:')
   db.pragma('journal_mode = WAL')
+  db.pragma('foreign_keys = ON')
   db.exec(SCHEMA)
   return db
 }

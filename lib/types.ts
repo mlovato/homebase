@@ -106,6 +106,8 @@ export interface UpdateLinkInput {
 
 export type UserRole = 'admin' | 'user'
 
+export const VALID_ROLES: UserRole[] = ['admin', 'user']
+
 export interface User {
   id: number
   email: string

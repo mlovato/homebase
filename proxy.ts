@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySessionToken, COOKIE_NAME } from '@/lib/auth'
 
+const PUBLIC_PATHS = ['/admin/login', '/api/auth/login']
+
 export async function proxy(request: NextRequest) {
-  // Skip auth for the login page itself
-  if (request.nextUrl.pathname.startsWith('/admin/login')) {
+  const { pathname } = request.nextUrl
+
+  if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
     return NextResponse.next()
   }
 
@@ -18,6 +21,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Match /admin and all sub-paths
-  matcher: ['/admin/:path*'],
+  matcher: ['/', '/admin/:path*'],
 }
