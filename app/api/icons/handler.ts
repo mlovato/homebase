@@ -28,6 +28,7 @@ export function clearCache(): void {
 async function loadIcons(fetchFn: typeof fetch): Promise<IconEntry[]> {
   if (cache) return cache
   const res = await fetchFn(METADATA_URL, { next: { revalidate: 86400 } } as RequestInit)
+  if (!res.ok) return []
   const raw: Record<string, RawMeta> = await res.json()
   cache = Object.entries(raw).map(([slug, meta]) => ({
     slug,
@@ -45,12 +46,24 @@ export async function searchIcons(
   if (query.length < 2) return []
 
   const icons = await loadIcons(fetchFn)
+
+  function rank(icon: IconEntry): number {
+    if (icon.slug === query) return 0
+    if (icon.slug.startsWith(query)) return 1
+    if (icon.slug.includes(query)) return 2
+    const name = icon.name.toLowerCase()
+    if (name === query) return 3
+    if (name.startsWith(query)) return 4
+    return 5
+  }
+
   return icons
     .filter(icon =>
       icon.slug.includes(query) ||
       icon.name.toLowerCase().includes(query) ||
       icon.aliases.some(a => a.toLowerCase().includes(query))
     )
+    .sort((a, b) => rank(a) - rank(b))
     .slice(0, 8)
     .map(({ slug, name }) => ({ slug, name, url: `${CDN_BASE}/${slug}.svg` }))
 }

@@ -83,6 +83,20 @@ describe('IconPicker', () => {
     expect(onChange).toHaveBeenCalledWith({ icon_type: 'builtin', icon_value: 'plex' })
   })
 
+  it('preview image resets after slug error when user types a new slug', () => {
+    render(<IconPicker value={defaultValue} onChange={noOp} serviceName="" />)
+    const input = screen.getByPlaceholderText(/search icon/i)
+
+    fireEvent.change(input, { target: { value: 'xx' } })
+    const img = screen.getByAltText('xx')
+    fireEvent.error(img)
+    expect(img.style.display).toBe('none')
+
+    fireEvent.change(input, { target: { value: 'plex' } })
+    const newImg = screen.getByAltText('plex')
+    expect(newImg.style.display).not.toBe('none')
+  })
+
   it('calls onChange when url tab value is entered', () => {
     const onChange = jest.fn()
     render(<IconPicker value={{ icon_type: 'url', icon_value: null }} onChange={onChange} serviceName="" />)

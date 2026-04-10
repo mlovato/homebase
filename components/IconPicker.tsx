@@ -161,6 +161,7 @@ export function IconPicker({ value, onChange, serviceName }: IconPickerProps) {
             {slug.trim() ? (
               <>
                 <img
+                  key={slug.trim()}
                   src={`${DASHBOARD_ICONS_CDN}/${slug.trim()}.svg`}
                   alt={slug}
                   className="w-8 h-8 object-contain shrink-0"
