@@ -47,7 +47,7 @@ export function SortableCategorySection({
           <DragHandle
             attributes={attributes}
             listeners={listeners}
-            className="p-1 rounded opacity-0 group-hover/category:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            className="p-1 rounded opacity-100 md:opacity-0 md:group-hover/category:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
           />
           <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 retro:text-retro-green uppercase tracking-wider">
             {category.name}

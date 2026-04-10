@@ -30,7 +30,7 @@ export function SortableLinkCard({ link, onEdit, onDelete, intervalMs }: Sortabl
       <DragHandle
         attributes={attributes}
         listeners={listeners}
-        className="absolute top-1 left-1 z-20 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+        className="absolute top-1 left-1 z-20 p-1 rounded opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
       />
 
       <LinkCard link={link} tooltip={false} intervalMs={intervalMs} />
