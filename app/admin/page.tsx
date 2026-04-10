@@ -24,6 +24,7 @@ type Tab = 'links' | 'settings' | 'users'
 export default function AdminPage() {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('links')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [categories, setCategories] = useState<CategoryWithLinks[]>([])
   const [uncategorized, setUncategorized] = useState<Link[]>([])
   const [modal, setModal] = useState<Modal>({ type: 'none' })
@@ -176,7 +177,7 @@ export default function AdminPage() {
 
   const navItem = (t: Tab, label: string, icon: React.ReactNode) => (
     <button
-      onClick={() => setTab(t)}
+      onClick={() => { setTab(t); setSidebarOpen(false) }}
       className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg retro:rounded-none text-sm font-medium transition-colors ${
         tab === t
           ? 'bg-indigo-50 dark:bg-indigo-900/30 retro:bg-transparent retro:text-retro-green retro:border-l-2 retro:border-retro-green text-indigo-600 dark:text-indigo-400'
@@ -190,24 +191,41 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-gray-200 dark:border-gray-700 retro:border-retro-dim bg-white dark:bg-gray-800 retro:bg-retro-bg px-6 py-4 flex items-center justify-between shrink-0">
+      <header className="border-b border-gray-200 dark:border-gray-700 retro:border-retro-dim bg-white dark:bg-gray-800 retro:bg-retro-bg px-4 md:px-6 py-3 md:py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setSidebarOpen(o => !o)}
+            className="md:hidden p-1.5 -ml-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 retro:text-retro-dim retro:hover:text-retro-green transition-colors"
+            aria-label="Toggle menu"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
           <NextLink href="/">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/icon.png" alt="Homebase" className="w-10 h-10 object-contain" />
           </NextLink>
-          <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-mono">
+          <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-mono hidden sm:inline">
             v{process.env.NEXT_PUBLIC_APP_VERSION}
           </span>
         </div>
         <NextLink href="/" className="flex items-center gap-2 text-sm text-gray-500 retro:text-retro-dim hover:text-indigo-600 retro:hover:text-retro-green transition-colors">
           {currentUser && <UserAvatar avatar={currentUser.avatar} email={currentUser.email} size="header" />}
-          ← Dashboard
+          <span className="hidden sm:inline">← Dashboard</span>
+          <span className="sm:hidden">←</span>
         </NextLink>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-52 shrink-0 border-r border-gray-200 dark:border-gray-700 retro:border-retro-dim bg-white dark:bg-gray-800 retro:bg-retro-bg p-4 flex flex-col gap-1">
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/50 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        <aside className={`fixed inset-y-0 left-0 z-50 w-52 bg-white dark:bg-gray-800 retro:bg-retro-bg border-r border-gray-200 dark:border-gray-700 retro:border-retro-dim p-4 pt-20 flex flex-col gap-1 transition-transform duration-200 md:static md:z-auto md:translate-x-0 md:pt-4 md:shrink-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           {navItem('links', 'Links',
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -237,7 +255,7 @@ export default function AdminPage() {
           </div>
         </aside>
 
-        <main className="flex-1 overflow-y-auto p-8 retro:bg-retro-bg">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 retro:bg-retro-bg">
           {error && (
             <div className="mb-6 flex items-center justify-between gap-4 px-4 py-3 rounded-lg bg-red-50 dark:bg-red-900/20 retro:bg-transparent retro:border retro:border-retro-green border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 retro:text-retro-green text-sm">
               <span>{error}</span>

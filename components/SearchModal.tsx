@@ -85,14 +85,14 @@ export function SearchModal({ links, shortcut }: SearchModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/50"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] md:pt-[15vh] bg-black/50"
       onMouseDown={e => { if (e.target === e.currentTarget) close() }}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Search links"
-        className="w-full max-w-lg bg-white dark:bg-gray-800 retro:bg-retro-bg retro:border retro:border-retro-green rounded-2xl retro:rounded-none shadow-2xl overflow-hidden"
+        className="w-full max-w-lg mx-4 md:mx-0 bg-white dark:bg-gray-800 retro:bg-retro-bg retro:border retro:border-retro-green rounded-2xl retro:rounded-none shadow-2xl overflow-hidden"
       >
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700 retro:border-retro-dim">
           <svg className="w-4 h-4 shrink-0 text-gray-400 retro:text-retro-dim" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -144,7 +144,7 @@ export function SearchModal({ links, shortcut }: SearchModalProps) {
               >
                 <LinkIcon name={link.name} iconType={link.icon_type} iconValue={link.icon_value} size="sm" />
                 <span className="flex-1 truncate font-medium">{link.name}</span>
-                <span className="text-xs text-gray-400 retro:text-retro-dim truncate max-w-[160px]">{link.url}</span>
+                <span className="text-xs text-gray-400 retro:text-retro-dim truncate max-w-[100px] sm:max-w-[160px] hidden sm:inline">{link.url}</span>
               </a>
             </li>
           ))}
