@@ -135,6 +135,28 @@ export default function AdminPage() {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
+  async function handleCategoryDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = categories.findIndex(c => c.id === active.id)
+    const newIndex = categories.findIndex(c => c.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const reordered = arrayMove(categories, oldIndex, newIndex)
+    setCategories(reordered)
+
+    await Promise.all(
+      reordered.map((cat, index) =>
+        fetch(`/api/categories/${cat.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sort_order: index }),
+        })
+      )
+    )
+  }
+
   async function handleDragEnd(event: DragEndEvent, categoryId: number | null) {
     const { active, over } = event
     if (!over || active.id === over.id) return
@@ -279,6 +301,7 @@ export default function AdminPage() {
                 handleUpdateLink={handleUpdateLink}
                 handleDeleteLink={handleDeleteLink}
                 handleDragEnd={handleDragEnd}
+                handleCategoryDragEnd={handleCategoryDragEnd}
                 intervalMs={intervalMs}
               />
             </HealthCheckProvider>

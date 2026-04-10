@@ -2,6 +2,7 @@
 
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { DragHandle } from '@/components/DragHandle'
 import { LinkCard } from './LinkCard'
 import type { Link } from '@/lib/types'
 
@@ -26,22 +27,11 @@ export function SortableLinkCard({ link, onEdit, onDelete, intervalMs }: Sortabl
 
   return (
     <div ref={setNodeRef} style={style} className="relative group">
-      {/* Drag handle — top-left corner, visible on hover */}
-      <div
-        {...attributes}
-        {...listeners}
+      <DragHandle
+        attributes={attributes}
+        listeners={listeners}
         className="absolute top-1 left-1 z-20 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-        title="Drag to reorder"
-      >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-          <circle cx="4" cy="2" r="1.2" />
-          <circle cx="8" cy="2" r="1.2" />
-          <circle cx="4" cy="6" r="1.2" />
-          <circle cx="8" cy="6" r="1.2" />
-          <circle cx="4" cy="10" r="1.2" />
-          <circle cx="8" cy="10" r="1.2" />
-        </svg>
-      </div>
+      />
 
       <LinkCard link={link} tooltip={false} intervalMs={intervalMs} />
 

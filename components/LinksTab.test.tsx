@@ -12,9 +12,19 @@ jest.mock('@dnd-kit/core', () => ({
 jest.mock('@dnd-kit/sortable', () => ({
   SortableContext: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   rectSortingStrategy: jest.fn(),
+  verticalListSortingStrategy: jest.fn(),
 }))
 jest.mock('@/components/SortableLinkCard', () => ({
   SortableLinkCard: ({ link }: { link: Link }) => <div data-testid="sortable-card">{link.name}</div>,
+}))
+jest.mock('@/components/SortableCategorySection', () => ({
+  SortableCategorySection: ({ category, onDeleteCategory }: { category: CategoryWithLinks; onDeleteCategory: (id: number) => void }) => (
+    <section>
+      <h3>{category.name}</h3>
+      {category.links.map(l => <div key={l.id}>{l.name}</div>)}
+      <button onClick={() => onDeleteCategory(category.id)}>Delete</button>
+    </section>
+  ),
 }))
 jest.mock('@/components/AdminLinkForm', () => ({
   AdminLinkForm: () => <div data-testid="link-form" />,
@@ -47,6 +57,7 @@ const baseProps: LinksTabProps = {
   handleUpdateLink: jest.fn(),
   handleDeleteLink: jest.fn(),
   handleDragEnd: jest.fn(),
+  handleCategoryDragEnd: jest.fn(),
   intervalMs: 10000,
 }
 
