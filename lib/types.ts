@@ -108,10 +108,18 @@ export type UserRole = 'admin' | 'user'
 
 export const VALID_ROLES: UserRole[] = ['admin', 'user']
 
+export const AVATAR_OPTIONS = [
+  '😀', '😎', '🤓', '🧑‍💻', '👩‍💻', '👨‍💻',
+  '🦊', '🐱', '🐶', '🐼', '🦁', '🐸',
+  '🚀', '⭐', '🔥', '💎', '🎯', '🌈',
+  '🎵', '🎮', '📚', '☕', '🌍', '🛡️',
+] as const
+
 export interface User {
   id: number
   email: string
   role: UserRole
+  avatar: string | null
   created_at: string
 }
 
@@ -119,12 +127,14 @@ export interface CreateUserInput {
   email: string
   password_hash: string
   role?: UserRole
+  avatar?: string | null
 }
 
 export interface UpdateUserInput {
   email?: string
   password_hash?: string
   role?: UserRole
+  avatar?: string | null
 }
 
 export interface UserWithHash extends User {

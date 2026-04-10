@@ -6,9 +6,9 @@ export function createUser(
   input: CreateUserInput
 ): User {
   const stmt = db.prepare(
-    'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?) RETURNING id, email, role, created_at'
+    'INSERT INTO users (email, password_hash, role, avatar) VALUES (?, ?, ?, ?) RETURNING id, email, role, avatar, created_at'
   )
-  return stmt.get(input.email, input.password_hash, input.role ?? 'user') as User
+  return stmt.get(input.email, input.password_hash, input.role ?? 'user', input.avatar ?? null) as User
 }
 
 export function getUserById(
@@ -16,7 +16,7 @@ export function getUserById(
   id: number
 ): User | undefined {
   return db
-    .prepare('SELECT id, email, role, created_at FROM users WHERE id = ?')
+    .prepare('SELECT id, email, role, avatar, created_at FROM users WHERE id = ?')
     .get(id) as User | undefined
 }
 
@@ -25,7 +25,7 @@ export function getUserByEmail(
   email: string
 ): UserWithHash | undefined {
   return db
-    .prepare('SELECT id, email, password_hash, role, created_at FROM users WHERE email = ?')
+    .prepare('SELECT id, email, password_hash, role, avatar, created_at FROM users WHERE email = ?')
     .get(email) as UserWithHash | undefined
 }
 
@@ -34,13 +34,13 @@ export function getUserByIdWithHash(
   id: number
 ): UserWithHash | undefined {
   return db
-    .prepare('SELECT * FROM users WHERE id = ?')
+    .prepare('SELECT id, email, password_hash, role, avatar, created_at FROM users WHERE id = ?')
     .get(id) as UserWithHash | undefined
 }
 
 export function getAllUsers(db: Database.Database): User[] {
   return db
-    .prepare('SELECT id, email, role, created_at FROM users ORDER BY id ASC')
+    .prepare('SELECT id, email, role, avatar, created_at FROM users ORDER BY id ASC')
     .all() as User[]
 }
 
@@ -54,8 +54,8 @@ export function updateUser(
 
   const updated = { ...existing, ...input }
   db.prepare(
-    'UPDATE users SET email = ?, password_hash = ?, role = ? WHERE id = ?'
-  ).run(updated.email, updated.password_hash, updated.role, id)
+    'UPDATE users SET email = ?, password_hash = ?, role = ?, avatar = ? WHERE id = ?'
+  ).run(updated.email, updated.password_hash, updated.role, updated.avatar ?? null, id)
 
   return getUserById(db, id)
 }

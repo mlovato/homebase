@@ -8,6 +8,7 @@ import { HEALTH_CHECK_INTERVALS, INTERVAL_TO_MS } from '@/lib/types'
 import { LinksTab, type LinksTabProps } from '@/components/LinksTab'
 import { SettingsTab } from '@/components/SettingsTab'
 import { UsersTab } from '@/components/UsersTab'
+import { UserAvatar } from '@/components/UserAvatar'
 import { HealthCheckProvider } from '@/components/HealthCheckContext'
 import {
   PointerSensor,
@@ -29,7 +30,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [intervalMs, setIntervalMs] = useState<number | null>(null)
-  const [userRole, setUserRole] = useState<UserRole | null>(null)
+  const [currentUser, setCurrentUser] = useState<{ role: UserRole; email: string; avatar: string | null } | null>(null)
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function showError(msg: string) {
@@ -59,7 +60,9 @@ export default function AdminPage() {
       .catch(() => {})
     fetch('/api/auth/me')
       .then(r => r.json())
-      .then(data => { if (data.role) setUserRole(data.role) })
+      .then(data => {
+        if (data.role && data.email) setCurrentUser({ role: data.role, email: data.email, avatar: data.avatar ?? null })
+      })
       .catch(() => {})
   }, [loadCategories])
 
@@ -197,7 +200,10 @@ export default function AdminPage() {
             v{process.env.NEXT_PUBLIC_APP_VERSION}
           </span>
         </div>
-        <NextLink href="/" className="text-sm text-gray-500 retro:text-retro-dim hover:text-indigo-600 retro:hover:text-retro-green transition-colors">← Dashboard</NextLink>
+        <NextLink href="/" className="flex items-center gap-2 text-sm text-gray-500 retro:text-retro-dim hover:text-indigo-600 retro:hover:text-retro-green transition-colors">
+          {currentUser && <UserAvatar avatar={currentUser.avatar} email={currentUser.email} size="header" />}
+          ← Dashboard
+        </NextLink>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
@@ -213,7 +219,7 @@ export default function AdminPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           )}
-          {userRole === 'admin' && navItem('users', 'Users',
+          {currentUser?.role === 'admin' && navItem('users', 'Users',
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
@@ -262,7 +268,7 @@ export default function AdminPage() {
           {tab === 'settings' && (
             <SettingsTab onIntervalChange={v => setIntervalMs(INTERVAL_TO_MS[v])} />
           )}
-          {tab === 'users' && userRole === 'admin' && (
+          {tab === 'users' && currentUser?.role === 'admin' && (
             <UsersTab showError={showError} />
           )}
         </main>

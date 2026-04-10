@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { getDb } from '@/lib/db'
 import { verifySessionToken, COOKIE_NAME } from '@/lib/auth'
 import { getCategoriesWithLinks, getUncategorizedLinks } from '@/lib/repositories/categories'
+import { getUserById } from '@/lib/repositories/users'
 import { getHealthCheckInterval, getSearchShortcut } from '@/lib/repositories/settings'
 import { INTERVAL_TO_MS } from '@/lib/types'
 import Link from 'next/link'
@@ -9,6 +10,7 @@ import { CategorySection } from '@/components/CategorySection'
 import { LinkCard } from '@/components/LinkCard'
 import { HealthCheckProvider } from '@/components/HealthCheckContext'
 import { SearchModal } from '@/components/SearchModal'
+import { UserAvatar } from '@/components/UserAvatar'
 import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
@@ -24,6 +26,7 @@ export default async function DashboardPage() {
 
   const db = getDb()
   const userId = result.userId
+  const user = getUserById(db, userId)
   const categories = getCategoriesWithLinks(db, userId)
   const uncategorized = getUncategorizedLinks(db, userId)
   const intervalMs = INTERVAL_TO_MS[getHealthCheckInterval(db, userId)]
@@ -85,9 +88,10 @@ export default async function DashboardPage() {
         </h1>
         <Link
           href="/admin"
-          className="text-sm text-gray-500 dark:text-gray-400 retro:text-retro-dim hover:text-indigo-600 dark:hover:text-indigo-400 retro:hover:text-retro-green transition-colors"
+          className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 retro:text-retro-dim hover:text-indigo-600 dark:hover:text-indigo-400 retro:hover:text-retro-green transition-colors"
         >
-          Admin
+          <UserAvatar avatar={user?.avatar ?? null} email={user?.email ?? '?'} size="header" />
+          {user?.email ?? 'Admin'}
         </Link>
       </header>
 

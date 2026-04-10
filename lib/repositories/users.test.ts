@@ -27,6 +27,16 @@ describe('createUser', () => {
     expect(user.role).toBe('admin')
   })
 
+  it('creates a user with avatar', () => {
+    const user = createUser(db, { email: 'a@test.com', password_hash: 'hash', avatar: '🚀' })
+    expect(user.avatar).toBe('🚀')
+  })
+
+  it('defaults avatar to null', () => {
+    const user = createUser(db, { email: 'a@test.com', password_hash: 'hash' })
+    expect(user.avatar).toBeNull()
+  })
+
   it('rejects duplicate email', () => {
     createUser(db, { email: 'alice@test.com', password_hash: 'hash' })
     expect(() => createUser(db, { email: 'alice@test.com', password_hash: 'hash2' })).toThrow()
@@ -86,6 +96,12 @@ describe('updateUser', () => {
     const user = createUser(db, { email: 'a@test.com', password_hash: 'hash' })
     const updated = updateUser(db, user.id, { role: 'admin' })
     expect(updated!.role).toBe('admin')
+  })
+
+  it('updates avatar', () => {
+    const user = createUser(db, { email: 'a@test.com', password_hash: 'hash' })
+    const updated = updateUser(db, user.id, { avatar: '🎯' })
+    expect(updated!.avatar).toBe('🎯')
   })
 
   it('updates password_hash', () => {

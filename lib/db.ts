@@ -9,6 +9,7 @@ const SCHEMA = `
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('admin','user')),
+    avatar TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -77,6 +78,11 @@ export async function runMigrations(
   migrateAddUserId(db, 'categories')
   migrateAddUserId(db, 'links')
   migrateSettings(db)
+
+  // Migrate: add avatar column to users if missing
+  if (!hasColumn(db, 'users', 'avatar')) {
+    db.exec('ALTER TABLE users ADD COLUMN avatar TEXT')
+  }
 }
 
 function hasColumn(db: Database.Database, table: string, column: string): boolean {

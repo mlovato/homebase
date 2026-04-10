@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { User, UserRole } from '@/lib/types'
+import { AVATAR_OPTIONS } from '@/lib/types'
+import { UserAvatar } from './UserAvatar'
 
 const inputClass = 'px-3 py-2 rounded-lg retro:rounded-none border border-gray-300 dark:border-gray-600 retro:border-retro-dim bg-white dark:bg-gray-700 retro:bg-retro-bg text-gray-900 dark:text-gray-100 retro:text-retro-green focus:outline-none focus:ring-2 focus:ring-indigo-500 retro:focus:ring-retro-green text-sm'
 
@@ -73,7 +75,7 @@ export function UsersTab({ showError }: UsersTabProps) {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 dark:bg-gray-700/50 retro:bg-transparent border-b border-gray-200 dark:border-gray-700 retro:border-retro-dim">
-              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400 retro:text-retro-dim">Email</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400 retro:text-retro-dim">User</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400 retro:text-retro-dim">Role</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400 retro:text-retro-dim">Created</th>
               <th className="text-right px-4 py-3 font-medium text-gray-500 dark:text-gray-400 retro:text-retro-dim">Actions</th>
@@ -82,7 +84,12 @@ export function UsersTab({ showError }: UsersTabProps) {
           <tbody>
             {users.map(user => (
               <tr key={user.id} className="border-b last:border-b-0 border-gray-200 dark:border-gray-700 retro:border-retro-dim">
-                <td className="px-4 py-3 text-gray-900 dark:text-gray-100 retro:text-retro-green">{user.email}</td>
+                <td className="px-4 py-3 text-gray-900 dark:text-gray-100 retro:text-retro-green">
+                  <div className="flex items-center gap-2">
+                    <UserAvatar avatar={user.avatar} email={user.email} />
+                    {user.email}
+                  </div>
+                </td>
                 <td className="px-4 py-3">
                   <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
                     user.role === 'admin'
@@ -157,6 +164,7 @@ function UserFormModal({
   const [email, setEmail] = useState(isEdit ? modal.user.email : '')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<UserRole>(isEdit ? modal.user.role : 'user')
+  const [avatar, setAvatar] = useState<string | null>(isEdit ? modal.user.avatar : null)
   const [saving, setSaving] = useState(false)
   const overlayRef = useRef<HTMLDivElement>(null)
 
@@ -167,13 +175,14 @@ function UserFormModal({
     try {
       let url: string
       let method: string
-      let payload: Record<string, string>
+      let payload: Record<string, string | null>
 
       if (isEdit) {
-        const body: Record<string, string> = {}
+        const body: Record<string, string | null> = {}
         if (email !== modal.user.email) body.email = email
         if (password) body.password = password
         if (role !== modal.user.role) body.role = role
+        if (avatar !== modal.user.avatar) body.avatar = avatar
         if (Object.keys(body).length === 0) { onClose(); return }
         url = `/api/users/${modal.user.id}`
         method = 'PUT'
@@ -181,7 +190,7 @@ function UserFormModal({
       } else {
         url = '/api/users'
         method = 'POST'
-        payload = { email, password, role }
+        payload = { email, password, role, avatar }
       }
 
       const res = await fetch(url, {
@@ -213,6 +222,39 @@ function UserFormModal({
           {isEdit ? 'Edit user' : 'Create user'}
         </h3>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 retro:text-retro-dim">Avatar</label>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => setAvatar(null)}
+                className={`w-9 h-9 rounded-lg retro:rounded-none border-2 flex items-center justify-center text-xs transition-colors ${
+                  avatar === null
+                    ? 'border-indigo-500 retro:border-retro-green bg-indigo-50 dark:bg-indigo-900/30 retro:bg-transparent'
+                    : 'border-gray-200 dark:border-gray-600 retro:border-retro-dim hover:border-gray-300 dark:hover:border-gray-500'
+                }`}
+                title="Default (letter)"
+              >
+                <span className="text-gray-400 dark:text-gray-500 retro:text-retro-dim font-medium uppercase">
+                  {email ? email[0] : '?'}
+                </span>
+              </button>
+              {AVATAR_OPTIONS.map(emoji => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => setAvatar(emoji)}
+                  className={`w-9 h-9 rounded-lg retro:rounded-none border-2 flex items-center justify-center text-lg transition-colors ${
+                    avatar === emoji
+                      ? 'border-indigo-500 retro:border-retro-green bg-indigo-50 dark:bg-indigo-900/30 retro:bg-transparent'
+                      : 'border-gray-200 dark:border-gray-600 retro:border-retro-dim hover:border-gray-300 dark:hover:border-gray-500'
+                  }`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 retro:text-retro-dim">Email</label>
             <input

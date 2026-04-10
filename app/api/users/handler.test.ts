@@ -45,6 +45,12 @@ describe('handleCreateUser', () => {
     expect(result.data).toMatchObject({ role: 'admin' })
   })
 
+  it('creates a user with avatar', async () => {
+    const result = await handleCreateUser(db, { email: 'a@test.com', password: 'pass1234', avatar: '🚀' })
+    expect(result.status).toBe(201)
+    expect(result.data).toMatchObject({ avatar: '🚀' })
+  })
+
   it('rejects missing email', async () => {
     const result = await handleCreateUser(db, { password: 'pass1234' })
     expect(result.status).toBe(400)
@@ -52,6 +58,11 @@ describe('handleCreateUser', () => {
 
   it('rejects short password', async () => {
     const result = await handleCreateUser(db, { email: 'x@test.com', password: 'ab' })
+    expect(result.status).toBe(400)
+  })
+
+  it('rejects invalid avatar', async () => {
+    const result = await handleCreateUser(db, { email: 'x@test.com', password: 'pass1234', avatar: 'not-an-emoji' })
     expect(result.status).toBe(400)
   })
 
