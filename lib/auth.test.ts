@@ -24,25 +24,32 @@ describe('verifyPassword', () => {
 })
 
 describe('createSessionToken / verifySessionToken', () => {
-  it('creates a token that verifies successfully', async () => {
-    const token = await createSessionToken(SECRET)
-    expect(typeof token).toBe('string')
-    expect(token.length).toBeGreaterThan(0)
-
+  it('creates a token that verifies with userId and role', async () => {
+    const token = await createSessionToken({ userId: 1, role: 'admin' }, SECRET)
     const result = await verifySessionToken(token, SECRET)
     expect(result.valid).toBe(true)
+    expect(result.userId).toBe(1)
+    expect(result.role).toBe('admin')
+  })
+
+  it('embeds user role in token', async () => {
+    const token = await createSessionToken({ userId: 5, role: 'user' }, SECRET)
+    const result = await verifySessionToken(token, SECRET)
+    expect(result.valid).toBe(true)
+    expect(result.userId).toBe(5)
+    expect(result.role).toBe('user')
   })
 
   it('rejects a token signed with a different secret', async () => {
-    const token = await createSessionToken(SECRET)
+    const token = await createSessionToken({ userId: 1, role: 'admin' }, SECRET)
     const result = await verifySessionToken(token, 'different-secret-also-long-enough!')
     expect(result.valid).toBe(false)
   })
 
   it('rejects a tampered token', async () => {
-    const token = await createSessionToken(SECRET)
+    const token = await createSessionToken({ userId: 1, role: 'admin' }, SECRET)
     const parts = token.split('.')
-    parts[1] = Buffer.from('{"admin":false}').toString('base64url')
+    parts[1] = Buffer.from('{"userId":999}').toString('base64url')
     const tampered = parts.join('.')
     const result = await verifySessionToken(tampered, SECRET)
     expect(result.valid).toBe(false)

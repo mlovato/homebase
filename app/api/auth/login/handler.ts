@@ -27,7 +27,8 @@ export async function handleLogin(
     return { success: false, error: 'Invalid password' }
   }
 
-  const token = await createSessionToken(jwtSecret)
+  // TODO: Commit 4 will look up the actual user by email
+  const token = await createSessionToken({ userId: 0, role: 'admin' }, jwtSecret)
   return { success: true, token }
 }
 

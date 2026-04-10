@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose'
+import type { UserRole } from '@/lib/types'
 
 const TOKEN_EXPIRY = '24h'
 const COOKIE_NAME = 'homebase_session'
@@ -7,16 +8,26 @@ export function verifyPassword(submitted: string, expected: string): boolean {
   return submitted.length > 0 && submitted === expected
 }
 
-export async function createSessionToken(secret: string): Promise<string> {
+export interface TokenClaims {
+  userId: number
+  role: UserRole
+}
+
+export async function createSessionToken(
+  claims: TokenClaims,
+  secret: string
+): Promise<string> {
   const key = new TextEncoder().encode(secret)
-  return new SignJWT({ admin: true })
+  return new SignJWT({ userId: claims.userId, role: claims.role })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(TOKEN_EXPIRY)
     .sign(key)
 }
 
-export type VerifyResult = { valid: true } | { valid: false }
+export type VerifyResult =
+  | { valid: true; userId: number; role: UserRole }
+  | { valid: false; userId?: undefined; role?: undefined }
 
 export async function verifySessionToken(
   token: string,
@@ -25,8 +36,12 @@ export async function verifySessionToken(
   if (!token) return { valid: false }
   try {
     const key = new TextEncoder().encode(secret)
-    await jwtVerify(token, key)
-    return { valid: true }
+    const { payload } = await jwtVerify(token, key)
+    return {
+      valid: true,
+      userId: payload.userId as number,
+      role: payload.role as UserRole,
+    }
   } catch {
     return { valid: false }
   }
