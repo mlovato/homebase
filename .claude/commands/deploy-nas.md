@@ -12,9 +12,9 @@ Build and push the homebase Docker image to the NAS (192.168.1.120). The user re
    ```
    docker buildx build --platform linux/amd64 -t homebase:latest -t homebase:<version> . --load
    ```
-3. Export, compress, and transfer to the NAS:
+3. Export, compress, and transfer to the NAS (include both tags so `latest` is updated):
    ```
-   docker save homebase:<version> | gzip | ssh mlovato@192.168.1.120 "cat > /volume1/docker/homebase-<version>.tar.gz"
+   docker save homebase:<version> homebase:latest | gzip | ssh mlovato@192.168.1.120 "cat > /volume1/docker/homebase-<version>.tar.gz"
    ```
 4. Load the image on the NAS (docker binary is at `/usr/local/bin/docker`):
    ```
