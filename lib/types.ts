@@ -103,3 +103,28 @@ export interface UpdateLinkInput {
   icon_value?: string | null
   sort_order?: number
 }
+
+export type UserRole = 'admin' | 'user'
+
+export interface User {
+  id: number
+  email: string
+  role: UserRole
+  created_at: string
+}
+
+export interface CreateUserInput {
+  email: string
+  password_hash: string
+  role?: UserRole
+}
+
+export interface UpdateUserInput {
+  email?: string
+  password_hash?: string
+  role?: UserRole
+}
+
+export interface UserWithHash extends User {
+  password_hash: string
+}

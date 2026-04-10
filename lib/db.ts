@@ -24,6 +24,14 @@ const SCHEMA = `
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('admin','user')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `
 
 let _db: Database.Database | null = null
