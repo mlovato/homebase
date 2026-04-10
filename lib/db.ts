@@ -45,6 +45,30 @@ export function getDb(): Database.Database {
   return _db
 }
 
+interface MigrationEnv {
+  adminEmail: string
+  adminPassword: string
+}
+
+export async function runMigrations(
+  db: Database.Database,
+  env?: MigrationEnv
+): Promise<void> {
+  const adminEmail = env?.adminEmail ?? process.env.ADMIN_EMAIL ?? ''
+  const adminPassword = env?.adminPassword ?? process.env.ADMIN_PASSWORD ?? ''
+
+  if (!adminEmail || !adminPassword) return
+
+  const count = db.prepare('SELECT COUNT(*) as c FROM users').get() as { c: number }
+  if (count.c > 0) return
+
+  const { hashPassword } = await import('@/lib/password')
+  const { createUser } = await import('@/lib/repositories/users')
+
+  const passwordHash = await hashPassword(adminPassword)
+  createUser(db, { email: adminEmail, password_hash: passwordHash, role: 'admin' })
+}
+
 /** Creates an isolated in-memory DB for tests */
 export function createTestDb(): Database.Database {
   const db = new Database(':memory:')
