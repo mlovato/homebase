@@ -29,7 +29,7 @@ export function CategorySection({ category, intervalMs }: CategorySectionProps) 
   }
 
   return (
-    <section className="mb-8">
+    <section className="mb-6 md:mb-8">
       <h2 className="text-lg font-semibold text-gray-500 dark:text-gray-400 retro:text-retro-dim uppercase tracking-wider mb-4 px-1">
         <button
           onClick={toggle}
@@ -50,7 +50,7 @@ export function CategorySection({ category, intervalMs }: CategorySectionProps) 
         </button>
       </h2>
       {!collapsed && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 md:gap-4">
           {category.links.map(link => (
             <LinkCard key={link.id} link={link} intervalMs={intervalMs} />
           ))}

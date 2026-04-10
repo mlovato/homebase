@@ -71,13 +71,13 @@ export function UsersTab({ showError }: UsersTabProps) {
         </button>
       </div>
 
-      <div className="border border-gray-200 dark:border-gray-700 retro:border-retro-dim rounded-lg retro:rounded-none overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="border border-gray-200 dark:border-gray-700 retro:border-retro-dim rounded-lg retro:rounded-none overflow-x-auto">
+        <table className="w-full text-sm min-w-0">
           <thead>
             <tr className="bg-gray-50 dark:bg-gray-700/50 retro:bg-transparent border-b border-gray-200 dark:border-gray-700 retro:border-retro-dim">
               <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400 retro:text-retro-dim">User</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400 retro:text-retro-dim">Role</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400 retro:text-retro-dim">Created</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400 retro:text-retro-dim hidden sm:table-cell">Created</th>
               <th className="text-right px-4 py-3 font-medium text-gray-500 dark:text-gray-400 retro:text-retro-dim">Actions</th>
             </tr>
           </thead>
@@ -99,7 +99,7 @@ export function UsersTab({ showError }: UsersTabProps) {
                     {user.role}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-500 dark:text-gray-400 retro:text-retro-dim">
+                <td className="px-4 py-3 text-gray-500 dark:text-gray-400 retro:text-retro-dim hidden sm:table-cell">
                   {new Date(user.created_at).toLocaleDateString()}
                 </td>
                 <td className="px-4 py-3 text-right">

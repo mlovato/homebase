@@ -48,11 +48,11 @@ export function LinksTab({
 
   return (
     <>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6 md:mb-8">
         <h2 className="text-xl font-semibold">Links</h2>
         <button
           onClick={() => setModal({ type: 'create-category' })}
-          className="px-4 py-2 rounded-lg retro:rounded-none bg-indigo-600 retro:bg-transparent retro:border retro:border-retro-green retro:text-retro-green text-white text-sm font-medium hover:bg-indigo-700 retro:hover:bg-retro-dim transition-colors"
+          className="px-3 md:px-4 py-2 rounded-lg retro:rounded-none bg-indigo-600 retro:bg-transparent retro:border retro:border-retro-green retro:text-retro-green text-white text-sm font-medium hover:bg-indigo-700 retro:hover:bg-retro-dim transition-colors"
         >
           + Add Category
         </button>
@@ -66,8 +66,8 @@ export function LinksTab({
       )}
 
       {categories.map(category => (
-        <section key={category.id} className="mb-10">
-          <div className="flex items-center justify-between mb-4">
+        <section key={category.id} className="mb-8 md:mb-10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
             <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 retro:text-retro-green uppercase tracking-wider">
               {category.name}
             </h3>
@@ -103,7 +103,7 @@ export function LinksTab({
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e: DragEndEvent) => handleDragEnd(e, category.id)}>
               <SortableContext items={category.links.map(l => l.id)} strategy={rectSortingStrategy}>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 md:gap-4">
                   {category.links.map(link => (
                     <SortableLinkCard key={link.id} link={link} onEdit={l => setModal({ type: 'edit-link', link: l })} onDelete={handleDeleteLink} intervalMs={intervalMs} />
                   ))}
@@ -115,13 +115,13 @@ export function LinksTab({
       ))}
 
       {uncategorized.length > 0 && (
-        <section className="mb-10">
+        <section className="mb-8 md:mb-10">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Uncategorized</h3>
           </div>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e: DragEndEvent) => handleDragEnd(e, null)}>
             <SortableContext items={uncategorized.map(l => l.id)} strategy={rectSortingStrategy}>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 md:gap-4">
                 {uncategorized.map(link => (
                   <SortableLinkCard key={link.id} link={link} onEdit={l => setModal({ type: 'edit-link', link: l })} onDelete={handleDeleteLink} intervalMs={intervalMs} />
                 ))}

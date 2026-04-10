@@ -40,7 +40,7 @@ export default async function DashboardPage() {
   const hasContent = categories.some(c => c.links.length > 0) || uncategorized.length > 0
 
   const content = (
-    <div className="max-w-screen-2xl mx-auto px-6 py-8">
+    <div className="max-w-screen-2xl mx-auto px-4 py-6 md:px-6 md:py-8">
       {!hasContent && (
         <div className="flex flex-col items-center justify-center py-24 text-center text-gray-400 dark:text-gray-500">
           <div className="text-6xl mb-4">🗂️</div>
@@ -62,11 +62,11 @@ export default async function DashboardPage() {
         ))}
 
       {uncategorized.length > 0 && (
-        <section className="mb-8">
+        <section className="mb-6 md:mb-8">
           <h2 className="text-lg font-semibold text-gray-500 dark:text-gray-400 retro:text-retro-dim uppercase tracking-wider mb-4 px-1">
             Other
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 md:gap-4">
             {uncategorized.map(link => (
               <LinkCard key={link.id} link={link} intervalMs={intervalMs} />
             ))}
@@ -81,7 +81,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-screen retro:bg-retro-bg">
-      <header className="border-b border-gray-200 dark:border-gray-700 retro:border-retro-dim bg-white dark:bg-gray-800 retro:bg-retro-bg px-6 py-4 flex items-center justify-between">
+      <header className="border-b border-gray-200 dark:border-gray-700 retro:border-retro-dim bg-white dark:bg-gray-800 retro:bg-retro-bg px-4 py-3 md:px-6 md:py-4 flex items-center justify-between">
         <h1>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icon.png" alt="Homebase" className="w-10 h-10 object-contain" />
