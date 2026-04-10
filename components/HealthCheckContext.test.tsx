@@ -3,25 +3,79 @@
  */
 import React from 'react'
 import { render, screen, act } from '@testing-library/react'
-import { HealthCheckProvider, useHealthStatus, HealthCheckContext } from './HealthCheckContext'
-
-function mockXhr(response: Record<string, string>) {
-  const xhr = {
-    open: jest.fn(),
-    send: jest.fn(),
-    abort: jest.fn(),
-    onload: null as (() => void) | null,
-    onerror: null as (() => void) | null,
-    responseText: JSON.stringify(response),
-  }
-  jest.spyOn(global, 'XMLHttpRequest' as never).mockImplementation(() => xhr as never)
-  return xhr
-}
+import { HealthCheckProvider, useHealthStatus, HealthCheckContext, checkHealthClient } from './HealthCheckContext'
+import type { HealthStatus } from '@/app/api/health/handler'
+import type { Checker } from './HealthCheckContext'
 
 function StatusConsumer({ url }: { url: string }) {
   const status = useHealthStatus(url)
   return <span data-testid="status">{status}</span>
 }
+
+describe('checkHealthClient', () => {
+  const originalFetch = global.fetch
+  afterEach(() => { global.fetch = originalFetch; jest.restoreAllMocks() })
+
+  it('returns "up" when fetch resolves', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true })
+    expect(await checkHealthClient('http://ha.local')).toBe('up')
+  })
+
+  it('returns "down" when fetch rejects', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'))
+    expect(await checkHealthClient('http://down.local')).toBe('down')
+  })
+
+  it('returns "unknown" for empty url', async () => {
+    expect(await checkHealthClient('')).toBe('unknown')
+  })
+
+  it('returns "unknown" for non-http url', async () => {
+    expect(await checkHealthClient('ftp://something.local')).toBe('unknown')
+  })
+
+  it('uses HEAD method with no-cors mode', async () => {
+    const spy = jest.fn().mockResolvedValue({ ok: true })
+    global.fetch = spy
+    await checkHealthClient('http://ha.local')
+    expect(spy).toHaveBeenCalledWith('http://ha.local', expect.objectContaining({
+      method: 'HEAD',
+      mode: 'no-cors',
+    }))
+  })
+
+  it('aborts after 5 seconds', async () => {
+    jest.useFakeTimers()
+    const abortSpy = jest.spyOn(AbortController.prototype, 'abort')
+    global.fetch = jest.fn().mockImplementation((_url: string, init?: RequestInit) => {
+      return new Promise((_, reject) => {
+        init?.signal?.addEventListener('abort', () =>
+          reject(new DOMException('Aborted', 'AbortError'))
+        )
+      })
+    })
+    const promise = checkHealthClient('http://slow.local')
+    jest.advanceTimersByTime(5000)
+    const result = await promise
+    expect(abortSpy).toHaveBeenCalled()
+    expect(result).toBe('down')
+    jest.useRealTimers()
+  })
+
+  it('aborts when external signal fires', async () => {
+    global.fetch = jest.fn().mockImplementation((_url: string, init?: RequestInit) => {
+      return new Promise((_, reject) => {
+        init?.signal?.addEventListener('abort', () =>
+          reject(new DOMException('Aborted', 'AbortError'))
+        )
+      })
+    })
+    const external = new AbortController()
+    const promise = checkHealthClient('http://ha.local', external.signal)
+    external.abort()
+    expect(await promise).toBe('down')
+  })
+})
 
 describe('useHealthStatus', () => {
   it('returns unknown when no provider is present', () => {
@@ -29,35 +83,35 @@ describe('useHealthStatus', () => {
     expect(screen.getByTestId('status')).toHaveTextContent('unknown')
   })
 
-  it('returns unknown initially before first batch response', () => {
-    mockXhr({})
+  it('returns unknown initially before first check completes', () => {
+    const checker: Checker = jest.fn().mockReturnValue(new Promise(() => {}))
     render(
-      <HealthCheckProvider urls={['http://a.local']} intervalMs={10000}>
+      <HealthCheckProvider urls={['http://a.local']} intervalMs={10000} checker={checker}>
         <StatusConsumer url="http://a.local" />
       </HealthCheckProvider>
     )
     expect(screen.getByTestId('status')).toHaveTextContent('unknown')
   })
 
-  it('returns status from context after batch response', async () => {
-    const xhr = mockXhr({ 'http://a.local': 'up', 'http://b.local': 'down' })
+  it('returns status after check completes', async () => {
+    const checker: Checker = jest.fn().mockResolvedValue('up' as HealthStatus)
     render(
-      <HealthCheckProvider urls={['http://a.local', 'http://b.local']} intervalMs={10000}>
+      <HealthCheckProvider urls={['http://a.local', 'http://b.local']} intervalMs={10000} checker={checker}>
         <StatusConsumer url="http://a.local" />
       </HealthCheckProvider>
     )
-    await act(async () => { xhr.onload?.() })
+    await act(async () => {})
     expect(screen.getByTestId('status')).toHaveTextContent('up')
   })
 
-  it('returns unknown for a url not in the batch response', async () => {
-    const xhr = mockXhr({ 'http://a.local': 'up' })
+  it('returns unknown for a url not in the urls list', async () => {
+    const checker: Checker = jest.fn().mockResolvedValue('up' as HealthStatus)
     render(
-      <HealthCheckProvider urls={['http://a.local']} intervalMs={10000}>
+      <HealthCheckProvider urls={['http://a.local']} intervalMs={10000} checker={checker}>
         <StatusConsumer url="http://missing.local" />
       </HealthCheckProvider>
     )
-    await act(async () => { xhr.onload?.() })
+    await act(async () => {})
     expect(screen.getByTestId('status')).toHaveTextContent('unknown')
   })
 })
@@ -66,64 +120,54 @@ describe('HealthCheckProvider', () => {
   beforeEach(() => jest.useFakeTimers())
   afterEach(() => { jest.useRealTimers(); jest.restoreAllMocks() })
 
-  it('makes an XHR batch request on mount', () => {
-    const xhr = mockXhr({})
+  it('calls checker for each url on mount', async () => {
+    const checker: Checker = jest.fn().mockResolvedValue('up' as HealthStatus)
     render(
-      <HealthCheckProvider urls={['http://a.local']} intervalMs={10000}>
+      <HealthCheckProvider urls={['http://a.local', 'http://b.local']} intervalMs={10000} checker={checker}>
         <span />
       </HealthCheckProvider>
     )
-    expect(xhr.open).toHaveBeenCalledWith('GET', expect.stringContaining('/api/health/batch'))
-    expect(xhr.send).toHaveBeenCalled()
+    await act(async () => {})
+    expect(checker).toHaveBeenCalledWith('http://a.local', expect.any(AbortSignal))
+    expect(checker).toHaveBeenCalledWith('http://b.local', expect.any(AbortSignal))
   })
 
-  it('includes all urls in the batch request', () => {
-    const xhr = mockXhr({})
+  it('does not check when urls is empty', () => {
+    const checker: Checker = jest.fn().mockResolvedValue('up' as HealthStatus)
     render(
-      <HealthCheckProvider urls={['http://a.local', 'http://b.local']} intervalMs={10000}>
+      <HealthCheckProvider urls={[]} intervalMs={10000} checker={checker}>
         <span />
       </HealthCheckProvider>
     )
-    const url = (xhr.open as jest.Mock).mock.calls[0][1] as string
-    expect(url).toContain(encodeURIComponent('http://a.local'))
-    expect(url).toContain(encodeURIComponent('http://b.local'))
+    expect(checker).not.toHaveBeenCalled()
   })
 
-  it('does not make a request when urls is empty', () => {
-    const xhr = mockXhr({})
+  it('does not check when intervalMs is null', () => {
+    const checker: Checker = jest.fn().mockResolvedValue('up' as HealthStatus)
     render(
-      <HealthCheckProvider urls={[]} intervalMs={10000}>
+      <HealthCheckProvider urls={['http://a.local']} intervalMs={null} checker={checker}>
         <span />
       </HealthCheckProvider>
     )
-    expect(xhr.send).not.toHaveBeenCalled()
-  })
-
-  it('does not make a request when intervalMs is null', () => {
-    const xhr = mockXhr({})
-    render(
-      <HealthCheckProvider urls={['http://a.local']} intervalMs={null}>
-        <span />
-      </HealthCheckProvider>
-    )
-    expect(xhr.send).not.toHaveBeenCalled()
+    expect(checker).not.toHaveBeenCalled()
   })
 
   it('restarts health checks when tab becomes visible', async () => {
-    const xhr = mockXhr({})
+    const checker: Checker = jest.fn().mockResolvedValue('up' as HealthStatus)
     render(
-      <HealthCheckProvider urls={['http://a.local']} intervalMs={10000}>
+      <HealthCheckProvider urls={['http://a.local']} intervalMs={10000} checker={checker}>
         <span />
       </HealthCheckProvider>
     )
-    expect(xhr.send).toHaveBeenCalledTimes(1)
+    await act(async () => {})
+    expect(checker).toHaveBeenCalledTimes(1)
 
     await act(async () => {
       Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
       document.dispatchEvent(new Event('visibilitychange'))
     })
+    await act(async () => {})
 
-    expect(xhr.send).toHaveBeenCalledTimes(2)
+    expect(checker).toHaveBeenCalledTimes(2)
   })
-
 })
