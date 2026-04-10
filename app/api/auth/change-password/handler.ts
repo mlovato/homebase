@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3'
-import { hashPassword, verifyCurrentPassword, PASSWORD_HASH_KEY } from '@/lib/password'
-import { setSetting } from '@/lib/repositories/settings'
+import { hashPassword, verifyHashedPassword } from '@/lib/password'
+import { getUserByIdWithHash, updateUser } from '@/lib/repositories/users'
 
 const MIN_PASSWORD_LENGTH = 4
 
@@ -16,8 +16,8 @@ interface ChangePasswordResult {
 
 export async function handleChangePassword(
   db: Database.Database,
-  body: ChangePasswordInput,
-  envPassword: string
+  userId: number,
+  body: ChangePasswordInput
 ): Promise<ChangePasswordResult> {
   if (!body.newPassword) {
     return { success: false, error: 'New password is required' }
@@ -26,13 +26,19 @@ export async function handleChangePassword(
     return { success: false, error: `New password must be at least ${MIN_PASSWORD_LENGTH} characters` }
   }
 
-  const valid = await verifyCurrentPassword(db, body.currentPassword, envPassword)
+  const user = getUserByIdWithHash(db, userId)
+
+  if (!user) {
+    return { success: false, error: 'User not found' }
+  }
+
+  const valid = await verifyHashedPassword(body.currentPassword, user.password_hash)
   if (!valid) {
     return { success: false, error: 'Current password is incorrect' }
   }
 
-  const hash = await hashPassword(body.newPassword)
-  setSetting(db, PASSWORD_HASH_KEY, hash)
+  const newHash = await hashPassword(body.newPassword)
+  updateUser(db, userId, { password_hash: newHash })
 
   return { success: true }
 }

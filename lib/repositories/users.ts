@@ -29,7 +29,7 @@ export function getUserByEmail(
     .get(email) as UserWithHash | undefined
 }
 
-function getFullUserById(
+export function getUserByIdWithHash(
   db: Database.Database,
   id: number
 ): UserWithHash | undefined {
@@ -49,7 +49,7 @@ export function updateUser(
   id: number,
   input: UpdateUserInput
 ): User | undefined {
-  const existing = getFullUserById(db, id)
+  const existing = getUserByIdWithHash(db, id)
   if (!existing) return undefined
 
   const updated = { ...existing, ...input }
