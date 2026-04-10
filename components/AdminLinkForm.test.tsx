@@ -96,6 +96,11 @@ describe('AdminLinkForm', () => {
     })
   })
 
+  it('focuses the name input on mount', () => {
+    render(<AdminLinkForm onSubmit={jest.fn()} onCancel={jest.fn()} categories={categories} />)
+    expect(screen.getByLabelText(/name/i)).toHaveFocus()
+  })
+
   it('does not call onSubmit when name is empty', () => {
     const onSubmit = jest.fn()
     render(<AdminLinkForm onSubmit={onSubmit} onCancel={jest.fn()} categories={categories} />)
