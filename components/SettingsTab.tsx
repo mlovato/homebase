@@ -54,6 +54,8 @@ const INTERVAL_LABELS: Record<HealthCheckInterval, string> = {
 
 const actionButtonClass = 'px-4 py-2 rounded-lg retro:rounded-none border-2 border-gray-200 dark:border-gray-600 retro:border-retro-dim text-sm font-medium text-gray-600 dark:text-gray-300 retro:text-retro-green hover:border-indigo-400 dark:hover:border-indigo-500 retro:hover:border-retro-green transition-colors'
 
+const inputClass = 'px-3 py-2 rounded-lg retro:rounded-none border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500'
+
 interface SettingsTabProps {
   onIntervalChange?: (value: HealthCheckInterval) => void
 }
@@ -63,7 +65,17 @@ export function SettingsTab({ onIntervalChange }: SettingsTabProps = {}) {
   const [interval, setInterval] = useState<HealthCheckInterval>('30s')
   const [shortcut, setShortcut] = useState<SearchShortcut>(DEFAULT_SEARCH_SHORTCUT)
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [pwCurrent, setPwCurrent] = useState('')
+  const [pwNew, setPwNew] = useState('')
+  const [pwConfirm, setPwConfirm] = useState('')
+  const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [pwLoading, setPwLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const msgTimerRef = useRef<ReturnType<typeof setTimeout>>(null)
+
+  useEffect(() => {
+    return () => { if (msgTimerRef.current) clearTimeout(msgTimerRef.current) }
+  }, [])
 
   useEffect(() => {
     fetch('/api/settings')
@@ -122,7 +134,38 @@ export function SettingsTab({ onIntervalChange }: SettingsTabProps = {}) {
       setImportMsg({ ok: false, text: err?.error ?? 'Import failed.' })
     } else {
       setImportMsg({ ok: true, text: 'Imported successfully.' })
-      setTimeout(() => setImportMsg(null), 4000)
+      msgTimerRef.current = setTimeout(() => setImportMsg(null), 4000)
+    }
+  }
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault()
+    setPwMsg(null)
+    if (pwNew !== pwConfirm) {
+      setPwMsg({ ok: false, text: 'New passwords do not match.' })
+      return
+    }
+    setPwLoading(true)
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: pwCurrent, newPassword: pwNew }),
+      })
+      if (res.ok) {
+        setPwMsg({ ok: true, text: 'Password updated successfully.' })
+        setPwCurrent('')
+        setPwNew('')
+        setPwConfirm('')
+        msgTimerRef.current = setTimeout(() => setPwMsg(null), 4000)
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setPwMsg({ ok: false, text: data.error ?? 'Failed to change password.' })
+      }
+    } catch {
+      setPwMsg({ ok: false, text: 'Unable to reach the server.' })
+    } finally {
+      setPwLoading(false)
     }
   }
 
@@ -216,6 +259,38 @@ export function SettingsTab({ onIntervalChange }: SettingsTabProps = {}) {
         <p className="mt-3 text-xs text-gray-400 dark:text-gray-500 retro:text-retro-dim">
           How often to ping each service. Set to Never to hide status indicators.
         </p>
+      </section>
+
+      <section className="mt-10">
+        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 retro:text-retro-dim uppercase tracking-wider mb-4">
+          Change Password
+        </h3>
+        <form onSubmit={handleChangePassword} className="flex flex-col gap-3 max-w-xs">
+          <div className="flex flex-col gap-1">
+            <label htmlFor="pw-current" className="text-sm font-medium text-gray-700 dark:text-gray-300">Current password</label>
+            <input id="pw-current" type="password" value={pwCurrent} onChange={e => setPwCurrent(e.target.value)} required
+              className={inputClass} />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="pw-new" className="text-sm font-medium text-gray-700 dark:text-gray-300">New password</label>
+            <input id="pw-new" type="password" value={pwNew} onChange={e => setPwNew(e.target.value)} required
+              className={inputClass} />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="pw-confirm" className="text-sm font-medium text-gray-700 dark:text-gray-300">Confirm new password</label>
+            <input id="pw-confirm" type="password" value={pwConfirm} onChange={e => setPwConfirm(e.target.value)} required
+              className={inputClass} />
+          </div>
+          {pwMsg && (
+            <p className={`text-xs ${pwMsg.ok ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'} retro:text-retro-green`}>
+              {pwMsg.text}
+            </p>
+          )}
+          <button type="submit" disabled={pwLoading}
+            className="w-full py-2.5 rounded-lg retro:rounded-none bg-indigo-600 retro:bg-retro-dim text-white retro:text-retro-green font-medium hover:bg-indigo-700 retro:hover:bg-retro-green retro:hover:text-black disabled:opacity-60 transition-colors">
+            {pwLoading ? 'Updating…' : 'Update password'}
+          </button>
+        </form>
       </section>
     </div>
   )

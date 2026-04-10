@@ -14,19 +14,24 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
-    })
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      })
 
-    setLoading(false)
-    if (res.ok) {
-      router.push('/admin')
-      router.refresh()
-    } else {
-      const data = await res.json()
-      setError(data.error ?? 'Login failed')
+      if (res.ok) {
+        router.push('/admin')
+        router.refresh()
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error ?? 'Login failed')
+      }
+    } catch {
+      setError('Unable to reach the server')
+    } finally {
+      setLoading(false)
     }
   }
 

@@ -45,6 +45,8 @@ next-env.d.ts
 *.db-shm
 *.db-wal
 
+*.tar.gz
+
 # uploaded icons
 /public/uploads/*
 !/public/uploads/.gitkeep

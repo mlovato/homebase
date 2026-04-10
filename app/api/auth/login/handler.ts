@@ -1,4 +1,6 @@
-import { verifyPassword, createSessionToken, COOKIE_NAME } from '@/lib/auth'
+import type Database from 'better-sqlite3'
+import { createSessionToken, COOKIE_NAME } from '@/lib/auth'
+import { verifyCurrentPassword } from '@/lib/password'
 
 export interface LoginRequest {
   password: string
@@ -12,6 +14,7 @@ export interface LoginResult {
 
 export async function handleLogin(
   body: LoginRequest,
+  db: Database.Database,
   adminPassword: string,
   jwtSecret: string
 ): Promise<LoginResult> {
@@ -19,7 +22,8 @@ export async function handleLogin(
     return { success: false, error: 'Password is required' }
   }
 
-  if (!verifyPassword(body.password, adminPassword)) {
+  const valid = await verifyCurrentPassword(db, body.password, adminPassword)
+  if (!valid) {
     return { success: false, error: 'Invalid password' }
   }
 
