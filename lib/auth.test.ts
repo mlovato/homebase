@@ -59,4 +59,16 @@ describe('createSessionToken / verifySessionToken', () => {
     const result = await verifySessionToken('', SECRET)
     expect(result.valid).toBe(false)
   })
+
+  it('rejects a token missing userId and role claims', async () => {
+    const { SignJWT } = await import('jose')
+    const key = new TextEncoder().encode(SECRET)
+    const legacyToken = await new SignJWT({ admin: true })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('24h')
+      .sign(key)
+    const result = await verifySessionToken(legacyToken, SECRET)
+    expect(result.valid).toBe(false)
+  })
 })

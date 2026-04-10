@@ -37,9 +37,12 @@ export async function verifySessionToken(
   try {
     const key = new TextEncoder().encode(secret)
     const { payload } = await jwtVerify(token, key)
+    if (typeof payload.userId !== 'number' || !payload.role) {
+      return { valid: false }
+    }
     return {
       valid: true,
-      userId: payload.userId as number,
+      userId: payload.userId,
       role: payload.role as UserRole,
     }
   } catch {
