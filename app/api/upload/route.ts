@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { writeFile } from 'fs/promises'
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
-import { isAdminRequest } from '@/lib/apiAuth'
+import { getAuthenticatedUser } from '@/lib/apiAuth'
 
 const ALLOWED_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp']
 const MAX_SIZE_BYTES = 2 * 1024 * 1024 // 2 MB
 
 export async function POST(request: NextRequest) {
-  const isAdmin = await isAdminRequest(request)
-  if (!isAdmin) {
+  const user = await getAuthenticatedUser(request)
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

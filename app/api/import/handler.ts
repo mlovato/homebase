@@ -27,23 +27,22 @@ function isValidBody(data: unknown): data is ExportData {
   return d.uncategorized.every(isValidLink)
 }
 
-export function handleImport(db: Database.Database, body: unknown, isAdmin: boolean) {
-  if (!isAdmin) return { error: 'Unauthorized', status: 401 }
+export function handleImport(db: Database.Database, userId: number, body: unknown) {
   if (!isValidBody(body)) return { error: 'Invalid import format', status: 400 }
 
   db.transaction(() => {
-    db.prepare('DELETE FROM links').run()
-    db.prepare('DELETE FROM categories').run()
+    db.prepare('DELETE FROM links WHERE user_id = ?').run(userId)
+    db.prepare('DELETE FROM categories WHERE user_id = ?').run(userId)
 
     for (const cat of body.categories) {
-      const created = createCategory(db, { name: cat.name, sort_order: cat.sort_order ?? 0 })
+      const created = createCategory(db, userId, { name: cat.name, sort_order: cat.sort_order ?? 0 })
       for (const link of cat.links) {
-        createLink(db, { category_id: created.id, name: link.name, url: link.url, icon_type: link.icon_type, icon_value: link.icon_value ?? null, sort_order: link.sort_order ?? 0 })
+        createLink(db, userId, { category_id: created.id, name: link.name, url: link.url, icon_type: link.icon_type, icon_value: link.icon_value ?? null, sort_order: link.sort_order ?? 0 })
       }
     }
 
     for (const link of body.uncategorized) {
-      createLink(db, { category_id: null, name: link.name, url: link.url, icon_type: link.icon_type, icon_value: link.icon_value ?? null, sort_order: link.sort_order ?? 0 })
+      createLink(db, userId, { category_id: null, name: link.name, url: link.url, icon_type: link.icon_type, icon_value: link.icon_value ?? null, sort_order: link.sort_order ?? 0 })
     }
   })()
 

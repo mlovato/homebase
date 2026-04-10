@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { isAdminRequest } from '@/lib/apiAuth'
+import { getAuthenticatedUser } from '@/lib/apiAuth'
 import { handleUpdateCategory, handleDeleteCategory } from '../handler'
 
 interface Params {
@@ -8,10 +8,12 @@ interface Params {
 }
 
 export async function PUT(request: NextRequest, { params }: Params) {
+  const user = await getAuthenticatedUser(request)
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { id } = await params
-  const isAdmin = await isAdminRequest(request)
   const body = await request.json().catch(() => ({}))
-  const result = handleUpdateCategory(getDb(), parseInt(id, 10), body, isAdmin)
+  const result = handleUpdateCategory(getDb(), user.userId, parseInt(id, 10), body)
 
   if (result.error) {
     return NextResponse.json({ error: result.error }, { status: result.status })
@@ -20,9 +22,11 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(request: NextRequest, { params }: Params) {
+  const user = await getAuthenticatedUser(request)
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { id } = await params
-  const isAdmin = await isAdminRequest(request)
-  const result = handleDeleteCategory(getDb(), parseInt(id, 10), isAdmin)
+  const result = handleDeleteCategory(getDb(), user.userId, parseInt(id, 10))
 
   if (result.error) {
     return NextResponse.json({ error: result.error }, { status: result.status })

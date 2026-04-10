@@ -3,56 +3,60 @@ import type { Category, CategoryWithLinks, CreateCategoryInput, UpdateCategoryIn
 
 export function createCategory(
   db: Database.Database,
+  userId: number,
   input: CreateCategoryInput
 ): Category {
   const stmt = db.prepare(
-    'INSERT INTO categories (name, sort_order) VALUES (?, ?) RETURNING *'
+    'INSERT INTO categories (user_id, name, sort_order) VALUES (?, ?, ?) RETURNING id, name, sort_order'
   )
-  return stmt.get(input.name, input.sort_order ?? 0) as Category
+  return stmt.get(userId, input.name, input.sort_order ?? 0) as Category
 }
 
-export function getCategories(db: Database.Database): Category[] {
+export function getCategories(db: Database.Database, userId: number): Category[] {
   return db
-    .prepare('SELECT * FROM categories ORDER BY sort_order ASC, id ASC')
-    .all() as Category[]
+    .prepare('SELECT id, name, sort_order FROM categories WHERE user_id = ? ORDER BY sort_order ASC, id ASC')
+    .all(userId) as Category[]
 }
 
 export function getCategoryById(
   db: Database.Database,
+  userId: number,
   id: number
 ): Category | undefined {
   return db
-    .prepare('SELECT * FROM categories WHERE id = ?')
-    .get(id) as Category | undefined
+    .prepare('SELECT id, name, sort_order FROM categories WHERE id = ? AND user_id = ?')
+    .get(id, userId) as Category | undefined
 }
 
 export function updateCategory(
   db: Database.Database,
+  userId: number,
   id: number,
   input: UpdateCategoryInput
 ): Category | undefined {
-  const existing = getCategoryById(db, id)
+  const existing = getCategoryById(db, userId, id)
   if (!existing) return undefined
 
   const updated = { ...existing, ...input }
-  db.prepare('UPDATE categories SET name = ?, sort_order = ? WHERE id = ?').run(
+  db.prepare('UPDATE categories SET name = ?, sort_order = ? WHERE id = ? AND user_id = ?').run(
     updated.name,
     updated.sort_order,
-    id
+    id,
+    userId
   )
-  return getCategoryById(db, id)
+  return getCategoryById(db, userId, id)
 }
 
-export function deleteCategory(db: Database.Database, id: number): boolean {
-  const result = db.prepare('DELETE FROM categories WHERE id = ?').run(id)
+export function deleteCategory(db: Database.Database, userId: number, id: number): boolean {
+  const result = db.prepare('DELETE FROM categories WHERE id = ? AND user_id = ?').run(id, userId)
   return result.changes > 0
 }
 
-export function getCategoriesWithLinks(db: Database.Database): CategoryWithLinks[] {
-  const categories = getCategories(db)
+export function getCategoriesWithLinks(db: Database.Database, userId: number): CategoryWithLinks[] {
+  const categories = getCategories(db, userId)
   const links = db
-    .prepare('SELECT * FROM links ORDER BY sort_order ASC, id ASC')
-    .all() as import('@/lib/types').Link[]
+    .prepare('SELECT id, category_id, name, url, icon_type, icon_value, sort_order FROM links WHERE user_id = ? ORDER BY sort_order ASC, id ASC')
+    .all(userId) as import('@/lib/types').Link[]
 
   return categories.map(cat => ({
     ...cat,
@@ -60,8 +64,8 @@ export function getCategoriesWithLinks(db: Database.Database): CategoryWithLinks
   }))
 }
 
-export function getUncategorizedLinks(db: Database.Database): import('@/lib/types').Link[] {
+export function getUncategorizedLinks(db: Database.Database, userId: number): import('@/lib/types').Link[] {
   return db
-    .prepare('SELECT * FROM links WHERE category_id IS NULL ORDER BY sort_order ASC, id ASC')
-    .all() as import('@/lib/types').Link[]
+    .prepare('SELECT id, category_id, name, url, icon_type, icon_value, sort_order FROM links WHERE user_id = ? AND category_id IS NULL ORDER BY sort_order ASC, id ASC')
+    .all(userId) as import('@/lib/types').Link[]
 }

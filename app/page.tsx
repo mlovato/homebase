@@ -1,4 +1,6 @@
+import { cookies } from 'next/headers'
 import { getDb } from '@/lib/db'
+import { verifySessionToken, COOKIE_NAME } from '@/lib/auth'
 import { getCategoriesWithLinks, getUncategorizedLinks } from '@/lib/repositories/categories'
 import { getHealthCheckInterval, getSearchShortcut } from '@/lib/repositories/settings'
 import { INTERVAL_TO_MS } from '@/lib/types'
@@ -7,15 +9,25 @@ import { CategorySection } from '@/components/CategorySection'
 import { LinkCard } from '@/components/LinkCard'
 import { HealthCheckProvider } from '@/components/HealthCheckContext'
 import { SearchModal } from '@/components/SearchModal'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const cookieStore = await cookies()
+  const token = cookieStore.get(COOKIE_NAME)?.value ?? ''
+  const result = await verifySessionToken(token, process.env.JWT_SECRET ?? '')
+
+  if (!result.valid) {
+    redirect('/admin/login')
+  }
+
   const db = getDb()
-  const categories = getCategoriesWithLinks(db)
-  const uncategorized = getUncategorizedLinks(db)
-  const intervalMs = INTERVAL_TO_MS[getHealthCheckInterval(db)]
-  const searchShortcut = getSearchShortcut(db)
+  const userId = result.userId
+  const categories = getCategoriesWithLinks(db, userId)
+  const uncategorized = getUncategorizedLinks(db, userId)
+  const intervalMs = INTERVAL_TO_MS[getHealthCheckInterval(db, userId)]
+  const searchShortcut = getSearchShortcut(db, userId)
 
   const allUrls = [
     ...categories.flatMap(c => c.links.map(l => l.url)),

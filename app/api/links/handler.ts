@@ -4,28 +4,26 @@ import {
   createLink,
   updateLink,
   deleteLink,
-  getLinkById,
 } from '@/lib/repositories/links'
-import type { CreateLinkInput, UpdateLinkInput, IconType } from '@/lib/types'
+import type { CreateLinkInput, UpdateLinkInput } from '@/lib/types'
 import { VALID_ICON_TYPES } from '@/lib/types'
 
-export function handleGetLinks(db: Database.Database) {
-  return getAllLinks(db)
+export function handleGetLinks(db: Database.Database, userId: number) {
+  return getAllLinks(db, userId)
 }
 
 export function handleCreateLink(
   db: Database.Database,
-  body: Partial<CreateLinkInput>,
-  isAdmin: boolean
+  userId: number,
+  body: Partial<CreateLinkInput>
 ) {
-  if (!isAdmin) return { error: 'Unauthorized', status: 401 }
   if (!body.name?.trim()) return { error: 'Name is required', status: 400 }
   if (!body.url?.trim()) return { error: 'URL is required', status: 400 }
   if (!body.icon_type || !VALID_ICON_TYPES.includes(body.icon_type)) {
     return { error: 'icon_type must be builtin, upload, or url', status: 400 }
   }
 
-  const link = createLink(db, {
+  const link = createLink(db, userId, {
     category_id: body.category_id ?? null,
     name: body.name.trim(),
     url: body.url.trim(),
@@ -38,17 +36,16 @@ export function handleCreateLink(
 
 export function handleUpdateLink(
   db: Database.Database,
+  userId: number,
   id: number,
-  body: Partial<UpdateLinkInput>,
-  isAdmin: boolean
+  body: Partial<UpdateLinkInput>
 ) {
-  if (!isAdmin) return { error: 'Unauthorized', status: 401 }
   if (isNaN(id)) return { error: 'Invalid id', status: 400 }
   if (body.icon_type && !VALID_ICON_TYPES.includes(body.icon_type)) {
     return { error: 'Invalid icon_type', status: 400 }
   }
 
-  const updated = updateLink(db, id, body)
+  const updated = updateLink(db, userId, id, body)
   if (!updated) return { error: 'Not found', status: 404 }
 
   return { data: updated, status: 200 }
@@ -56,13 +53,12 @@ export function handleUpdateLink(
 
 export function handleDeleteLink(
   db: Database.Database,
-  id: number,
-  isAdmin: boolean
+  userId: number,
+  id: number
 ) {
-  if (!isAdmin) return { error: 'Unauthorized', status: 401 }
   if (isNaN(id)) return { error: 'Invalid id', status: 400 }
 
-  const deleted = deleteLink(db, id)
+  const deleted = deleteLink(db, userId, id)
   if (!deleted) return { error: 'Not found', status: 404 }
 
   return { data: { ok: true }, status: 200 }

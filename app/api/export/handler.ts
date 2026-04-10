@@ -2,9 +2,9 @@ import type Database from 'better-sqlite3'
 import { getCategoriesWithLinks, getUncategorizedLinks } from '@/lib/repositories/categories'
 import type { ExportData } from '@/lib/types'
 
-export function handleExport(db: Database.Database): ExportData {
-  const categories = getCategoriesWithLinks(db)
-  const uncategorized = getUncategorizedLinks(db)
+export function handleExport(db: Database.Database, userId: number): ExportData {
+  const categories = getCategoriesWithLinks(db, userId)
+  const uncategorized = getUncategorizedLinks(db, userId)
 
   return {
     version: 1,

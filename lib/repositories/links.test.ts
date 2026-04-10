@@ -2,6 +2,7 @@
  * @jest-environment node
  */
 import { createTestDb } from '@/lib/db'
+import { createUser } from './users'
 import { createCategory } from './categories'
 import {
   createLink,
@@ -14,11 +15,13 @@ import {
 import type Database from 'better-sqlite3'
 
 let db: Database.Database
+let userId: number
 let categoryId: number
 
 beforeEach(() => {
   db = createTestDb()
-  categoryId = createCategory(db, { name: 'Media' }).id
+  userId = createUser(db, { email: 'test@test.com', password_hash: 'hash' }).id
+  categoryId = createCategory(db, userId, { name: 'Media' }).id
 })
 
 afterEach(() => {
@@ -27,7 +30,7 @@ afterEach(() => {
 
 describe('createLink', () => {
   it('creates a link with builtin icon', () => {
-    const link = createLink(db, {
+    const link = createLink(db, userId, {
       category_id: categoryId,
       name: 'Plex',
       url: 'http://localhost:32400',
@@ -43,7 +46,7 @@ describe('createLink', () => {
   })
 
   it('creates a link with no category (null)', () => {
-    const link = createLink(db, {
+    const link = createLink(db, userId, {
       category_id: null,
       name: 'Google',
       url: 'https://google.com',
@@ -54,7 +57,7 @@ describe('createLink', () => {
   })
 
   it('creates a link with an uploaded icon', () => {
-    const link = createLink(db, {
+    const link = createLink(db, userId, {
       name: 'Custom App',
       url: 'http://localhost:9000',
       icon_type: 'upload',
@@ -67,67 +70,80 @@ describe('createLink', () => {
 
 describe('getLinksByCategoryId', () => {
   it('returns links for the given category sorted by sort_order', () => {
-    createLink(db, { category_id: categoryId, name: 'Z', url: 'http://z', icon_type: 'builtin', sort_order: 10 })
-    createLink(db, { category_id: categoryId, name: 'A', url: 'http://a', icon_type: 'builtin', sort_order: 0 })
+    createLink(db, userId, { category_id: categoryId, name: 'Z', url: 'http://z', icon_type: 'builtin', sort_order: 10 })
+    createLink(db, userId, { category_id: categoryId, name: 'A', url: 'http://a', icon_type: 'builtin', sort_order: 0 })
 
-    const links = getLinksByCategoryId(db, categoryId)
+    const links = getLinksByCategoryId(db, userId, categoryId)
     expect(links.map(l => l.name)).toEqual(['A', 'Z'])
   })
 
   it('returns empty array when category has no links', () => {
-    expect(getLinksByCategoryId(db, categoryId)).toEqual([])
+    expect(getLinksByCategoryId(db, userId, categoryId)).toEqual([])
   })
 })
 
 describe('getAllLinks', () => {
   it('returns all links across all categories', () => {
-    const cat2Id = createCategory(db, { name: 'Tools' }).id
-    createLink(db, { category_id: categoryId, name: 'Plex', url: 'http://plex', icon_type: 'builtin' })
-    createLink(db, { category_id: cat2Id, name: 'Grafana', url: 'http://grafana', icon_type: 'builtin' })
+    const cat2Id = createCategory(db, userId, { name: 'Tools' }).id
+    createLink(db, userId, { category_id: categoryId, name: 'Plex', url: 'http://plex', icon_type: 'builtin' })
+    createLink(db, userId, { category_id: cat2Id, name: 'Grafana', url: 'http://grafana', icon_type: 'builtin' })
 
-    expect(getAllLinks(db)).toHaveLength(2)
+    expect(getAllLinks(db, userId)).toHaveLength(2)
   })
 })
 
 describe('getLinkById', () => {
   it('returns the link when found', () => {
-    const created = createLink(db, { category_id: categoryId, name: 'Plex', url: 'http://plex', icon_type: 'builtin' })
-    expect(getLinkById(db, created.id)).toEqual(created)
+    const created = createLink(db, userId, { category_id: categoryId, name: 'Plex', url: 'http://plex', icon_type: 'builtin' })
+    expect(getLinkById(db, userId, created.id)).toEqual(created)
   })
 
   it('returns undefined when not found', () => {
-    expect(getLinkById(db, 999)).toBeUndefined()
+    expect(getLinkById(db, userId, 999)).toBeUndefined()
   })
 })
 
 describe('updateLink', () => {
   it('updates name and url', () => {
-    const link = createLink(db, { category_id: categoryId, name: 'Old', url: 'http://old', icon_type: 'builtin' })
-    const updated = updateLink(db, link.id, { name: 'New', url: 'http://new' })
+    const link = createLink(db, userId, { category_id: categoryId, name: 'Old', url: 'http://old', icon_type: 'builtin' })
+    const updated = updateLink(db, userId, link.id, { name: 'New', url: 'http://new' })
     expect(updated?.name).toBe('New')
     expect(updated?.url).toBe('http://new')
   })
 
   it('updates icon_type and icon_value', () => {
-    const link = createLink(db, { name: 'App', url: 'http://app', icon_type: 'builtin', icon_value: 'plex' })
-    const updated = updateLink(db, link.id, { icon_type: 'upload', icon_value: '/uploads/app.png' })
+    const link = createLink(db, userId, { name: 'App', url: 'http://app', icon_type: 'builtin', icon_value: 'plex' })
+    const updated = updateLink(db, userId, link.id, { icon_type: 'upload', icon_value: '/uploads/app.png' })
     expect(updated?.icon_type).toBe('upload')
     expect(updated?.icon_value).toBe('/uploads/app.png')
   })
 
   it('returns undefined when link does not exist', () => {
-    expect(updateLink(db, 999, { name: 'Ghost' })).toBeUndefined()
+    expect(updateLink(db, userId, 999, { name: 'Ghost' })).toBeUndefined()
   })
 })
 
 describe('deleteLink', () => {
   it('removes the link', () => {
-    const link = createLink(db, { category_id: categoryId, name: 'Plex', url: 'http://plex', icon_type: 'builtin' })
-    expect(deleteLink(db, link.id)).toBe(true)
-    expect(getLinkById(db, link.id)).toBeUndefined()
+    const link = createLink(db, userId, { category_id: categoryId, name: 'Plex', url: 'http://plex', icon_type: 'builtin' })
+    expect(deleteLink(db, userId, link.id)).toBe(true)
+    expect(getLinkById(db, userId, link.id)).toBeUndefined()
   })
 
   it('returns false when link does not exist', () => {
-    expect(deleteLink(db, 999)).toBe(false)
+    expect(deleteLink(db, userId, 999)).toBe(false)
+  })
+})
+
+describe('user isolation', () => {
+  it('user A cannot see user B links', () => {
+    const userB = createUser(db, { email: 'b@test.com', password_hash: 'hash' }).id
+    createLink(db, userId, { name: 'A link', url: 'http://a', icon_type: 'builtin' })
+    createLink(db, userB, { name: 'B link', url: 'http://b', icon_type: 'builtin' })
+
+    expect(getAllLinks(db, userId)).toHaveLength(1)
+    expect(getAllLinks(db, userId)[0].name).toBe('A link')
+    expect(getAllLinks(db, userB)).toHaveLength(1)
+    expect(getAllLinks(db, userB)[0].name).toBe('B link')
   })
 })
