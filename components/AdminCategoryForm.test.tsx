@@ -17,6 +17,11 @@ describe('AdminCategoryForm (create mode)', () => {
     expect(onSubmit).toHaveBeenCalledWith({ name: 'Media' })
   })
 
+  it('focuses the name input on mount', () => {
+    render(<AdminCategoryForm onSubmit={jest.fn()} onCancel={jest.fn()} />)
+    expect(screen.getByLabelText(/name/i)).toHaveFocus()
+  })
+
   it('calls onCancel when cancel button is clicked', () => {
     const onCancel = jest.fn()
     render(<AdminCategoryForm onSubmit={jest.fn()} onCancel={onCancel} />)
