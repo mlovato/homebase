@@ -50,4 +50,26 @@ describe('LinkIcon', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
     expect(screen.getByText('M')).toBeInTheDocument()
   })
+
+  it('resets failed state when iconValue changes', () => {
+    const { rerender } = render(
+      <LinkIcon name="My App" iconType="upload" iconValue="/uploads/old.png" size="lg" />
+    )
+    fireEvent.error(screen.getByRole('img'))
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+
+    rerender(<LinkIcon name="My App" iconType="url" iconValue="http://example.com/icon.png" size="lg" />)
+    expect(screen.getByRole('img')).toHaveAttribute('src', 'http://example.com/icon.png')
+  })
+
+  it('resets failed state when iconType changes', () => {
+    const { rerender } = render(
+      <LinkIcon name="My App" iconType="url" iconValue="http://broken.local/icon.png" size="lg" />
+    )
+    fireEvent.error(screen.getByRole('img'))
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+
+    rerender(<LinkIcon name="My App" iconType="builtin" iconValue="plex" size="lg" />)
+    expect(screen.getByRole('img')).toBeInTheDocument()
+  })
 })

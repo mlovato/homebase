@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { IconType } from '@/lib/types'
 import { DASHBOARD_ICONS_CDN } from '@/lib/constants'
 
@@ -45,6 +45,8 @@ function Avatar({ name, size }: { name: string; size: 'sm' | 'lg' }) {
 
 export function LinkIcon({ name, iconType, iconValue, size }: LinkIconProps) {
   const [failed, setFailed] = useState(false)
+
+  useEffect(() => { setFailed(false) }, [iconType, iconValue])
 
   if (iconType === 'builtin' && iconValue) {
     return <BuiltinIcon slug={iconValue} name={name} size={size} />
