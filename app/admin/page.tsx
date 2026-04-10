@@ -12,6 +12,7 @@ import { UserAvatar } from '@/components/UserAvatar'
 import { HealthCheckProvider } from '@/components/HealthCheckContext'
 import {
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -133,7 +134,10 @@ export default function AdminPage() {
     if (ok) await loadCategories()
   }
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  )
 
   async function handleCategoryDragEnd(event: DragEndEvent) {
     const { active, over } = event
