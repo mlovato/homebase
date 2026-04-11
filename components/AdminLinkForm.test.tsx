@@ -152,6 +152,130 @@ describe("AdminLinkForm", () => {
     expect(screen.getByLabelText(/name/i)).toHaveFocus();
   });
 
+  it("prepends https:// when url has no scheme", async () => {
+    const onSubmit = jest.fn();
+    render(
+      <AdminLinkForm
+        onSubmit={onSubmit}
+        onCancel={jest.fn()}
+        categories={categories}
+      />,
+    );
+    await userEvent.type(screen.getByLabelText(/name/i), "Google");
+    await userEvent.type(screen.getByLabelText(/url/i), "www.google.com");
+    fireEvent.click(screen.getByRole("button", { name: /create|save/i }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ url: "https://www.google.com" }),
+    );
+  });
+
+  it("does not double-prepend scheme on urls that already have one", async () => {
+    const onSubmit = jest.fn();
+    render(
+      <AdminLinkForm
+        onSubmit={onSubmit}
+        onCancel={jest.fn()}
+        categories={categories}
+      />,
+    );
+    await userEvent.type(screen.getByLabelText(/name/i), "Plex");
+    await userEvent.type(
+      screen.getByLabelText(/url/i),
+      "http://localhost:32400",
+    );
+    fireEvent.click(screen.getByRole("button", { name: /create|save/i }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ url: "http://localhost:32400" }),
+    );
+  });
+
+  it("shows error and does not submit when url is invalid", async () => {
+    const onSubmit = jest.fn();
+    render(
+      <AdminLinkForm
+        onSubmit={onSubmit}
+        onCancel={jest.fn()}
+        categories={categories}
+      />,
+    );
+    await userEvent.type(screen.getByLabelText(/name/i), "Bad Link");
+    await userEvent.type(screen.getByLabelText(/url/i), "not a url");
+    fireEvent.click(screen.getByRole("button", { name: /create|save/i }));
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText(/enter a valid url/i)).toBeInTheDocument();
+  });
+
+  it("rejects a bare word with no dot as invalid", async () => {
+    const onSubmit = jest.fn();
+    render(
+      <AdminLinkForm
+        onSubmit={onSubmit}
+        onCancel={jest.fn()}
+        categories={categories}
+      />,
+    );
+    await userEvent.type(screen.getByLabelText(/name/i), "Bibbo");
+    await userEvent.type(screen.getByLabelText(/url/i), "bibbo");
+    fireEvent.click(screen.getByRole("button", { name: /create|save/i }));
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText(/enter a valid url/i)).toBeInTheDocument();
+  });
+
+  it("allows localhost urls without a dot", async () => {
+    const onSubmit = jest.fn();
+    render(
+      <AdminLinkForm
+        onSubmit={onSubmit}
+        onCancel={jest.fn()}
+        categories={categories}
+      />,
+    );
+    await userEvent.type(screen.getByLabelText(/name/i), "Local");
+    await userEvent.type(
+      screen.getByLabelText(/url/i),
+      "http://localhost:3000",
+    );
+    fireEvent.click(screen.getByRole("button", { name: /create|save/i }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ url: "http://localhost:3000" }),
+    );
+  });
+
+  it("shows error on blur when url is invalid", async () => {
+    render(
+      <AdminLinkForm
+        onSubmit={jest.fn()}
+        onCancel={jest.fn()}
+        categories={categories}
+      />,
+    );
+    const urlInput = screen.getByLabelText(/url/i);
+    await userEvent.type(urlInput, "bibbo");
+    fireEvent.blur(urlInput);
+
+    expect(screen.getByText(/enter a valid url/i)).toBeInTheDocument();
+  });
+
+  it("does not show error on blur when url is valid", async () => {
+    render(
+      <AdminLinkForm
+        onSubmit={jest.fn()}
+        onCancel={jest.fn()}
+        categories={categories}
+      />,
+    );
+    const urlInput = screen.getByLabelText(/url/i);
+    await userEvent.type(urlInput, "www.google.com");
+    fireEvent.blur(urlInput);
+
+    expect(screen.queryByText(/enter a valid url/i)).not.toBeInTheDocument();
+  });
+
   it("does not call onSubmit when name is empty", () => {
     const onSubmit = jest.fn();
     render(
