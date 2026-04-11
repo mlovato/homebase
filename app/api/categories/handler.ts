@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3'
 import {
   createCategory,
+  getCategories,
   updateCategory,
   deleteCategory,
   getCategoriesWithLinks,
@@ -22,7 +23,13 @@ export function handleCreateCategory(
 ) {
   if (!body.name?.trim()) return { error: 'Name is required', status: 400 }
 
-  const category = createCategory(db, userId, { name: body.name.trim(), sort_order: body.sort_order ?? 0 })
+  const trimmed = body.name.trim()
+  const existing = getCategories(db, userId)
+  if (existing.some(c => c.name.toLowerCase() === trimmed.toLowerCase())) {
+    return { error: 'A category with the same name already exists', status: 409 }
+  }
+
+  const category = createCategory(db, userId, { name: trimmed, sort_order: body.sort_order ?? 0 })
   return { data: category, status: 201 }
 }
 
@@ -33,6 +40,14 @@ export function handleUpdateCategory(
   body: Partial<UpdateCategoryInput>
 ) {
   if (isNaN(id)) return { error: 'Invalid id', status: 400 }
+
+  if (body.name?.trim()) {
+    const trimmed = body.name.trim()
+    const existing = getCategories(db, userId)
+    if (existing.some(c => c.id !== id && c.name.toLowerCase() === trimmed.toLowerCase())) {
+      return { error: 'A category with the same name already exists', status: 409 }
+    }
+  }
 
   const updated = updateCategory(db, userId, id, body)
   if (!updated) return { error: 'Not found', status: 404 }

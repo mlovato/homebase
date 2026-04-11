@@ -37,3 +37,40 @@ describe('AdminCategoryForm (edit mode)', () => {
     expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument()
   })
 })
+
+describe('AdminCategoryForm (duplicate detection)', () => {
+  it('shows error when name matches an existing category', async () => {
+    const onSubmit = jest.fn()
+    render(<AdminCategoryForm onSubmit={onSubmit} onCancel={jest.fn()} existingNames={['Media', 'Tools']} />)
+    await userEvent.type(screen.getByLabelText(/name/i), 'Media')
+    expect(screen.getByText(/same name/i)).toBeInTheDocument()
+  })
+
+  it('matches case-insensitively', async () => {
+    render(<AdminCategoryForm onSubmit={jest.fn()} onCancel={jest.fn()} existingNames={['Media']} />)
+    await userEvent.type(screen.getByLabelText(/name/i), 'media')
+    expect(screen.getByText(/same name/i)).toBeInTheDocument()
+  })
+
+  it('does not submit when name is a duplicate', async () => {
+    const onSubmit = jest.fn()
+    render(<AdminCategoryForm onSubmit={onSubmit} onCancel={jest.fn()} existingNames={['Media']} />)
+    await userEvent.type(screen.getByLabelText(/name/i), 'Media')
+    fireEvent.click(screen.getByRole('button', { name: /create/i }))
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it('allows the current name in edit mode', async () => {
+    const onSubmit = jest.fn()
+    render(<AdminCategoryForm onSubmit={onSubmit} onCancel={jest.fn()} initialName="Media" existingNames={['Media', 'Tools']} />)
+    expect(screen.queryByText(/same name/i)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /save/i }))
+    expect(onSubmit).toHaveBeenCalledWith({ name: 'Media' })
+  })
+
+  it('shows no error when name is unique', async () => {
+    render(<AdminCategoryForm onSubmit={jest.fn()} onCancel={jest.fn()} existingNames={['Media']} />)
+    await userEvent.type(screen.getByLabelText(/name/i), 'Monitoring')
+    expect(screen.queryByText(/same name/i)).not.toBeInTheDocument()
+  })
+})

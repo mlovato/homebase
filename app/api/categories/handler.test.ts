@@ -56,6 +56,26 @@ describe('handleCreateCategory', () => {
     const result = handleCreateCategory(db, userId, { name: '   ' })
     expect(result.status).toBe(400)
   })
+
+  it('returns 409 when category name already exists', () => {
+    handleCreateCategory(db, userId, { name: 'Media' })
+    const result = handleCreateCategory(db, userId, { name: 'Media' })
+    expect(result.status).toBe(409)
+    expect(result.error).toMatch(/already exists/i)
+  })
+
+  it('returns 409 for case-insensitive duplicate', () => {
+    handleCreateCategory(db, userId, { name: 'Media' })
+    const result = handleCreateCategory(db, userId, { name: 'media' })
+    expect(result.status).toBe(409)
+  })
+
+  it('allows same name for different users', () => {
+    handleCreateCategory(db, userId, { name: 'Media' })
+    const other = createUser(db, { email: 'other@test.com', password_hash: 'hash' })
+    const result = handleCreateCategory(db, other.id, { name: 'Media' })
+    expect(result.status).toBe(201)
+  })
 })
 
 describe('handleUpdateCategory', () => {
@@ -74,6 +94,19 @@ describe('handleUpdateCategory', () => {
   it('returns 404 when category not found', () => {
     const result = handleUpdateCategory(db, userId, 999, { name: 'Ghost' })
     expect(result.status).toBe(404)
+  })
+
+  it('returns 409 when renaming to an existing category name', () => {
+    const cat = createCategory(db, userId, { name: 'Media' })
+    createCategory(db, userId, { name: 'Tools' })
+    const result = handleUpdateCategory(db, userId, cat.id, { name: 'Tools' })
+    expect(result.status).toBe(409)
+  })
+
+  it('allows keeping the same name on update', () => {
+    const cat = createCategory(db, userId, { name: 'Media' })
+    const result = handleUpdateCategory(db, userId, cat.id, { name: 'Media' })
+    expect(result.status).toBe(200)
   })
 })
 

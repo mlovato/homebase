@@ -119,7 +119,11 @@ export function LinksTab({
             {modal.type === 'create-category' && (
               <>
                 <h3 className="text-lg font-semibold mb-4">New Category</h3>
-                <AdminCategoryForm onSubmit={handleCreateCategory} onCancel={() => setModal({ type: 'none' })} />
+                <AdminCategoryForm
+                  existingNames={allCategories.map(c => c.name)}
+                  onSubmit={handleCreateCategory}
+                  onCancel={() => setModal({ type: 'none' })}
+                />
               </>
             )}
             {modal.type === 'edit-category' && (
@@ -127,6 +131,7 @@ export function LinksTab({
                 <h3 className="text-lg font-semibold mb-4">Rename Category</h3>
                 <AdminCategoryForm
                   initialName={modal.category.name}
+                  existingNames={allCategories.map(c => c.name)}
                   onSubmit={data => handleUpdateCategory(modal.category.id, data)}
                   onCancel={() => setModal({ type: 'none' })}
                 />
