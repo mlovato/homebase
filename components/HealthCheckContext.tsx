@@ -20,7 +20,16 @@ export async function checkHealthClient(
   try {
     const res = await fetch(`/api/health?url=${encodeURIComponent(url)}`)
     const data = await res.json()
-    return data.status as HealthStatus
+    if (data.status === 'up') return 'up'
+  } catch {
+    return 'down'
+  }
+
+  // Server reports down — try a direct check as fallback
+  // (handles hostnames the server can't resolve, e.g. .local mDNS)
+  try {
+    await fetch(url, { method: 'HEAD', mode: 'no-cors', cache: 'no-store' })
+    return 'up'
   } catch {
     return 'down'
   }

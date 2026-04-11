@@ -24,12 +24,18 @@ describe('checkHealthClient', () => {
     expect(await checkHealthClient('http://ha.local')).toBe('up')
   })
 
-  it('returns "down" when API reports down', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ status: 'down' }),
-    })
+  it('returns "down" when API reports down and direct check fails', async () => {
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ status: 'down' }) })
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
     expect(await checkHealthClient('http://ha.local')).toBe('down')
+  })
+
+  it('returns "up" via direct check when API reports down but service is reachable', async () => {
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ status: 'down' }) })
+      .mockResolvedValueOnce({ ok: true })
+    expect(await checkHealthClient('http://ha.local')).toBe('up')
   })
 
   it('returns "down" when fetch fails (browser offline)', async () => {
