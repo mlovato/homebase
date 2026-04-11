@@ -25,6 +25,7 @@ export async function checkHealthClient(
     await fetch(url, {
       method: 'HEAD',
       mode: 'no-cors',
+      cache: 'no-store',
       signal: controller.signal,
     })
     clearTimeout(timer)

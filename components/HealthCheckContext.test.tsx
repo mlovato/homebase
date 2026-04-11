@@ -34,13 +34,14 @@ describe('checkHealthClient', () => {
     expect(await checkHealthClient('ftp://something.local')).toBe('unknown')
   })
 
-  it('uses HEAD method with no-cors mode', async () => {
+  it('uses HEAD method with no-cors mode and no-store cache', async () => {
     const spy = jest.fn().mockResolvedValue({ ok: true })
     global.fetch = spy
     await checkHealthClient('http://ha.local')
     expect(spy).toHaveBeenCalledWith('http://ha.local', expect.objectContaining({
       method: 'HEAD',
       mode: 'no-cors',
+      cache: 'no-store',
     }))
   })
 
