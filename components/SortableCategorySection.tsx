@@ -1,47 +1,65 @@
-'use client'
+"use client";
 
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { DragHandle } from '@/components/DragHandle'
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { DragHandle } from "@/components/DragHandle";
 import {
   DndContext,
   closestCenter,
   type DragEndEvent,
   type SensorDescriptor,
-} from '@dnd-kit/core'
-import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
-import { SortableLinkCard } from '@/components/SortableLinkCard'
-import type { CategoryWithLinks, Link } from '@/lib/types'
+} from "@dnd-kit/core";
+import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
+import { SortableLinkCard } from "@/components/SortableLinkCard";
+import type { CategoryWithLinks, Link } from "@/lib/types";
 
 interface SortableCategorySectionProps {
-  category: CategoryWithLinks
-  sensors: SensorDescriptor<object>[]
-  onAddLink: (categoryId: number) => void
-  onEditCategory: (category: CategoryWithLinks) => void
-  onDeleteCategory: (id: number) => void
-  onEditLink: (link: Link) => void
-  onDeleteLink: (id: number) => void
-  onLinkDragEnd: (event: DragEndEvent, categoryId: number) => void
-  intervalMs: number | null
+  category: CategoryWithLinks;
+  sensors: SensorDescriptor<object>[];
+  onAddLink: (categoryId: number) => void;
+  onEditCategory: (category: CategoryWithLinks) => void;
+  onDeleteCategory: (id: number) => void;
+  onEditLink: (link: Link) => void;
+  onDeleteLink: (id: number) => void;
+  onLinkDragEnd: (event: DragEndEvent, categoryId: number) => void;
+  intervalMs: number | null;
 }
 
 export function SortableCategorySection({
-  category, sensors, onAddLink, onEditCategory, onDeleteCategory,
-  onEditLink, onDeleteLink, onLinkDragEnd, intervalMs,
+  category,
+  sensors,
+  onAddLink,
+  onEditCategory,
+  onDeleteCategory,
+  onEditLink,
+  onDeleteLink,
+  onLinkDragEnd,
+  intervalMs,
 }: SortableCategorySectionProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id: category.id,
-  })
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
     zIndex: isDragging ? 10 : undefined,
-  }
+  };
 
   return (
-    <section ref={setNodeRef} style={style} className="mb-8 md:mb-10 group/category">
+    <section
+      ref={setNodeRef}
+      style={style}
+      className="mb-8 md:mb-10 group/category"
+    >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
         <div className="flex items-center gap-2">
           <DragHandle
@@ -77,22 +95,38 @@ export function SortableCategorySection({
 
       {category.links.length === 0 ? (
         <p className="text-sm text-gray-400 dark:text-gray-500 italic px-1">
-          No links in this category.{' '}
-          <button className="text-indigo-500 hover:underline" onClick={() => onAddLink(category.id)}>
+          No links in this category.{" "}
+          <button
+            className="text-indigo-500 hover:underline"
+            onClick={() => onAddLink(category.id)}
+          >
             Add one
           </button>
         </p>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e: DragEndEvent) => onLinkDragEnd(e, category.id)}>
-          <SortableContext items={category.links.map(l => l.id)} strategy={rectSortingStrategy}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={(e: DragEndEvent) => onLinkDragEnd(e, category.id)}
+        >
+          <SortableContext
+            items={category.links.map((l) => l.id)}
+            strategy={rectSortingStrategy}
+          >
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 md:gap-4">
-              {category.links.map(link => (
-                <SortableLinkCard key={link.id} link={link} onEdit={onEditLink} onDelete={onDeleteLink} intervalMs={intervalMs} />
+              {category.links.map((link) => (
+                <SortableLinkCard
+                  key={link.id}
+                  link={link}
+                  onEdit={onEditLink}
+                  onDelete={onDeleteLink}
+                  intervalMs={intervalMs}
+                />
               ))}
             </div>
           </SortableContext>
         </DndContext>
       )}
     </section>
-  )
+  );
 }

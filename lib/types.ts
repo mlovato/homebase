@@ -1,142 +1,170 @@
-export type IconType = 'builtin' | 'upload' | 'url'
+export type IconType = "builtin" | "upload" | "url";
 
-export type HealthCheckInterval = '10s' | '30s' | '60s' | 'never'
+export type HealthCheckInterval = "10s" | "30s" | "60s" | "never";
 
-export const HEALTH_CHECK_INTERVALS: HealthCheckInterval[] = ['10s', '30s', '60s', 'never']
+export const HEALTH_CHECK_INTERVALS: HealthCheckInterval[] = [
+  "10s",
+  "30s",
+  "60s",
+  "never",
+];
 
 export const INTERVAL_TO_MS: Record<HealthCheckInterval, number | null> = {
-  '10s': 10000,
-  '30s': 30000,
-  '60s': 60000,
-  'never': null,
-}
+  "10s": 10000,
+  "30s": 30000,
+  "60s": 60000,
+  never: null,
+};
 
-export const DEFAULT_HEALTH_CHECK_INTERVAL: HealthCheckInterval = '30s'
+export const DEFAULT_HEALTH_CHECK_INTERVAL: HealthCheckInterval = "30s";
 
-export type SearchShortcut = string
+export type SearchShortcut = string;
 
-export const DEFAULT_SEARCH_SHORTCUT: SearchShortcut = 'mod+k'
+export const DEFAULT_SEARCH_SHORTCUT: SearchShortcut = "mod+k";
 
-export function parseShortcut(shortcut: SearchShortcut): { mod: boolean; key: string } {
-  const hasMod = shortcut.startsWith('mod+')
-  return { mod: hasMod, key: hasMod ? shortcut.slice(4) : shortcut }
+export function parseShortcut(shortcut: SearchShortcut): {
+  mod: boolean;
+  key: string;
+} {
+  const hasMod = shortcut.startsWith("mod+");
+  return { mod: hasMod, key: hasMod ? shortcut.slice(4) : shortcut };
 }
 
 export function formatShortcut(shortcut: SearchShortcut): string {
-  if (!shortcut) return formatShortcut(DEFAULT_SEARCH_SHORTCUT)
-  const { mod, key } = parseShortcut(shortcut)
-  const upper = key.toUpperCase()
-  return mod ? `⌘${upper} / Ctrl ${upper}` : upper
+  if (!shortcut) return formatShortcut(DEFAULT_SEARCH_SHORTCUT);
+  const { mod, key } = parseShortcut(shortcut);
+  const upper = key.toUpperCase();
+  return mod ? `⌘${upper} / Ctrl ${upper}` : upper;
 }
 
 export function isValidShortcut(shortcut: string): boolean {
-  return /^(mod\+)?[a-z0-9`~!@#$%^&*()\-=[\]\\;',./ ]$/i.test(shortcut)
+  return /^(mod\+)?[a-z0-9`~!@#$%^&*()\-=[\]\\;',./ ]$/i.test(shortcut);
 }
 
-export const VALID_ICON_TYPES: IconType[] = ['builtin', 'upload', 'url']
+export const VALID_ICON_TYPES: IconType[] = ["builtin", "upload", "url"];
 
 export interface ExportedLink {
-  name: string
-  url: string
-  icon_type: IconType
-  icon_value: string | null
-  sort_order: number
+  name: string;
+  url: string;
+  icon_type: IconType;
+  icon_value: string | null;
+  sort_order: number;
 }
 
 export interface ExportedCategory {
-  name: string
-  sort_order: number
-  links: ExportedLink[]
+  name: string;
+  sort_order: number;
+  links: ExportedLink[];
 }
 
 export interface ExportData {
-  version: 1
-  exported_at: string
-  categories: ExportedCategory[]
-  uncategorized: ExportedLink[]
+  version: 1;
+  exported_at: string;
+  categories: ExportedCategory[];
+  uncategorized: ExportedLink[];
 }
 
 export interface Category {
-  id: number
-  name: string
-  sort_order: number
+  id: number;
+  name: string;
+  sort_order: number;
 }
 
 export interface Link {
-  id: number
-  category_id: number | null
-  name: string
-  url: string
-  icon_type: IconType
-  icon_value: string | null
-  sort_order: number
+  id: number;
+  category_id: number | null;
+  name: string;
+  url: string;
+  icon_type: IconType;
+  icon_value: string | null;
+  sort_order: number;
 }
 
 export interface CategoryWithLinks extends Category {
-  links: Link[]
+  links: Link[];
 }
 
 export interface CreateCategoryInput {
-  name: string
-  sort_order?: number
+  name: string;
+  sort_order?: number;
 }
 
 export interface UpdateCategoryInput {
-  name?: string
-  sort_order?: number
+  name?: string;
+  sort_order?: number;
 }
 
 export interface CreateLinkInput {
-  category_id?: number | null
-  name: string
-  url: string
-  icon_type: IconType
-  icon_value?: string | null
-  sort_order?: number
+  category_id?: number | null;
+  name: string;
+  url: string;
+  icon_type: IconType;
+  icon_value?: string | null;
+  sort_order?: number;
 }
 
 export interface UpdateLinkInput {
-  category_id?: number | null
-  name?: string
-  url?: string
-  icon_type?: IconType
-  icon_value?: string | null
-  sort_order?: number
+  category_id?: number | null;
+  name?: string;
+  url?: string;
+  icon_type?: IconType;
+  icon_value?: string | null;
+  sort_order?: number;
 }
 
-export type UserRole = 'admin' | 'user'
+export type UserRole = "admin" | "user";
 
-export const VALID_ROLES: UserRole[] = ['admin', 'user']
+export const VALID_ROLES: UserRole[] = ["admin", "user"];
 
 export const AVATAR_OPTIONS = [
-  '😀', '😎', '🤓', '🧑‍💻', '👩‍💻', '👨‍💻',
-  '🦊', '🐱', '🐶', '🐼', '🦁', '🐸',
-  '🚀', '⭐', '🔥', '💎', '🎯', '🌈',
-  '🎵', '🎮', '📚', '☕', '🌍', '🛡️',
-] as const
+  "😀",
+  "😎",
+  "🤓",
+  "🧑‍💻",
+  "👩‍💻",
+  "👨‍💻",
+  "🦊",
+  "🐱",
+  "🐶",
+  "🐼",
+  "🦁",
+  "🐸",
+  "🚀",
+  "⭐",
+  "🔥",
+  "💎",
+  "🎯",
+  "🌈",
+  "🎵",
+  "🎮",
+  "📚",
+  "☕",
+  "🌍",
+  "🛡️",
+] as const;
 
 export interface User {
-  id: number
-  email: string
-  role: UserRole
-  avatar: string | null
-  created_at: string
+  id: number;
+  email: string;
+  role: UserRole;
+  avatar: string | null;
+  created_at: string;
 }
 
 export interface CreateUserInput {
-  email: string
-  password_hash: string
-  role?: UserRole
-  avatar?: string | null
+  email: string;
+  password_hash: string;
+  role?: UserRole;
+  avatar?: string | null;
 }
 
 export interface UpdateUserInput {
-  email?: string
-  password_hash?: string
-  role?: UserRole
-  avatar?: string | null
+  email?: string;
+  password_hash?: string;
+  role?: UserRole;
+  avatar?: string | null;
 }
 
 export interface UserWithHash extends User {
-  password_hash: string
+  password_hash: string;
 }

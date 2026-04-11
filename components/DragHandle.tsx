@@ -1,21 +1,37 @@
-import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core'
+import type {
+  DraggableAttributes,
+  DraggableSyntheticListeners,
+} from "@dnd-kit/core";
 
 interface DragHandleProps {
-  attributes: DraggableAttributes
-  listeners: DraggableSyntheticListeners
-  className?: string
+  attributes: DraggableAttributes;
+  listeners: DraggableSyntheticListeners;
+  className?: string;
 }
 
-export function DragHandle({ attributes, listeners, className }: DragHandleProps) {
+export function DragHandle({
+  attributes,
+  listeners,
+  className,
+}: DragHandleProps) {
   return (
     <div
       {...attributes}
       {...listeners}
-      className={className ?? 'p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}
-      style={{ touchAction: 'none' }}
+      className={
+        className ??
+        "p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+      }
+      style={{ touchAction: "none" }}
       title="Drag to reorder"
     >
-      <svg width="16" height="16" viewBox="0 0 12 12" fill="currentColor" className="md:w-3 md:h-3">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 12 12"
+        fill="currentColor"
+        className="md:w-3 md:h-3"
+      >
         <circle cx="4" cy="2" r="1.2" />
         <circle cx="8" cy="2" r="1.2" />
         <circle cx="4" cy="6" r="1.2" />
@@ -24,5 +40,5 @@ export function DragHandle({ attributes, listeners, className }: DragHandleProps
         <circle cx="8" cy="10" r="1.2" />
       </svg>
     </div>
-  )
+  );
 }

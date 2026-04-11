@@ -1,11 +1,11 @@
-'use client'
+"use client";
 
-import { useEffect } from 'react'
+import { useEffect } from "react";
 
-const defaultRestore = () => window.location.reload()
+const defaultRestore = () => window.location.reload();
 
 interface Props {
-  onRestore?: () => void
+  onRestore?: () => void;
 }
 
 /**
@@ -16,10 +16,10 @@ interface Props {
 export function BfcacheHandler({ onRestore = defaultRestore }: Props = {}) {
   useEffect(() => {
     function onPageShow(e: PageTransitionEvent) {
-      if (e.persisted) onRestore()
+      if (e.persisted) onRestore();
     }
-    window.addEventListener('pageshow', onPageShow)
-    return () => window.removeEventListener('pageshow', onPageShow)
-  }, [onRestore])
-  return null
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, [onRestore]);
+  return null;
 }
