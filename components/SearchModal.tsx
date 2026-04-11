@@ -1,21 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import type { IconType, SearchShortcut } from "@/lib/types";
+import type { SearchLink, SearchShortcut } from "@/lib/types";
 import { parseShortcut } from "@/lib/types";
 import { LinkIcon } from "./LinkIcon";
-
-interface SearchLink {
-  id: number;
-  name: string;
-  url: string;
-  icon_type: IconType;
-  icon_value: string | null;
-}
 
 interface SearchModalProps {
   links: SearchLink[];
   shortcut: SearchShortcut;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 function matchesShortcut(e: KeyboardEvent, shortcut: SearchShortcut): boolean {
@@ -26,8 +20,28 @@ function matchesShortcut(e: KeyboardEvent, shortcut: SearchShortcut): boolean {
   );
 }
 
-export function SearchModal({ links, shortcut }: SearchModalProps) {
-  const [open, setOpen] = useState(false);
+export function SearchModal({
+  links,
+  shortcut,
+  open: externalOpen,
+  onOpenChange,
+}: SearchModalProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+  const openRef = useRef(open);
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
+  const setOpen = useCallback(
+    (value: boolean) => {
+      if (onOpenChange) {
+        onOpenChange(value);
+      } else {
+        setInternalOpen(value);
+      }
+    },
+    [onOpenChange],
+  );
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -46,13 +60,13 @@ export function SearchModal({ links, shortcut }: SearchModalProps) {
     setOpen(false);
     setQuery("");
     setSelectedIndex(0);
-  }, []);
+  }, [setOpen]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (matchesShortcut(e, shortcut)) {
         e.preventDefault();
-        setOpen((prev) => !prev);
+        setOpen(!openRef.current);
         setQuery("");
         setSelectedIndex(0);
       }
@@ -62,7 +76,7 @@ export function SearchModal({ links, shortcut }: SearchModalProps) {
     }
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [close, shortcut]);
+  }, [close, setOpen, shortcut]);
 
   useEffect(() => {
     if (open) inputRef.current?.focus();

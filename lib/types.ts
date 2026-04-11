@@ -84,6 +84,11 @@ export interface CategoryWithLinks extends Category {
   links: Link[];
 }
 
+export type SearchLink = Pick<
+  Link,
+  "id" | "name" | "url" | "icon_type" | "icon_value"
+>;
+
 export interface CreateCategoryInput {
   name: string;
   sort_order?: number;

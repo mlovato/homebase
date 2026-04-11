@@ -11,12 +11,10 @@ import {
   getSearchShortcut,
 } from "@/lib/repositories/settings";
 import { INTERVAL_TO_MS } from "@/lib/types";
-import Link from "next/link";
 import { CategorySection } from "@/components/CategorySection";
 import { LinkCard } from "@/components/LinkCard";
 import { HealthCheckProvider } from "@/components/HealthCheckContext";
-import { SearchModal } from "@/components/SearchModal";
-import { UserAvatar } from "@/components/UserAvatar";
+import { DashboardHeader } from "@/components/DashboardHeader";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -100,29 +98,11 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-screen retro:bg-retro-bg">
-      <header className="border-b border-gray-200 dark:border-gray-700 retro:border-retro-dim bg-white dark:bg-gray-800 retro:bg-retro-bg px-4 py-3 md:px-6 md:py-4 flex items-center justify-between">
-        <h1>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/icon.png"
-            alt="Homebase"
-            className="w-10 h-10 object-contain"
-          />
-        </h1>
-        <Link
-          href="/admin"
-          className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 retro:text-retro-dim hover:text-indigo-600 dark:hover:text-indigo-400 retro:hover:text-retro-green transition-colors"
-        >
-          <UserAvatar
-            avatar={user?.avatar ?? null}
-            email={user?.email ?? "?"}
-            size="header"
-          />
-          {user?.email ?? "Admin"}
-        </Link>
-      </header>
-
-      <SearchModal links={searchLinks} shortcut={searchShortcut} />
+      <DashboardHeader
+        user={user ?? null}
+        searchLinks={searchLinks}
+        shortcut={searchShortcut}
+      />
       <HealthCheckProvider urls={allUrls} intervalMs={intervalMs}>
         {content}
       </HealthCheckProvider>
