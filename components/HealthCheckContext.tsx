@@ -12,19 +12,13 @@ export function useHealthStatus(url: string): HealthStatus {
 }
 
 export async function checkHealthClient(
-  url: string,
-  signal?: AbortSignal
+  url: string
 ): Promise<HealthStatus> {
   if (!url) return 'unknown'
   if (!url.startsWith('http://') && !url.startsWith('https://')) return 'unknown'
 
-  if (signal?.aborted) return 'down'
-
   try {
-    const res = await fetch(
-      `/api/health?url=${encodeURIComponent(url)}`,
-      signal ? { signal } : {}
-    )
+    const res = await fetch(`/api/health?url=${encodeURIComponent(url)}`)
     const data = await res.json()
     return data.status as HealthStatus
   } catch {
@@ -32,7 +26,7 @@ export async function checkHealthClient(
   }
 }
 
-export type Checker = (url: string, signal?: AbortSignal) => Promise<HealthStatus>
+export type Checker = (url: string) => Promise<HealthStatus>
 
 interface HealthCheckProviderProps {
   urls: string[]
@@ -55,16 +49,15 @@ export function HealthCheckProvider({
   useEffect(() => {
     if (urls.length === 0 || intervalMs === null) return
 
-    let cancelled = false
+    let cycleId = 0
     let timeoutId: ReturnType<typeof setTimeout>
-    let controller: AbortController
 
     const check = async () => {
-      controller = new AbortController()
+      const id = ++cycleId
       const entries = await Promise.all(
-        urls.map(async url => [url, await checkerRef.current(url, controller.signal)] as const)
+        urls.map(async url => [url, await checkerRef.current(url)] as const)
       )
-      if (cancelled) return
+      if (id !== cycleId) return
       const next = Object.fromEntries(entries) as StatusMap
       setStatuses(prev => {
         const keys = Object.keys(next)
@@ -74,24 +67,19 @@ export function HealthCheckProvider({
       timeoutId = setTimeout(check, intervalMs)
     }
 
-    const startChecking = () => {
-      controller?.abort()
-      clearTimeout(timeoutId)
-      cancelled = false
-      check()
-    }
-
-    startChecking()
+    check()
 
     function onVisibilityChange() {
-      if (document.visibilityState === 'visible') startChecking()
+      if (document.visibilityState === 'visible') {
+        clearTimeout(timeoutId)
+        check()
+      }
     }
 
     document.addEventListener('visibilitychange', onVisibilityChange)
 
     return () => {
-      cancelled = true
-      controller?.abort()
+      cycleId++
       clearTimeout(timeoutId)
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }

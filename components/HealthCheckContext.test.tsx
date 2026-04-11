@@ -53,34 +53,20 @@ describe('checkHealthClient', () => {
     global.fetch = spy
     await checkHealthClient('http://ha.local:8123/path?q=1')
     expect(spy).toHaveBeenCalledWith(
-      `/api/health?url=${encodeURIComponent('http://ha.local:8123/path?q=1')}`,
-      expect.any(Object)
+      `/api/health?url=${encodeURIComponent('http://ha.local:8123/path?q=1')}`
     )
   })
 
-  it('passes signal through to fetch', async () => {
+  it('fetches without extra options', async () => {
     const spy = jest.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ status: 'up' }),
     })
     global.fetch = spy
-    const controller = new AbortController()
-    await checkHealthClient('http://ha.local', controller.signal)
+    await checkHealthClient('http://ha.local')
     expect(spy).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({ signal: controller.signal })
+      `/api/health?url=${encodeURIComponent('http://ha.local')}`
     )
-  })
-
-  it('returns "down" immediately if signal is already aborted', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ status: 'up' }),
-    })
-    const controller = new AbortController()
-    controller.abort()
-    expect(await checkHealthClient('http://ha.local', controller.signal)).toBe('down')
-    expect(global.fetch).not.toHaveBeenCalled()
   })
 })
 
@@ -135,8 +121,8 @@ describe('HealthCheckProvider', () => {
       </HealthCheckProvider>
     )
     await act(async () => {})
-    expect(checker).toHaveBeenCalledWith('http://a.local', expect.any(AbortSignal))
-    expect(checker).toHaveBeenCalledWith('http://b.local', expect.any(AbortSignal))
+    expect(checker).toHaveBeenCalledWith('http://a.local')
+    expect(checker).toHaveBeenCalledWith('http://b.local')
   })
 
   it('does not check when urls is empty', () => {
