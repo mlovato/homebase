@@ -18,18 +18,15 @@ export async function checkHealthClient(
   if (!url) return 'unknown'
   if (!url.startsWith('http://') && !url.startsWith('https://')) return 'unknown'
 
+  if (signal?.aborted) return 'down'
+
   try {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 5000)
-    signal?.addEventListener('abort', () => controller.abort())
-    await fetch(url, {
-      method: 'HEAD',
-      mode: 'no-cors',
-      cache: 'no-store',
-      signal: controller.signal,
-    })
-    clearTimeout(timer)
-    return 'up'
+    const res = await fetch(
+      `/api/health?url=${encodeURIComponent(url)}`,
+      signal ? { signal } : {}
+    )
+    const data = await res.json()
+    return data.status as HealthStatus
   } catch {
     return 'down'
   }

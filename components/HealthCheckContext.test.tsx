@@ -16,12 +16,23 @@ describe('checkHealthClient', () => {
   const originalFetch = global.fetch
   afterEach(() => { global.fetch = originalFetch; jest.restoreAllMocks() })
 
-  it('returns "up" when fetch resolves', async () => {
-    global.fetch = jest.fn().mockResolvedValue({ ok: true })
+  it('returns "up" when API reports up', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ status: 'up' }),
+    })
     expect(await checkHealthClient('http://ha.local')).toBe('up')
   })
 
-  it('returns "down" when fetch rejects', async () => {
+  it('returns "down" when API reports down', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ status: 'down' }),
+    })
+    expect(await checkHealthClient('http://ha.local')).toBe('down')
+  })
+
+  it('returns "down" when fetch fails (browser offline)', async () => {
     global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'))
     expect(await checkHealthClient('http://down.local')).toBe('down')
   })
@@ -34,47 +45,42 @@ describe('checkHealthClient', () => {
     expect(await checkHealthClient('ftp://something.local')).toBe('unknown')
   })
 
-  it('uses HEAD method with no-cors mode and no-store cache', async () => {
-    const spy = jest.fn().mockResolvedValue({ ok: true })
+  it('calls the server-side health API with encoded url', async () => {
+    const spy = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ status: 'up' }),
+    })
     global.fetch = spy
-    await checkHealthClient('http://ha.local')
-    expect(spy).toHaveBeenCalledWith('http://ha.local', expect.objectContaining({
-      method: 'HEAD',
-      mode: 'no-cors',
-      cache: 'no-store',
-    }))
+    await checkHealthClient('http://ha.local:8123/path?q=1')
+    expect(spy).toHaveBeenCalledWith(
+      `/api/health?url=${encodeURIComponent('http://ha.local:8123/path?q=1')}`,
+      expect.any(Object)
+    )
   })
 
-  it('aborts after 5 seconds', async () => {
-    jest.useFakeTimers()
-    const abortSpy = jest.spyOn(AbortController.prototype, 'abort')
-    global.fetch = jest.fn().mockImplementation((_url: string, init?: RequestInit) => {
-      return new Promise((_, reject) => {
-        init?.signal?.addEventListener('abort', () =>
-          reject(new DOMException('Aborted', 'AbortError'))
-        )
-      })
+  it('passes signal through to fetch', async () => {
+    const spy = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ status: 'up' }),
     })
-    const promise = checkHealthClient('http://slow.local')
-    jest.advanceTimersByTime(5000)
-    const result = await promise
-    expect(abortSpy).toHaveBeenCalled()
-    expect(result).toBe('down')
-    jest.useRealTimers()
+    global.fetch = spy
+    const controller = new AbortController()
+    await checkHealthClient('http://ha.local', controller.signal)
+    expect(spy).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ signal: controller.signal })
+    )
   })
 
-  it('aborts when external signal fires', async () => {
-    global.fetch = jest.fn().mockImplementation((_url: string, init?: RequestInit) => {
-      return new Promise((_, reject) => {
-        init?.signal?.addEventListener('abort', () =>
-          reject(new DOMException('Aborted', 'AbortError'))
-        )
-      })
+  it('returns "down" immediately if signal is already aborted', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ status: 'up' }),
     })
-    const external = new AbortController()
-    const promise = checkHealthClient('http://ha.local', external.signal)
-    external.abort()
-    expect(await promise).toBe('down')
+    const controller = new AbortController()
+    controller.abort()
+    expect(await checkHealthClient('http://ha.local', controller.signal)).toBe('down')
+    expect(global.fetch).not.toHaveBeenCalled()
   })
 })
 
