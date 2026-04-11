@@ -40,13 +40,13 @@ export interface LinksTabProps {
   sensors: SensorDescriptor<object>[];
   handleCreateCategory: (data: { name: string }) => Promise<void>;
   handleUpdateCategory: (id: number, data: { name: string }) => Promise<void>;
-  handleDeleteCategory: (id: number) => Promise<void>;
+  handleDeleteCategory: (id: number) => void;
   handleCreateLink: (data: CreateLinkInput) => Promise<void>;
   handleUpdateLink: (
     id: number,
     data: Partial<UpdateLinkInput>,
   ) => Promise<void>;
-  handleDeleteLink: (id: number) => Promise<void>;
+  handleDeleteLink: (id: number) => void;
   handleDragEnd: (
     event: DragEndEvent,
     categoryId: number | null,

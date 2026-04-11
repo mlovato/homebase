@@ -9,6 +9,7 @@ import {
   isValidShortcut,
 } from "@/lib/types";
 import { ShortcutRecorder } from "./ShortcutRecorder";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 const THEME_OPTIONS: { value: string; label: string; icon: React.ReactNode }[] =
   [
@@ -126,6 +127,7 @@ export function SettingsTab({ onIntervalChange }: SettingsTabProps = {}) {
   const [pwLoading, setPwLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const msgTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const [pendingImport, setPendingImport] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -182,11 +184,10 @@ export function SettingsTab({ onIntervalChange }: SettingsTabProps = {}) {
       return;
     }
 
-    if (
-      !confirm("This will replace ALL existing links and categories. Continue?")
-    )
-      return;
+    setPendingImport(text);
+  }
 
+  async function executeImport(text: string) {
     const res = await fetch("/api/import", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -420,6 +421,18 @@ export function SettingsTab({ onIntervalChange }: SettingsTabProps = {}) {
           </button>
         </form>
       </section>
+      <ConfirmDialog
+        open={pendingImport !== null}
+        title="Replace all data?"
+        message="This will replace ALL existing links and categories."
+        confirmLabel="Yes, import"
+        onConfirm={async () => {
+          const text = pendingImport;
+          setPendingImport(null);
+          if (text) await executeImport(text);
+        }}
+        onCancel={() => setPendingImport(null)}
+      />
     </div>
   );
 }

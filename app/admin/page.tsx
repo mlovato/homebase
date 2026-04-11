@@ -17,6 +17,7 @@ import { SettingsTab } from "@/components/SettingsTab";
 import { UsersTab } from "@/components/UsersTab";
 import { UserAvatar } from "@/components/UserAvatar";
 import { HealthCheckProvider } from "@/components/HealthCheckContext";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
   PointerSensor,
   TouchSensor,
@@ -45,6 +46,10 @@ export default function AdminPage() {
     avatar: string | null;
   } | null>(null);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    type: "category" | "link";
+    id: number;
+  } | null>(null);
 
   function showError(msg: string) {
     setError(msg);
@@ -145,13 +150,8 @@ export default function AdminPage() {
     }
   }
 
-  async function handleDeleteCategory(id: number) {
-    if (!confirm("Delete this category? Links will become uncategorized."))
-      return;
-    const ok = await apiCall(() =>
-      fetch(`/api/categories/${id}`, { method: "DELETE" }),
-    );
-    if (ok) await loadCategories();
+  function handleDeleteCategory(id: number) {
+    setPendingDelete({ type: "category", id });
   }
 
   // ── Link handlers ─────────────────────────────────────────────────────────
@@ -184,12 +184,8 @@ export default function AdminPage() {
     }
   }
 
-  async function handleDeleteLink(id: number) {
-    if (!confirm("Delete this link?")) return;
-    const ok = await apiCall(() =>
-      fetch(`/api/links/${id}`, { method: "DELETE" }),
-    );
-    if (ok) await loadCategories();
+  function handleDeleteLink(id: number) {
+    setPendingDelete({ type: "link", id });
   }
 
   const sensors = useSensors(
@@ -473,6 +469,29 @@ export default function AdminPage() {
           )}
         </main>
       </div>
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={
+          pendingDelete?.type === "category"
+            ? "Delete category?"
+            : "Delete link?"
+        }
+        message={
+          pendingDelete?.type === "category"
+            ? "Links in this category will become uncategorized."
+            : "This link will be permanently removed."
+        }
+        onConfirm={async () => {
+          if (!pendingDelete) return;
+          const { type, id } = pendingDelete;
+          setPendingDelete(null);
+          const endpoint =
+            type === "category" ? `/api/categories/${id}` : `/api/links/${id}`;
+          const ok = await apiCall(() => fetch(endpoint, { method: "DELETE" }));
+          if (ok) await loadCategories();
+        }}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { User, UserRole } from "@/lib/types";
 import { AVATAR_OPTIONS } from "@/lib/types";
 import { UserAvatar } from "./UserAvatar";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 const inputClass =
   "px-3 py-2 rounded-lg retro:rounded-none border border-gray-300 dark:border-gray-600 retro:border-retro-dim bg-white dark:bg-gray-700 retro:bg-retro-bg text-gray-900 dark:text-gray-100 retro:text-retro-green focus:outline-none focus:ring-2 focus:ring-indigo-500 retro:focus:ring-retro-green text-sm";
@@ -21,6 +22,7 @@ export function UsersTab({ showError }: UsersTabProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<Modal>({ type: "none" });
+  const [pendingDelete, setPendingDelete] = useState<User | null>(null);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -40,13 +42,7 @@ export function UsersTab({ showError }: UsersTabProps) {
     loadUsers().finally(() => setLoading(false));
   }, [loadUsers]);
 
-  async function handleDelete(user: User) {
-    if (
-      !confirm(
-        `Delete user "${user.email}"? All their data will be permanently removed.`,
-      )
-    )
-      return;
+  async function executeDeleteUser(user: User) {
     try {
       const res = await fetch(`/api/users/${user.id}`, { method: "DELETE" });
       if (!res.ok) {
@@ -151,7 +147,7 @@ export function UsersTab({ showError }: UsersTabProps) {
                       </svg>
                     </button>
                     <button
-                      onClick={() => handleDelete(user)}
+                      onClick={() => setPendingDelete(user)}
                       className="text-gray-400 hover:text-red-500 retro:text-retro-dim retro:hover:text-retro-green transition-colors"
                       title="Delete"
                     >
@@ -198,6 +194,17 @@ export function UsersTab({ showError }: UsersTabProps) {
           showError={showError}
         />
       )}
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Delete user?"
+        message={`"${pendingDelete?.email}" and all their data will be permanently removed.`}
+        onConfirm={async () => {
+          const user = pendingDelete;
+          setPendingDelete(null);
+          if (user) await executeDeleteUser(user);
+        }}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }
