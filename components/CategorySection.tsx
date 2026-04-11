@@ -15,8 +15,10 @@ export function CategorySection({
   category,
   intervalMs,
 }: CategorySectionProps) {
-  const [collapsed, setCollapsed] = useState(
-    () => localStorage.getItem(storageKey(category.id)) === "true",
+  const [collapsed, setCollapsed] = useState(() =>
+    typeof window !== "undefined"
+      ? localStorage.getItem(storageKey(category.id)) === "true"
+      : false,
   );
 
   function toggle() {
