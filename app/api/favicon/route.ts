@@ -12,8 +12,22 @@ export async function GET(request: NextRequest) {
     return new NextResponse(null, { status: 404 });
   }
 
-  return NextResponse.redirect(faviconUrl, {
-    status: 302,
-    headers: { "Cache-Control": "public, max-age=86400" },
-  });
+  try {
+    const res = await fetch(faviconUrl);
+    if (!res.ok) {
+      return new NextResponse(null, { status: 404 });
+    }
+
+    const contentType = res.headers.get("content-type") ?? "image/x-icon";
+    const body = await res.arrayBuffer();
+
+    return new NextResponse(body, {
+      headers: {
+        "Content-Type": contentType,
+        "Cache-Control": "public, max-age=86400",
+      },
+    });
+  } catch {
+    return new NextResponse(null, { status: 502 });
+  }
 }
