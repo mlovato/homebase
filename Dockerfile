@@ -17,7 +17,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=7000
 ENV HOSTNAME=0.0.0.0
 
 # Non-root user for security
@@ -34,6 +34,6 @@ RUN mkdir -p /data /app/public/uploads \
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 7000
 
 CMD ["node", "server.js"]
