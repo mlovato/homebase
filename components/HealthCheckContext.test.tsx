@@ -23,26 +23,29 @@ describe("checkHealthClient", () => {
     jest.restoreAllMocks();
   });
 
-  it('returns "up" when API reports up', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ status: "up" }),
-    });
-    expect(await checkHealthClient("http://ha.local")).toBe("up");
-  });
-
-  it('returns "down" when API reports down and direct check fails', async () => {
+  it('returns "up" when server API succeeds and browser can reach service', async () => {
     global.fetch = jest
       .fn()
       .mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ status: "down" }),
+        json: () => Promise.resolve({ status: "up" }),
       })
-      .mockRejectedValueOnce(new TypeError("Failed to fetch"));
-    expect(await checkHealthClient("http://ha.local")).toBe("down");
+      .mockResolvedValueOnce({ ok: true });
+    expect(await checkHealthClient("http://ha.local")).toBe("up");
   });
 
-  it('returns "up" via direct check when API reports down but service is reachable', async () => {
+  it('returns "down" when server reports up but browser cannot reach service', async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ status: "up" }),
+      })
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    expect(await checkHealthClient("http://192.168.1.120:4000")).toBe("down");
+  });
+
+  it('returns "up" when server reports down but browser can reach service (.local mDNS)', async () => {
     global.fetch = jest
       .fn()
       .mockResolvedValueOnce({
@@ -53,7 +56,18 @@ describe("checkHealthClient", () => {
     expect(await checkHealthClient("http://ha.local")).toBe("up");
   });
 
-  it('returns "down" when fetch fails (browser offline)', async () => {
+  it('returns "down" when server reports down and browser cannot reach service', async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ status: "down" }),
+      })
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    expect(await checkHealthClient("http://ha.local")).toBe("down");
+  });
+
+  it('returns "down" when browser is offline (server API unreachable)', async () => {
     global.fetch = jest
       .fn()
       .mockRejectedValue(new TypeError("Failed to fetch"));
@@ -68,28 +82,37 @@ describe("checkHealthClient", () => {
     expect(await checkHealthClient("ftp://something.local")).toBe("unknown");
   });
 
-  it("calls the server-side health API with encoded url", async () => {
-    const spy = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ status: "up" }),
-    });
+  it("calls server API then a no-cors HEAD with abort signal", async () => {
+    const spy = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ status: "up" }),
+      })
+      .mockResolvedValueOnce({ ok: true });
     global.fetch = spy;
     await checkHealthClient("http://ha.local:8123/path?q=1");
-    expect(spy).toHaveBeenCalledWith(
+    expect(spy).toHaveBeenNthCalledWith(
+      1,
       `/api/health?url=${encodeURIComponent("http://ha.local:8123/path?q=1")}`,
     );
+    expect(spy).toHaveBeenNthCalledWith(2, "http://ha.local:8123/path?q=1", {
+      method: "HEAD",
+      mode: "no-cors",
+      cache: "no-store",
+      signal: expect.any(AbortSignal),
+    });
   });
 
-  it("fetches without extra options", async () => {
-    const spy = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ status: "up" }),
-    });
-    global.fetch = spy;
-    await checkHealthClient("http://ha.local");
-    expect(spy).toHaveBeenCalledWith(
-      `/api/health?url=${encodeURIComponent("http://ha.local")}`,
-    );
+  it('returns "down" when client check times out on unreachable IP', async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ status: "up" }),
+      })
+      .mockRejectedValueOnce(new DOMException("The operation was aborted."));
+    expect(await checkHealthClient("http://192.168.1.120:8989")).toBe("down");
   });
 });
 

@@ -16,18 +16,28 @@ export async function checkHealthClient(url: string): Promise<HealthStatus> {
   if (!url.startsWith("http://") && !url.startsWith("https://"))
     return "unknown";
 
+  // Server call acts as an offline gate — if this fails the browser is
+  // offline and no-cors would give a false positive (see 8586023)
   try {
-    const res = await fetch(`/api/health?url=${encodeURIComponent(url)}`);
-    const data = await res.json();
-    if (data.status === "up") return "up";
+    await fetch(`/api/health?url=${encodeURIComponent(url)}`);
   } catch {
     return "down";
   }
 
-  // Server reports down — try a direct check as fallback
-  // (handles hostnames the server can't resolve, e.g. .local mDNS)
+  // Verify the browser can actually reach the service — catches local-only
+  // services the server sees but the browser cannot (e.g. on cellular),
+  // and handles .local mDNS that Docker cannot resolve (see e23a2d8).
+  // Timeout prevents hanging on unreachable private IPs with no route.
   try {
-    await fetch(url, { method: "HEAD", mode: "no-cors", cache: "no-store" });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    await fetch(url, {
+      method: "HEAD",
+      mode: "no-cors",
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
     return "up";
   } catch {
     return "down";
