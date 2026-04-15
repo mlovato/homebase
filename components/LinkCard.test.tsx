@@ -68,13 +68,25 @@ describe("LinkCard", () => {
     );
   });
 
-  it("renders a letter fallback when icon_value is null", () => {
+  it("tries favicon when icon_value is null", () => {
     const link: Link = { ...baseLink, icon_type: "builtin", icon_value: null };
     render(<LinkCard link={link} />);
-    expect(screen.getByText("P")).toBeInTheDocument();
+    const img = screen.getByRole("img", { name: "Plex" });
+    expect(img).toHaveAttribute(
+      "src",
+      "/api/favicon?url=http%3A%2F%2Flocalhost%3A32400",
+    );
   });
 
-  it("falls back through -light and -dark variants before showing letter avatar", () => {
+  it("falls back to letter avatar when favicon also fails", () => {
+    const link: Link = { ...baseLink, icon_type: "builtin", icon_value: null };
+    render(<LinkCard link={link} />);
+    fireEvent.error(screen.getByRole("img"));
+    expect(screen.getByText("P")).toBeInTheDocument();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("tries favicon after all builtin variants fail before showing letter avatar", () => {
     render(<LinkCard link={{ ...baseLink, icon_value: "unknownservice" }} />);
 
     // First attempt: unknownservice.svg
@@ -83,7 +95,14 @@ describe("LinkCard", () => {
     fireEvent.error(screen.getByRole("img"));
     // Third attempt: unknownservice-dark.svg
     fireEvent.error(screen.getByRole("img"));
-    // All variants exhausted → letter avatar
+    // Favicon attempt
+    const favicon = screen.getByRole("img", { name: "Plex" });
+    expect(favicon).toHaveAttribute(
+      "src",
+      "/api/favicon?url=http%3A%2F%2Flocalhost%3A32400",
+    );
+    // Favicon fails → letter avatar
+    fireEvent.error(favicon);
     expect(screen.getByText("P")).toBeInTheDocument();
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });

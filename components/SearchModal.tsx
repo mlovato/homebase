@@ -179,6 +179,7 @@ export function SearchModal({
                   iconType={link.icon_type}
                   iconValue={link.icon_value}
                   size="sm"
+                  url={link.url}
                 />
                 <span className="flex-1 truncate font-medium">{link.name}</span>
                 <span className="text-xs text-gray-400 retro:text-retro-dim truncate max-w-[100px] sm:max-w-[160px] hidden sm:inline">

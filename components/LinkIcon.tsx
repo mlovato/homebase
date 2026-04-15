@@ -14,22 +14,61 @@ interface LinkIconProps {
   iconType: IconType;
   iconValue: string | null;
   size: "sm" | "lg";
+  url?: string;
+}
+
+function getFaviconUrl(url: string): string | null {
+  try {
+    new URL(url);
+    return `/api/favicon?url=${encodeURIComponent(url)}`;
+  } catch {
+    return null;
+  }
+}
+
+function FaviconFallback({
+  url,
+  name,
+  size,
+}: {
+  url?: string;
+  name: string;
+  size: "sm" | "lg";
+}) {
+  const [failed, setFailed] = useState(false);
+  const faviconUrl = url ? getFaviconUrl(url) : null;
+
+  if (!faviconUrl || failed) {
+    return <Avatar name={name} size={size} />;
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={faviconUrl}
+      alt={name}
+      className={`${SIZE[size].img} object-contain shrink-0`}
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 function BuiltinIcon({
   slug,
   name,
   size,
+  url,
 }: {
   slug: string;
   name: string;
   size: "sm" | "lg";
+  url?: string;
 }) {
   const variants = [`${slug}.svg`, `${slug}-light.svg`, `${slug}-dark.svg`];
   const [attempt, setAttempt] = useState(0);
 
   if (attempt >= variants.length) {
-    return <Avatar name={name} size={size} />;
+    return <FaviconFallback url={url} name={name} size={size} />;
   }
 
   return (
@@ -53,7 +92,13 @@ function Avatar({ name, size }: { name: string; size: "sm" | "lg" }) {
   );
 }
 
-export function LinkIcon({ name, iconType, iconValue, size }: LinkIconProps) {
+export function LinkIcon({
+  name,
+  iconType,
+  iconValue,
+  size,
+  url,
+}: LinkIconProps) {
   const iconKey = `${iconType}:${iconValue}`;
   const [failed, setFailed] = useState({ key: iconKey, value: false });
 
@@ -64,7 +109,7 @@ export function LinkIcon({ name, iconType, iconValue, size }: LinkIconProps) {
   const isFailed = failed.value;
 
   if (iconType === "builtin" && iconValue) {
-    return <BuiltinIcon slug={iconValue} name={name} size={size} />;
+    return <BuiltinIcon slug={iconValue} name={name} size={size} url={url} />;
   }
 
   if ((iconType === "upload" || iconType === "url") && iconValue && !isFailed) {
@@ -79,5 +124,5 @@ export function LinkIcon({ name, iconType, iconValue, size }: LinkIconProps) {
     );
   }
 
-  return <Avatar name={name} size={size} />;
+  return <FaviconFallback url={url} name={name} size={size} />;
 }

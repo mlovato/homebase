@@ -25,6 +25,7 @@ export function LinkCard({ link, tooltip = true, intervalMs }: LinkCardProps) {
         iconType={link.icon_type}
         iconValue={link.icon_value}
         size="lg"
+        url={link.url}
       />
       <span className="text-sm font-medium text-gray-700 dark:text-gray-200 retro:text-retro-green text-center leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 retro:group-hover:text-retro-green w-full truncate px-1">
         {link.name}
