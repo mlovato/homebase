@@ -21,7 +21,7 @@ Log in with email and password. Returns a JWT session cookie.
 { "ok": true }
 ```
 
-Sets `homebase_session` HTTP-only cookie (24h TTL).
+Sets `homebase_session` HTTP-only cookie (30d TTL).
 
 **401 Unauthorized** — Invalid credentials.
 

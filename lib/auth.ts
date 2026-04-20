@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import type { UserRole } from "@/lib/types";
 
-const TOKEN_EXPIRY = "24h";
+const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 const COOKIE_NAME = "homebase_session";
 
 export function verifyPassword(submitted: string, expected: string): boolean {
@@ -21,7 +21,7 @@ export async function createSessionToken(
   return new SignJWT({ userId: claims.userId, role: claims.role })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime(TOKEN_EXPIRY)
+    .setExpirationTime(`${SESSION_TTL_SECONDS}s`)
     .sign(key);
 }
 
@@ -50,4 +50,4 @@ export async function verifySessionToken(
   }
 }
 
-export { COOKIE_NAME };
+export { COOKIE_NAME, SESSION_TTL_SECONDS };

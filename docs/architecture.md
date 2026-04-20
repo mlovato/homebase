@@ -70,7 +70,7 @@ Client                          Server
   ├──────────────────────────────►│
   │                               ├── Look up user by email
   │                               ├── Verify password (scrypt, timing-safe)
-  │                               ├── Create JWT { userId, role } (24h TTL)
+  │                               ├── Create JWT { userId, role } (30d TTL)
   │                               ├── Set HTTP-only cookie (homebase_session)
   │  200 { ok: true }             │
   │◄──────────────────────────────┤

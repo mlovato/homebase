@@ -1,7 +1,13 @@
 /**
  * @jest-environment node
  */
-import { verifyPassword, createSessionToken, verifySessionToken } from "./auth";
+import { decodeJwt } from "jose";
+import {
+  verifyPassword,
+  createSessionToken,
+  verifySessionToken,
+  SESSION_TTL_SECONDS,
+} from "./auth";
 
 const SECRET = "test-secret-that-is-long-enough-for-hmac-256";
 
@@ -70,6 +76,18 @@ describe("createSessionToken / verifySessionToken", () => {
   it("rejects an empty token", async () => {
     const result = await verifySessionToken("", SECRET);
     expect(result.valid).toBe(false);
+  });
+
+  it("issues a token whose lifetime matches SESSION_TTL_SECONDS", async () => {
+    const token = await createSessionToken(
+      { userId: 1, role: "admin" },
+      SECRET,
+    );
+    const { exp, iat } = decodeJwt(token);
+    if (exp === undefined || iat === undefined) {
+      throw new Error("token missing exp/iat");
+    }
+    expect(exp - iat).toBe(SESSION_TTL_SECONDS);
   });
 
   it("rejects a token missing userId and role claims", async () => {

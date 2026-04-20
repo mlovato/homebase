@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { COOKIE_NAME } from "@/lib/auth";
+import { COOKIE_NAME, SESSION_TTL_SECONDS } from "@/lib/auth";
 import { handleLogin } from "./handler";
 
 export async function POST(request: NextRequest) {
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24, // 24 hours
+    maxAge: SESSION_TTL_SECONDS,
   });
   return response;
 }
