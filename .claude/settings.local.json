@@ -3,7 +3,13 @@
     "allow": [
       "Bash(pkill -f \"next dev\")",
       "Bash(npm --prefix /Users/mlovato/code/homebase run dev)",
-      "Bash(npx jest:*)"
+      "Bash(npx jest:*)",
+      "Bash(curl:*)",
+      "Bash(docker save *)",
+      "Bash(gzip)",
+      "Bash(ssh mlovato@192.168.1.120 \"cat > /volume1/docker/homebase-1.2.3.tar.gz\")",
+      "Bash(npx prettier *)",
+      "Bash(gh release *)"
     ]
   }
 }
