@@ -14,6 +14,7 @@ import { SortableCategorySection } from "@/components/SortableCategorySection";
 import {
   DndContext,
   closestCenter,
+  useDroppable,
   type DragEndEvent,
   type SensorDescriptor,
 } from "@dnd-kit/core";
@@ -22,6 +23,11 @@ import {
   verticalListSortingStrategy,
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
+import {
+  linkContainerId,
+  sortableCategoryId,
+  UNCATEGORIZED_LINK_CONTAINER,
+} from "@/lib/linkDrop";
 
 type Modal =
   | { type: "none" }
@@ -47,11 +53,7 @@ export interface LinksTabProps {
     data: Partial<UpdateLinkInput>,
   ) => Promise<void>;
   handleDeleteLink: (id: number) => void;
-  handleDragEnd: (
-    event: DragEndEvent,
-    categoryId: number | null,
-  ) => Promise<void>;
-  handleCategoryDragEnd: (event: DragEndEvent) => Promise<void>;
+  handleDragEnd: (event: DragEndEvent) => Promise<void>;
   intervalMs: number | null;
 }
 
@@ -70,7 +72,6 @@ export function LinksTab({
   handleUpdateLink,
   handleDeleteLink,
   handleDragEnd,
-  handleCategoryDragEnd,
   intervalMs,
 }: LinksTabProps) {
   if (loading) {
@@ -105,17 +106,16 @@ export function LinksTab({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
-        onDragEnd={handleCategoryDragEnd}
+        onDragEnd={handleDragEnd}
       >
         <SortableContext
-          items={categories.map((c) => c.id)}
+          items={categories.map((c) => sortableCategoryId(c.id))}
           strategy={verticalListSortingStrategy}
         >
           {categories.map((category) => (
             <SortableCategorySection
               key={category.id}
               category={category}
-              sensors={sensors}
               onAddLink={(id) =>
                 setModal({ type: "create-link", categoryId: id })
               }
@@ -125,44 +125,18 @@ export function LinksTab({
               onDeleteCategory={handleDeleteCategory}
               onEditLink={(link) => setModal({ type: "edit-link", link })}
               onDeleteLink={handleDeleteLink}
-              onLinkDragEnd={handleDragEnd}
               intervalMs={intervalMs}
             />
           ))}
         </SortableContext>
-      </DndContext>
 
-      {uncategorized.length > 0 && (
-        <section className="mb-8 md:mb-10">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Uncategorized
-            </h3>
-          </div>
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={(e: DragEndEvent) => handleDragEnd(e, null)}
-          >
-            <SortableContext
-              items={uncategorized.map((l) => l.id)}
-              strategy={rectSortingStrategy}
-            >
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 md:gap-4">
-                {uncategorized.map((link) => (
-                  <SortableLinkCard
-                    key={link.id}
-                    link={link}
-                    onEdit={(l) => setModal({ type: "edit-link", link: l })}
-                    onDelete={handleDeleteLink}
-                    intervalMs={intervalMs}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        </section>
-      )}
+        <UncategorizedSection
+          links={uncategorized}
+          intervalMs={intervalMs}
+          onEditLink={(link) => setModal({ type: "edit-link", link })}
+          onDeleteLink={handleDeleteLink}
+        />
+      </DndContext>
 
       <div className="mt-4">
         <button
@@ -247,5 +221,57 @@ export function LinksTab({
         </div>
       )}
     </>
+  );
+}
+
+interface UncategorizedSectionProps {
+  links: Link[];
+  intervalMs: number | null;
+  onEditLink: (link: Link) => void;
+  onDeleteLink: (id: number) => void;
+}
+
+function UncategorizedSection({
+  links,
+  intervalMs,
+  onEditLink,
+  onDeleteLink,
+}: UncategorizedSectionProps) {
+  const containerId = linkContainerId(null);
+  const { setNodeRef } = useDroppable({
+    id: containerId,
+    data: { type: "link-container", categoryId: null },
+  });
+
+  if (links.length === 0) return null;
+
+  return (
+    <section className="mb-8 md:mb-10">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          Uncategorized
+        </h3>
+      </div>
+      <SortableContext
+        id={UNCATEGORIZED_LINK_CONTAINER}
+        items={links.map((l) => l.id)}
+        strategy={rectSortingStrategy}
+      >
+        <div
+          ref={setNodeRef}
+          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 md:gap-4"
+        >
+          {links.map((link) => (
+            <SortableLinkCard
+              key={link.id}
+              link={link}
+              onEdit={onEditLink}
+              onDelete={onDeleteLink}
+              intervalMs={intervalMs}
+            />
+          ))}
+        </div>
+      </SortableContext>
+    </section>
   );
 }

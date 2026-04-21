@@ -4,6 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { DragHandle } from "@/components/DragHandle";
 import { LinkCard } from "./LinkCard";
+import { DND_TYPE } from "@/lib/linkDrop";
 import type { Link } from "@/lib/types";
 
 interface SortableLinkCardProps {
@@ -28,6 +29,7 @@ export function SortableLinkCard({
     isDragging,
   } = useSortable({
     id: link.id,
+    data: { type: DND_TYPE.LINK, categoryId: link.category_id },
   });
 
   const style = {

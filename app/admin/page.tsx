@@ -26,6 +26,14 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
+import {
+  computeLinkDrop,
+  DND_TYPE,
+  parseSortableCategoryId,
+  resolveLinkDropContainers,
+  type LinkContainerState,
+  type LinkDropResult,
+} from "@/lib/linkDrop";
 
 type Modal = LinksTabProps["modal"];
 type Tab = "links" | "settings" | "users";
@@ -199,8 +207,12 @@ export default function AdminPage() {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = categories.findIndex((c) => c.id === active.id);
-    const newIndex = categories.findIndex((c) => c.id === over.id);
+    const activeCategoryId = parseSortableCategoryId(active.id);
+    const overCategoryId = parseSortableCategoryId(over.id);
+    if (activeCategoryId === undefined || overCategoryId === undefined) return;
+
+    const oldIndex = categories.findIndex((c) => c.id === activeCategoryId);
+    const newIndex = categories.findIndex((c) => c.id === overCategoryId);
     if (oldIndex === -1 || newIndex === -1) return;
 
     const reordered = arrayMove(categories, oldIndex, newIndex);
@@ -217,38 +229,75 @@ export default function AdminPage() {
     );
   }
 
-  async function handleDragEnd(event: DragEndEvent, categoryId: number | null) {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const list =
-      categoryId !== null
-        ? (categories.find((c) => c.id === categoryId)?.links ?? [])
-        : uncategorized;
-
-    const oldIndex = list.findIndex((l) => l.id === active.id);
-    const newIndex = list.findIndex((l) => l.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const reordered = arrayMove(list, oldIndex, newIndex);
-
-    if (categoryId !== null) {
-      setCategories((prev) =>
-        prev.map((c) => (c.id === categoryId ? { ...c, links: reordered } : c)),
-      );
-    } else {
-      setUncategorized(reordered);
+  function applyLinkContainerState(state: LinkContainerState) {
+    if (state.categoryId === null) {
+      setUncategorized(state.links);
+      return;
     }
+    setCategories((prev) =>
+      prev.map((c) =>
+        c.id === state.categoryId ? { ...c, links: state.links } : c,
+      ),
+    );
+  }
 
-    await Promise.all(
-      reordered.map((link, index) =>
+  async function persistLinkDrop(result: LinkDropResult) {
+    const patchContainer = (state: LinkContainerState) =>
+      state.links.map((link, index) =>
         fetch(`/api/links/${link.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sort_order: index }),
+          body: JSON.stringify({
+            category_id: state.categoryId,
+            sort_order: index,
+          }),
         }),
-      ),
-    );
+      );
+
+    const requests = [
+      ...patchContainer(result.source),
+      ...(result.target ? patchContainer(result.target) : []),
+    ];
+    await Promise.all(requests);
+  }
+
+  async function handleLinkDragEnd(event: DragEndEvent) {
+    const resolved = resolveLinkDropContainers(event);
+    if (!resolved) return;
+
+    const targetLinks: Link[] =
+      resolved.target === null
+        ? uncategorized
+        : (categories.find((c) => c.id === resolved.target)?.links ?? []);
+
+    const overIndex =
+      typeof resolved.overId === "number"
+        ? targetLinks.findIndex((l) => l.id === resolved.overId)
+        : -1;
+
+    const result = computeLinkDrop({
+      activeId: resolved.activeId,
+      sourceContainerId: resolved.source,
+      targetContainerId: resolved.target,
+      targetIndex: overIndex === -1 ? targetLinks.length : overIndex,
+      categories,
+      uncategorized,
+    });
+    if (!result) return;
+
+    applyLinkContainerState(result.source);
+    if (result.target) applyLinkContainerState(result.target);
+
+    await persistLinkDrop(result);
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const type = event.active.data.current?.type;
+    if (type === DND_TYPE.CATEGORY) {
+      await handleCategoryDragEnd(event);
+    } else if (type === DND_TYPE.LINK) {
+      await handleLinkDragEnd(event);
+    }
   }
 
   const allCategories = useMemo<Category[]>(
@@ -454,7 +503,6 @@ export default function AdminPage() {
                 handleUpdateLink={handleUpdateLink}
                 handleDeleteLink={handleDeleteLink}
                 handleDragEnd={handleDragEnd}
-                handleCategoryDragEnd={handleCategoryDragEnd}
                 intervalMs={intervalMs}
               />
             </HealthCheckProvider>

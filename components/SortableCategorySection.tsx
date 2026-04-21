@@ -3,37 +3,29 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { DragHandle } from "@/components/DragHandle";
-import {
-  DndContext,
-  closestCenter,
-  type DragEndEvent,
-  type SensorDescriptor,
-} from "@dnd-kit/core";
+import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import { SortableLinkCard } from "@/components/SortableLinkCard";
+import { DND_TYPE, linkContainerId, sortableCategoryId } from "@/lib/linkDrop";
 import type { CategoryWithLinks, Link } from "@/lib/types";
 
 interface SortableCategorySectionProps {
   category: CategoryWithLinks;
-  sensors: SensorDescriptor<object>[];
   onAddLink: (categoryId: number) => void;
   onEditCategory: (category: CategoryWithLinks) => void;
   onDeleteCategory: (id: number) => void;
   onEditLink: (link: Link) => void;
   onDeleteLink: (id: number) => void;
-  onLinkDragEnd: (event: DragEndEvent, categoryId: number) => void;
   intervalMs: number | null;
 }
 
 export function SortableCategorySection({
   category,
-  sensors,
   onAddLink,
   onEditCategory,
   onDeleteCategory,
   onEditLink,
   onDeleteLink,
-  onLinkDragEnd,
   intervalMs,
 }: SortableCategorySectionProps) {
   const {
@@ -44,7 +36,13 @@ export function SortableCategorySection({
     transition,
     isDragging,
   } = useSortable({
-    id: category.id,
+    id: sortableCategoryId(category.id),
+    data: { type: DND_TYPE.CATEGORY },
+  });
+  const containerId = linkContainerId(category.id);
+  const { setNodeRef: setDroppableRef } = useDroppable({
+    id: containerId,
+    data: { type: DND_TYPE.LINK_CONTAINER, categoryId: category.id },
   });
 
   const style = {
@@ -93,26 +91,23 @@ export function SortableCategorySection({
         </div>
       </div>
 
-      {category.links.length === 0 ? (
-        <p className="text-sm text-gray-400 dark:text-gray-500 italic px-1">
-          No links in this category.{" "}
-          <button
-            className="text-indigo-500 hover:underline"
-            onClick={() => onAddLink(category.id)}
-          >
-            Add one
-          </button>
-        </p>
-      ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={(e: DragEndEvent) => onLinkDragEnd(e, category.id)}
-        >
-          <SortableContext
-            items={category.links.map((l) => l.id)}
-            strategy={rectSortingStrategy}
-          >
+      <SortableContext
+        id={containerId}
+        items={category.links.map((l) => l.id)}
+        strategy={rectSortingStrategy}
+      >
+        <div ref={setDroppableRef}>
+          {category.links.length === 0 ? (
+            <p className="text-sm text-gray-400 dark:text-gray-500 italic px-1 py-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
+              No links in this category. Drop a link here or{" "}
+              <button
+                className="text-indigo-500 hover:underline"
+                onClick={() => onAddLink(category.id)}
+              >
+                add one
+              </button>
+            </p>
+          ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 md:gap-4">
               {category.links.map((link) => (
                 <SortableLinkCard
@@ -124,9 +119,9 @@ export function SortableCategorySection({
                 />
               ))}
             </div>
-          </SortableContext>
-        </DndContext>
-      )}
+          )}
+        </div>
+      </SortableContext>
     </section>
   );
 }

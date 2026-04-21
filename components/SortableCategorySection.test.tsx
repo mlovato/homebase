@@ -24,8 +24,7 @@ jest.mock("@dnd-kit/utilities", () => ({
   CSS: { Transform: { toString: () => "" } },
 }));
 jest.mock("@dnd-kit/core", () => ({
-  DndContext: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  closestCenter: jest.fn(),
+  useDroppable: () => ({ setNodeRef: jest.fn() }),
 }));
 jest.mock("@/components/SortableLinkCard", () => ({
   SortableLinkCard: ({ link }: { link: Link }) => (
@@ -66,91 +65,49 @@ const emptyCategory: CategoryWithLinks = {
   links: [],
 };
 
+function renderSection(
+  cat: CategoryWithLinks,
+  overrides: Partial<Parameters<typeof SortableCategorySection>[0]> = {},
+) {
+  return render(
+    <SortableCategorySection
+      category={cat}
+      onAddLink={jest.fn()}
+      onEditCategory={jest.fn()}
+      onDeleteCategory={jest.fn()}
+      onEditLink={jest.fn()}
+      onDeleteLink={jest.fn()}
+      intervalMs={null}
+      {...overrides}
+    />,
+  );
+}
+
 describe("SortableCategorySection", () => {
   it("renders the category name", () => {
-    render(
-      <SortableCategorySection
-        category={category}
-        sensors={[]}
-        onAddLink={jest.fn()}
-        onEditCategory={jest.fn()}
-        onDeleteCategory={jest.fn()}
-        onEditLink={jest.fn()}
-        onDeleteLink={jest.fn()}
-        onLinkDragEnd={jest.fn()}
-        intervalMs={null}
-      />,
-    );
+    renderSection(category);
     expect(screen.getByText("Media")).toBeInTheDocument();
   });
 
   it("renders links within the category", () => {
-    render(
-      <SortableCategorySection
-        category={category}
-        sensors={[]}
-        onAddLink={jest.fn()}
-        onEditCategory={jest.fn()}
-        onDeleteCategory={jest.fn()}
-        onEditLink={jest.fn()}
-        onDeleteLink={jest.fn()}
-        onLinkDragEnd={jest.fn()}
-        intervalMs={null}
-      />,
-    );
+    renderSection(category);
     expect(screen.getByText("Plex")).toBeInTheDocument();
     expect(screen.getByText("Sonarr")).toBeInTheDocument();
   });
 
   it("shows empty message when category has no links", () => {
-    render(
-      <SortableCategorySection
-        category={emptyCategory}
-        sensors={[]}
-        onAddLink={jest.fn()}
-        onEditCategory={jest.fn()}
-        onDeleteCategory={jest.fn()}
-        onEditLink={jest.fn()}
-        onDeleteLink={jest.fn()}
-        onLinkDragEnd={jest.fn()}
-        intervalMs={null}
-      />,
-    );
+    renderSection(emptyCategory);
     expect(screen.getByText(/no links in this category/i)).toBeInTheDocument();
   });
 
   it("has a drag handle", () => {
-    render(
-      <SortableCategorySection
-        category={category}
-        sensors={[]}
-        onAddLink={jest.fn()}
-        onEditCategory={jest.fn()}
-        onDeleteCategory={jest.fn()}
-        onEditLink={jest.fn()}
-        onDeleteLink={jest.fn()}
-        onLinkDragEnd={jest.fn()}
-        intervalMs={null}
-      />,
-    );
+    renderSection(category);
     expect(screen.getByTitle("Drag to reorder")).toBeInTheDocument();
   });
 
   it("calls onDeleteCategory when Delete is clicked", () => {
     const onDelete = jest.fn();
-    render(
-      <SortableCategorySection
-        category={category}
-        sensors={[]}
-        onAddLink={jest.fn()}
-        onEditCategory={jest.fn()}
-        onDeleteCategory={onDelete}
-        onEditLink={jest.fn()}
-        onDeleteLink={jest.fn()}
-        onLinkDragEnd={jest.fn()}
-        intervalMs={null}
-      />,
-    );
+    renderSection(category, { onDeleteCategory: onDelete });
     fireEvent.click(screen.getByRole("button", { name: /delete/i }));
     expect(onDelete).toHaveBeenCalledWith(1);
   });

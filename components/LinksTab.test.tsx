@@ -8,6 +8,7 @@ jest.mock("@dnd-kit/core", () => ({
   closestCenter: jest.fn(),
   useSensor: jest.fn(),
   useSensors: jest.fn(() => []),
+  useDroppable: () => ({ setNodeRef: jest.fn() }),
 }));
 jest.mock("@dnd-kit/sortable", () => ({
   SortableContext: ({ children }: { children: React.ReactNode }) => (
@@ -77,7 +78,6 @@ const baseProps: LinksTabProps = {
   handleUpdateLink: jest.fn(),
   handleDeleteLink: jest.fn(),
   handleDragEnd: jest.fn(),
-  handleCategoryDragEnd: jest.fn(),
   intervalMs: 10000,
 };
 
