@@ -3,6 +3,7 @@
  */
 import {
   computeLinkDrop,
+  findLinkById,
   linkContainerId,
   parseLinkContainerId,
   UNCATEGORIZED_LINK_CONTAINER,
@@ -179,5 +180,24 @@ describe("computeLinkDrop", () => {
       uncategorized,
     });
     expect(result).toBeNull();
+  });
+});
+
+describe("findLinkById", () => {
+  const catLink = makeLink(1, 10, 0);
+  const uncatLink = makeLink(2, null, 0);
+  const categories = [makeCategory(10, [catLink])];
+  const uncategorized = [uncatLink];
+
+  it("finds a link inside a category", () => {
+    expect(findLinkById(1, categories, uncategorized)).toEqual(catLink);
+  });
+
+  it("finds an uncategorized link", () => {
+    expect(findLinkById(2, categories, uncategorized)).toEqual(uncatLink);
+  });
+
+  it("returns null when no match exists", () => {
+    expect(findLinkById(999, categories, uncategorized)).toBeNull();
   });
 });

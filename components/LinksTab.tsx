@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type {
   CategoryWithLinks,
   Link,
@@ -9,13 +10,18 @@ import type {
 } from "@/lib/types";
 import { AdminCategoryForm } from "@/components/AdminCategoryForm";
 import { AdminLinkForm } from "@/components/AdminLinkForm";
+import { LinkCard } from "@/components/LinkCard";
 import { SortableLinkCard } from "@/components/SortableLinkCard";
 import { SortableCategorySection } from "@/components/SortableCategorySection";
 import {
   DndContext,
-  closestCenter,
+  DragOverlay,
+  pointerWithin,
+  rectIntersection,
   useDroppable,
+  type CollisionDetection,
   type DragEndEvent,
+  type DragStartEvent,
   type SensorDescriptor,
 } from "@dnd-kit/core";
 import {
@@ -24,10 +30,17 @@ import {
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import {
+  DND_TYPE,
+  findLinkById,
   linkContainerId,
   sortableCategoryId,
   UNCATEGORIZED_LINK_CONTAINER,
 } from "@/lib/linkDrop";
+
+const collisionDetection: CollisionDetection = (args) => {
+  const pointer = pointerWithin(args);
+  return pointer.length > 0 ? pointer : rectIntersection(args);
+};
 
 type Modal =
   | { type: "none" }
@@ -74,6 +87,19 @@ export function LinksTab({
   handleDragEnd,
   intervalMs,
 }: LinksTabProps) {
+  const [activeLink, setActiveLink] = useState<Link | null>(null);
+
+  function handleDragStart(event: DragStartEvent) {
+    if (event.active.data.current?.type !== DND_TYPE.LINK) return;
+    if (typeof event.active.id !== "number") return;
+    setActiveLink(findLinkById(event.active.id, categories, uncategorized));
+  }
+
+  async function onDragEnd(event: DragEndEvent) {
+    setActiveLink(null);
+    await handleDragEnd(event);
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16 text-gray-400">
@@ -105,8 +131,10 @@ export function LinksTab({
 
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
+        collisionDetection={collisionDetection}
+        onDragStart={handleDragStart}
+        onDragEnd={onDragEnd}
+        onDragCancel={() => setActiveLink(null)}
       >
         <SortableContext
           items={categories.map((c) => sortableCategoryId(c.id))}
@@ -136,6 +164,18 @@ export function LinksTab({
           onEditLink={(link) => setModal({ type: "edit-link", link })}
           onDeleteLink={handleDeleteLink}
         />
+
+        <DragOverlay dropAnimation={null}>
+          {activeLink ? (
+            <div className="shadow-2xl ring-2 ring-indigo-400 rounded-2xl">
+              <LinkCard
+                link={activeLink}
+                tooltip={false}
+                intervalMs={intervalMs}
+              />
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
 
       <div className="mt-4">

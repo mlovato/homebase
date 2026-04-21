@@ -5,7 +5,10 @@ import type { CategoryWithLinks, Link } from "@/lib/types";
 // Mock heavy drag-and-drop and form dependencies
 jest.mock("@dnd-kit/core", () => ({
   DndContext: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  DragOverlay: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   closestCenter: jest.fn(),
+  pointerWithin: jest.fn(() => []),
+  rectIntersection: jest.fn(() => []),
   useSensor: jest.fn(),
   useSensors: jest.fn(() => []),
   useDroppable: () => ({ setNodeRef: jest.fn() }),

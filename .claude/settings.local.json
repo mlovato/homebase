@@ -9,7 +9,8 @@
       "Bash(gzip)",
       "Bash(ssh mlovato@192.168.1.120 \"cat > /volume1/docker/homebase-1.2.3.tar.gz\")",
       "Bash(npx prettier *)",
-      "Bash(gh release *)"
+      "Bash(gh release *)",
+      "Bash(npm run *)"
     ]
   }
 }

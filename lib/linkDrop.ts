@@ -90,6 +90,20 @@ export function resolveLinkDropContainers(
   return { activeId: active.id, source, target, overId: over.id };
 }
 
+export function findLinkById(
+  id: number,
+  categories: CategoryWithLinks[],
+  uncategorized: Link[],
+): Link | null {
+  const fromUncategorized = uncategorized.find((l) => l.id === id);
+  if (fromUncategorized) return fromUncategorized;
+  for (const category of categories) {
+    const match = category.links.find((l) => l.id === id);
+    if (match) return match;
+  }
+  return null;
+}
+
 function getContainerLinks(
   containerId: LinkContainerId,
   categories: CategoryWithLinks[],

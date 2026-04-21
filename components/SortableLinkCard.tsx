@@ -35,8 +35,7 @@ export function SortableLinkCard({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.4 : 1,
-    zIndex: isDragging ? 10 : undefined,
+    opacity: isDragging ? 0 : 1,
   };
 
   return (
@@ -49,7 +48,6 @@ export function SortableLinkCard({
 
       <LinkCard link={link} tooltip={false} intervalMs={intervalMs} />
 
-      {/* Edit/Delete overlay */}
       <div className="absolute inset-0 rounded-2xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none group-hover:pointer-events-auto">
         <button
           onClick={(e) => {
