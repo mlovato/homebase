@@ -3,7 +3,18 @@ import {
   getCategoriesWithLinks,
   getUncategorizedLinks,
 } from "@/lib/repositories/categories";
-import type { ExportData } from "@/lib/types";
+import type { ExportData, ExportedLink, Link } from "@/lib/types";
+
+function mapLink(l: Link): ExportedLink {
+  return {
+    name: l.name,
+    url: l.url,
+    url_alt: l.url_alt,
+    icon_type: l.icon_type,
+    icon_value: l.icon_value,
+    sort_order: l.sort_order,
+  };
+}
 
 export function handleExport(
   db: Database.Database,
@@ -18,20 +29,8 @@ export function handleExport(
     categories: categories.map((c) => ({
       name: c.name,
       sort_order: c.sort_order,
-      links: c.links.map((l) => ({
-        name: l.name,
-        url: l.url,
-        icon_type: l.icon_type,
-        icon_value: l.icon_value,
-        sort_order: l.sort_order,
-      })),
+      links: c.links.map(mapLink),
     })),
-    uncategorized: uncategorized.map((l) => ({
-      name: l.name,
-      url: l.url,
-      icon_type: l.icon_type,
-      icon_value: l.icon_value,
-      sort_order: l.sort_order,
-    })),
+    uncategorized: uncategorized.map(mapLink),
   };
 }

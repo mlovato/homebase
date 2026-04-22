@@ -81,4 +81,33 @@ describe("export handler", () => {
     const result = handleExport(db, userId);
     expect(() => new Date(result.exported_at).toISOString()).not.toThrow();
   });
+
+  it("includes url_alt in exported links", () => {
+    const cat = createCategory(db, userId, { name: "Media", sort_order: 0 });
+    createLink(db, userId, {
+      category_id: cat.id,
+      name: "Plex",
+      url: "http://plex.local",
+      url_alt: "http://plex.remote",
+      icon_type: "builtin",
+      icon_value: "plex",
+      sort_order: 0,
+    });
+
+    const result = handleExport(db, userId);
+    expect(result.categories[0].links[0].url_alt).toBe("http://plex.remote");
+  });
+
+  it("exports url_alt as null when not set", () => {
+    createLink(db, userId, {
+      category_id: null,
+      name: "Misc",
+      url: "http://misc.local",
+      icon_type: "builtin",
+      sort_order: 0,
+    });
+
+    const result = handleExport(db, userId);
+    expect(result.uncategorized[0].url_alt).toBeNull();
+  });
 });

@@ -130,4 +130,33 @@ describe("import handler", () => {
     expect(getCategoriesWithLinks(db, userId)).toHaveLength(0);
     expect(getUncategorizedLinks(db, userId)).toHaveLength(0);
   });
+
+  it("imports url_alt when present in payload", () => {
+    const payload = {
+      version: 1 as const,
+      exported_at: "2024-01-01T00:00:00.000Z",
+      categories: [],
+      uncategorized: [
+        {
+          name: "Plex",
+          url: "http://plex.local",
+          url_alt: "http://plex.remote",
+          icon_type: "builtin" as const,
+          icon_value: null,
+          sort_order: 0,
+        },
+      ],
+    };
+
+    handleImport(db, userId, payload);
+
+    const links = getUncategorizedLinks(db, userId);
+    expect(links[0].url_alt).toBe("http://plex.remote");
+  });
+
+  it("sets url_alt to null when missing from payload", () => {
+    handleImport(db, userId, validPayload);
+    const cats = getCategoriesWithLinks(db, userId);
+    expect(cats[0].links[0].url_alt).toBeNull();
+  });
 });
