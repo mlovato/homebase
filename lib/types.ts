@@ -46,6 +46,7 @@ export const VALID_ICON_TYPES: IconType[] = ["builtin", "upload", "url"];
 export interface ExportedLink {
   name: string;
   url: string;
+  url_alt?: string | null;
   icon_type: IconType;
   icon_value: string | null;
   sort_order: number;
@@ -75,6 +76,7 @@ export interface Link {
   category_id: number | null;
   name: string;
   url: string;
+  url_alt: string | null;
   icon_type: IconType;
   icon_value: string | null;
   sort_order: number;
@@ -86,7 +88,7 @@ export interface CategoryWithLinks extends Category {
 
 export type SearchLink = Pick<
   Link,
-  "id" | "name" | "url" | "icon_type" | "icon_value"
+  "id" | "name" | "url" | "url_alt" | "icon_type" | "icon_value"
 >;
 
 export interface CreateCategoryInput {
@@ -103,6 +105,7 @@ export interface CreateLinkInput {
   category_id?: number | null;
   name: string;
   url: string;
+  url_alt?: string | null;
   icon_type: IconType;
   icon_value?: string | null;
   sort_order?: number;
@@ -112,6 +115,7 @@ export interface UpdateLinkInput {
   category_id?: number | null;
   name?: string;
   url?: string;
+  url_alt?: string | null;
   icon_type?: IconType;
   icon_value?: string | null;
   sort_order?: number;

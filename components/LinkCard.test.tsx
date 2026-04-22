@@ -8,6 +8,7 @@ const baseLink: Link = {
   category_id: 1,
   name: "Plex",
   url: "http://localhost:32400",
+  url_alt: null,
   icon_type: "builtin",
   icon_value: "plex",
   sort_order: 0,

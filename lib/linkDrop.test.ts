@@ -16,6 +16,7 @@ function makeLink(id: number, categoryId: number | null, order: number): Link {
     category_id: categoryId,
     name: `L${id}`,
     url: `http://l${id}`,
+    url_alt: null,
     icon_type: "builtin",
     icon_value: null,
     sort_order: order,

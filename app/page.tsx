@@ -88,10 +88,11 @@ export default async function DashboardPage() {
   const searchLinks = [
     ...categories.flatMap((c) => c.links),
     ...uncategorized,
-  ].map(({ id, name, url, icon_type, icon_value }) => ({
+  ].map(({ id, name, url, url_alt, icon_type, icon_value }) => ({
     id,
     name,
     url,
+    url_alt,
     icon_type,
     icon_value,
   }));

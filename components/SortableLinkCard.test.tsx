@@ -26,6 +26,7 @@ const link: Link = {
   category_id: null,
   name: "Plex",
   url: "http://plex.local",
+  url_alt: null,
   icon_type: "builtin",
   icon_value: "plex",
   sort_order: 0,
