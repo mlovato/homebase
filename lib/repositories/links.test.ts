@@ -206,3 +206,61 @@ describe("user isolation", () => {
     expect(getAllLinks(db, userB)[0].name).toBe("B link");
   });
 });
+
+describe("url_alt", () => {
+  const base = {
+    category_id: null as number | null,
+    name: "Plex",
+    url: "http://plex.local",
+    icon_type: "builtin" as const,
+  };
+
+  it("defaults to null when not provided", () => {
+    const link = createLink(db, userId, base);
+    expect(link.url_alt).toBeNull();
+  });
+
+  it("persists and retrieves url_alt", () => {
+    const link = createLink(db, userId, {
+      ...base,
+      url_alt: "http://plex.remote",
+    });
+    expect(link.url_alt).toBe("http://plex.remote");
+    expect(getLinkById(db, userId, link.id)?.url_alt).toBe(
+      "http://plex.remote",
+    );
+  });
+
+  it("getAllLinks includes url_alt", () => {
+    createLink(db, userId, { ...base, url_alt: "http://plex.remote" });
+    const [link] = getAllLinks(db, userId);
+    expect(link.url_alt).toBe("http://plex.remote");
+  });
+
+  it("getLinksByCategoryId includes url_alt", () => {
+    createLink(db, userId, {
+      ...base,
+      category_id: categoryId,
+      url_alt: "http://plex.remote",
+    });
+    const [link] = getLinksByCategoryId(db, userId, categoryId);
+    expect(link.url_alt).toBe("http://plex.remote");
+  });
+
+  it("updateLink can set url_alt", () => {
+    const link = createLink(db, userId, base);
+    const updated = updateLink(db, userId, link.id, {
+      url_alt: "http://plex.remote",
+    });
+    expect(updated?.url_alt).toBe("http://plex.remote");
+  });
+
+  it("updateLink can clear url_alt to null", () => {
+    const link = createLink(db, userId, {
+      ...base,
+      url_alt: "http://plex.remote",
+    });
+    const updated = updateLink(db, userId, link.id, { url_alt: null });
+    expect(updated?.url_alt).toBeNull();
+  });
+});

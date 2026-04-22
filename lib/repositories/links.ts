@@ -7,15 +7,16 @@ export function createLink(
   input: CreateLinkInput,
 ): Link {
   const stmt = db.prepare(`
-    INSERT INTO links (user_id, category_id, name, url, icon_type, icon_value, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    RETURNING id, category_id, name, url, icon_type, icon_value, sort_order
+    INSERT INTO links (user_id, category_id, name, url, url_alt, icon_type, icon_value, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    RETURNING id, category_id, name, url, url_alt, icon_type, icon_value, sort_order
   `);
   return stmt.get(
     userId,
     input.category_id ?? null,
     input.name,
     input.url,
+    input.url_alt ?? null,
     input.icon_type,
     input.icon_value ?? null,
     input.sort_order ?? 0,
@@ -29,7 +30,7 @@ export function getLinksByCategoryId(
 ): Link[] {
   return db
     .prepare(
-      "SELECT id, category_id, name, url, icon_type, icon_value, sort_order FROM links WHERE user_id = ? AND category_id = ? ORDER BY sort_order ASC, id ASC",
+      "SELECT id, category_id, name, url, url_alt, icon_type, icon_value, sort_order FROM links WHERE user_id = ? AND category_id = ? ORDER BY sort_order ASC, id ASC",
     )
     .all(userId, categoryId) as Link[];
 }
@@ -37,7 +38,7 @@ export function getLinksByCategoryId(
 export function getAllLinks(db: Database.Database, userId: number): Link[] {
   return db
     .prepare(
-      "SELECT id, category_id, name, url, icon_type, icon_value, sort_order FROM links WHERE user_id = ? ORDER BY sort_order ASC, id ASC",
+      "SELECT id, category_id, name, url, url_alt, icon_type, icon_value, sort_order FROM links WHERE user_id = ? ORDER BY sort_order ASC, id ASC",
     )
     .all(userId) as Link[];
 }
@@ -49,7 +50,7 @@ export function getLinkById(
 ): Link | undefined {
   return db
     .prepare(
-      "SELECT id, category_id, name, url, icon_type, icon_value, sort_order FROM links WHERE id = ? AND user_id = ?",
+      "SELECT id, category_id, name, url, url_alt, icon_type, icon_value, sort_order FROM links WHERE id = ? AND user_id = ?",
     )
     .get(id, userId) as Link | undefined;
 }
@@ -67,13 +68,14 @@ export function updateLink(
   db.prepare(
     `
     UPDATE links
-    SET category_id = ?, name = ?, url = ?, icon_type = ?, icon_value = ?, sort_order = ?
+    SET category_id = ?, name = ?, url = ?, url_alt = ?, icon_type = ?, icon_value = ?, sort_order = ?
     WHERE id = ? AND user_id = ?
   `,
   ).run(
     updated.category_id ?? null,
     updated.name,
     updated.url,
+    updated.url_alt ?? null,
     updated.icon_type,
     updated.icon_value ?? null,
     updated.sort_order,
