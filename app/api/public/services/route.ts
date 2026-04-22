@@ -3,5 +3,5 @@ import { getDb } from "@/lib/db";
 import { handleGetServices } from "./handler";
 
 export async function GET() {
-  return NextResponse.json(await handleGetServices(getDb()));
+  return NextResponse.json(handleGetServices(getDb()));
 }
