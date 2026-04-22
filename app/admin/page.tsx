@@ -306,8 +306,13 @@ export default function AdminPage() {
   );
   const allUrls = useMemo(
     () => [
-      ...categories.flatMap((c) => c.links.map((l) => l.url)),
-      ...uncategorized.map((l) => l.url),
+      ...categories.flatMap((c) =>
+        c.links.flatMap((l) => [l.url, ...(l.url_alt ? [l.url_alt] : [])]),
+      ),
+      ...uncategorized.flatMap((l) => [
+        l.url,
+        ...(l.url_alt ? [l.url_alt] : []),
+      ]),
     ],
     [categories, uncategorized],
   );

@@ -37,8 +37,10 @@ export default async function DashboardPage() {
   const searchShortcut = getSearchShortcut(db, userId);
 
   const allUrls = [
-    ...categories.flatMap((c) => c.links.map((l) => l.url)),
-    ...uncategorized.map((l) => l.url),
+    ...categories.flatMap((c) =>
+      c.links.flatMap((l) => [l.url, ...(l.url_alt ? [l.url_alt] : [])]),
+    ),
+    ...uncategorized.flatMap((l) => [l.url, ...(l.url_alt ? [l.url_alt] : [])]),
   ];
 
   const hasContent =
@@ -99,12 +101,12 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-screen retro:bg-retro-bg">
-      <DashboardHeader
-        user={user ?? null}
-        searchLinks={searchLinks}
-        shortcut={searchShortcut}
-      />
       <HealthCheckProvider urls={allUrls} intervalMs={intervalMs}>
+        <DashboardHeader
+          user={user ?? null}
+          searchLinks={searchLinks}
+          shortcut={searchShortcut}
+        />
         {content}
       </HealthCheckProvider>
     </main>
