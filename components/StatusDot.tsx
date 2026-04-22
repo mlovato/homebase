@@ -26,7 +26,7 @@ export function StatusDot({ url, showAlt = false }: StatusDotProps) {
       role="status"
       aria-label={LABELS[status]}
       title={LABELS[status]}
-      className={`w-2.5 h-2.5 rounded-full ${COLORS[status]} ring-2 ring-white dark:ring-gray-800 retro:ring-retro-surface`}
+      className={`inline-block w-2.5 h-2.5 rounded-full ${COLORS[status]} ring-2 ring-white dark:ring-gray-800 retro:ring-retro-surface`}
     />
   );
 

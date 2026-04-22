@@ -46,6 +46,17 @@ describe("StatusDot", () => {
   });
 });
 
+describe("dot sizing", () => {
+  it("renders dot span as inline-block so width and height apply", () => {
+    render(
+      <HealthCheckContext.Provider value={{ "http://plex.local": "up" }}>
+        <StatusDot url="http://plex.local" />
+      </HealthCheckContext.Provider>,
+    );
+    expect(screen.getByRole("status")).toHaveClass("inline-block");
+  });
+});
+
 describe("showAlt prop", () => {
   it("does not render alt pill by default", () => {
     render(
