@@ -30,7 +30,7 @@ describe("AdminLinkForm", () => {
       />,
     );
     expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/url/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^url$/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/category/i)).toBeInTheDocument();
   });
 
@@ -46,7 +46,7 @@ describe("AdminLinkForm", () => {
 
     await userEvent.type(screen.getByLabelText(/name/i), "Plex");
     await userEvent.type(
-      screen.getByLabelText(/url/i),
+      screen.getByLabelText(/^url$/i),
       "http://localhost:32400",
     );
     fireEvent.click(screen.getByRole("button", { name: /create|save/i }));
@@ -162,7 +162,7 @@ describe("AdminLinkForm", () => {
       />,
     );
     await userEvent.type(screen.getByLabelText(/name/i), "Google");
-    await userEvent.type(screen.getByLabelText(/url/i), "www.google.com");
+    await userEvent.type(screen.getByLabelText(/^url$/i), "www.google.com");
     fireEvent.click(screen.getByRole("button", { name: /create|save/i }));
 
     expect(onSubmit).toHaveBeenCalledWith(
@@ -181,7 +181,7 @@ describe("AdminLinkForm", () => {
     );
     await userEvent.type(screen.getByLabelText(/name/i), "Plex");
     await userEvent.type(
-      screen.getByLabelText(/url/i),
+      screen.getByLabelText(/^url$/i),
       "http://localhost:32400",
     );
     fireEvent.click(screen.getByRole("button", { name: /create|save/i }));
@@ -201,7 +201,7 @@ describe("AdminLinkForm", () => {
       />,
     );
     await userEvent.type(screen.getByLabelText(/name/i), "Bad Link");
-    await userEvent.type(screen.getByLabelText(/url/i), "not a url");
+    await userEvent.type(screen.getByLabelText(/^url$/i), "not a url");
     fireEvent.click(screen.getByRole("button", { name: /create|save/i }));
 
     expect(onSubmit).not.toHaveBeenCalled();
@@ -218,7 +218,7 @@ describe("AdminLinkForm", () => {
       />,
     );
     await userEvent.type(screen.getByLabelText(/name/i), "Bibbo");
-    await userEvent.type(screen.getByLabelText(/url/i), "bibbo");
+    await userEvent.type(screen.getByLabelText(/^url$/i), "bibbo");
     fireEvent.click(screen.getByRole("button", { name: /create|save/i }));
 
     expect(onSubmit).not.toHaveBeenCalled();
@@ -236,7 +236,7 @@ describe("AdminLinkForm", () => {
     );
     await userEvent.type(screen.getByLabelText(/name/i), "Local");
     await userEvent.type(
-      screen.getByLabelText(/url/i),
+      screen.getByLabelText(/^url$/i),
       "http://localhost:3000",
     );
     fireEvent.click(screen.getByRole("button", { name: /create|save/i }));
@@ -254,7 +254,7 @@ describe("AdminLinkForm", () => {
         categories={categories}
       />,
     );
-    const urlInput = screen.getByLabelText(/url/i);
+    const urlInput = screen.getByLabelText(/^url$/i);
     await userEvent.type(urlInput, "bibbo");
     fireEvent.blur(urlInput);
 
@@ -269,7 +269,7 @@ describe("AdminLinkForm", () => {
         categories={categories}
       />,
     );
-    const urlInput = screen.getByLabelText(/url/i);
+    const urlInput = screen.getByLabelText(/^url$/i);
     await userEvent.type(urlInput, "www.google.com");
     fireEvent.blur(urlInput);
 
@@ -287,5 +287,97 @@ describe("AdminLinkForm", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: /create|save/i }));
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+});
+
+describe("Alternative URL field", () => {
+  it("renders the Alternative URL input", () => {
+    render(
+      <AdminLinkForm
+        onSubmit={jest.fn()}
+        onCancel={jest.fn()}
+        categories={categories}
+      />,
+    );
+    expect(screen.getByLabelText(/alternative url/i)).toBeInTheDocument();
+  });
+
+  it("calls onSubmit with url_alt: null when Alternative URL is empty", async () => {
+    const onSubmit = jest.fn();
+    render(
+      <AdminLinkForm
+        onSubmit={onSubmit}
+        onCancel={jest.fn()}
+        categories={categories}
+      />,
+    );
+    await userEvent.type(screen.getByLabelText(/^name$/i), "Plex");
+    await userEvent.type(screen.getByLabelText(/^url$/i), "http://plex.local");
+    fireEvent.click(screen.getByRole("button", { name: /create/i }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ url_alt: null }),
+    );
+  });
+
+  it("calls onSubmit with url_alt when Alternative URL is filled", async () => {
+    const onSubmit = jest.fn();
+    render(
+      <AdminLinkForm
+        onSubmit={onSubmit}
+        onCancel={jest.fn()}
+        categories={categories}
+      />,
+    );
+    await userEvent.type(screen.getByLabelText(/^name$/i), "Plex");
+    await userEvent.type(screen.getByLabelText(/^url$/i), "http://plex.local");
+    await userEvent.type(
+      screen.getByLabelText(/alternative url/i),
+      "plex.remote",
+    );
+    fireEvent.click(screen.getByRole("button", { name: /create/i }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ url_alt: "https://plex.remote" }),
+    );
+  });
+
+  it("shows error and does not submit when Alternative URL is invalid", async () => {
+    const onSubmit = jest.fn();
+    render(
+      <AdminLinkForm
+        onSubmit={onSubmit}
+        onCancel={jest.fn()}
+        categories={categories}
+      />,
+    );
+    await userEvent.type(screen.getByLabelText(/^name$/i), "Plex");
+    await userEvent.type(screen.getByLabelText(/^url$/i), "http://plex.local");
+    await userEvent.type(
+      screen.getByLabelText(/alternative url/i),
+      "not-a-url!!",
+    );
+    fireEvent.click(screen.getByRole("button", { name: /create/i }));
+    expect(
+      await screen.findByText(/please enter a valid url/i),
+    ).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("pre-fills url_alt in edit mode", () => {
+    render(
+      <AdminLinkForm
+        onSubmit={jest.fn()}
+        onCancel={jest.fn()}
+        categories={categories}
+        initialValues={{
+          name: "Plex",
+          url: "http://plex.local",
+          url_alt: "http://plex.remote",
+          icon_type: "builtin",
+          icon_value: null,
+          category_id: null,
+        }}
+      />,
+    );
+    expect(screen.getByDisplayValue("http://plex.remote")).toBeInTheDocument();
   });
 });

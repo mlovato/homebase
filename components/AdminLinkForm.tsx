@@ -7,6 +7,7 @@ import type { Category, IconType } from "@/lib/types";
 interface InitialValues {
   name: string;
   url: string;
+  url_alt?: string | null;
   icon_type: IconType;
   icon_value: string | null;
   category_id: number | null;
@@ -18,6 +19,7 @@ interface AdminLinkFormProps {
   onSubmit: (data: {
     name: string;
     url: string;
+    url_alt: string | null;
     icon_type: IconType;
     icon_value: string | null;
     category_id: number | null;
@@ -34,6 +36,7 @@ export function AdminLinkForm({
   const isEdit = !!initialValues?.name;
   const [name, setName] = useState(initialValues?.name ?? "");
   const [url, setUrl] = useState(initialValues?.url ?? "");
+  const [urlAlt, setUrlAlt] = useState(initialValues?.url_alt ?? "");
   const [categoryId, setCategoryId] = useState<number | null>(
     initialValues?.category_id ?? null,
   );
@@ -42,6 +45,7 @@ export function AdminLinkForm({
     icon_value: initialValues?.icon_value ?? null,
   });
   const [urlError, setUrlError] = useState("");
+  const [urlAltError, setUrlAltError] = useState("");
 
   const URL_ERROR = "Please enter a valid URL";
 
@@ -69,15 +73,24 @@ export function AdminLinkForm({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setUrlError("");
+    setUrlAltError("");
     if (!name.trim() || !url.trim()) return;
     const error = validateUrl(url);
     if (error) {
       setUrlError(error);
       return;
     }
+    if (urlAlt.trim()) {
+      const altError = validateUrl(urlAlt);
+      if (altError) {
+        setUrlAltError(altError);
+        return;
+      }
+    }
     onSubmit({
       name: name.trim(),
       url: normalizeUrl(url),
+      url_alt: urlAlt.trim() ? normalizeUrl(urlAlt) : null,
       ...icon,
       category_id: categoryId,
     });
@@ -129,6 +142,40 @@ export function AdminLinkForm({
         />
         {urlError && (
           <p className="text-sm text-red-500 dark:text-red-400">{urlError}</p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor="link-url-alt"
+          className="text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          Alternative URL{" "}
+          <span className="font-normal text-xs text-gray-400 dark:text-gray-500">
+            optional
+          </span>
+        </label>
+        <input
+          id="link-url-alt"
+          type="text"
+          value={urlAlt}
+          onChange={(e) => {
+            setUrlAlt(e.target.value);
+            if (urlAltError) setUrlAltError("");
+          }}
+          onBlur={() => {
+            if (urlAlt.trim()) {
+              const error = validateUrl(urlAlt);
+              if (error) setUrlAltError(error);
+            }
+          }}
+          placeholder="http://192.168.1.10:32400"
+          className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+        {urlAltError && (
+          <p className="text-sm text-red-500 dark:text-red-400">
+            {urlAltError}
+          </p>
         )}
       </div>
 
