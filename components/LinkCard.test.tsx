@@ -136,3 +136,64 @@ describe("LinkCard", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 });
+
+describe("url_alt resolution", () => {
+  const altLink: Link = { ...baseLink, url_alt: "http://plex.remote" };
+
+  it("uses primary url when primary is up", () => {
+    render(
+      <HealthCheckContext.Provider value={{ [baseLink.url]: "up" }}>
+        <LinkCard link={altLink} />
+      </HealthCheckContext.Provider>,
+    );
+    expect(screen.getByRole("link")).toHaveAttribute("href", baseLink.url);
+  });
+
+  it("uses primary url when status is unknown", () => {
+    render(
+      <HealthCheckContext.Provider value={{}}>
+        <LinkCard link={altLink} />
+      </HealthCheckContext.Provider>,
+    );
+    expect(screen.getByRole("link")).toHaveAttribute("href", baseLink.url);
+  });
+
+  it("uses alt url when primary is down and url_alt is set", () => {
+    render(
+      <HealthCheckContext.Provider value={{ [baseLink.url]: "down" }}>
+        <LinkCard link={altLink} intervalMs={10000} />
+      </HealthCheckContext.Provider>,
+    );
+    expect(screen.getByRole("link")).toHaveAttribute(
+      "href",
+      "http://plex.remote",
+    );
+  });
+
+  it("uses primary url when primary is down but url_alt is null", () => {
+    render(
+      <HealthCheckContext.Provider value={{ [baseLink.url]: "down" }}>
+        <LinkCard link={baseLink} intervalMs={10000} />
+      </HealthCheckContext.Provider>,
+    );
+    expect(screen.getByRole("link")).toHaveAttribute("href", baseLink.url);
+  });
+
+  it("shows alt pill when using alt url", () => {
+    render(
+      <HealthCheckContext.Provider value={{ [baseLink.url]: "down" }}>
+        <LinkCard link={altLink} intervalMs={10000} />
+      </HealthCheckContext.Provider>,
+    );
+    expect(screen.getByLabelText(/alternative url/i)).toBeInTheDocument();
+  });
+
+  it("does not show alt pill when using primary url", () => {
+    render(
+      <HealthCheckContext.Provider value={{ [baseLink.url]: "up" }}>
+        <LinkCard link={altLink} intervalMs={10000} />
+      </HealthCheckContext.Provider>,
+    );
+    expect(screen.queryByLabelText(/alternative url/i)).not.toBeInTheDocument();
+  });
+});

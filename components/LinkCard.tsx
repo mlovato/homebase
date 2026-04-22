@@ -1,6 +1,7 @@
 "use client";
 
 import type { Link } from "@/lib/types";
+import { useHealthStatus } from "./HealthCheckContext";
 import { StatusDot } from "./StatusDot";
 import { LinkIcon } from "./LinkIcon";
 
@@ -11,15 +12,19 @@ interface LinkCardProps {
 }
 
 export function LinkCard({ link, tooltip = true, intervalMs }: LinkCardProps) {
+  const primaryStatus = useHealthStatus(link.url);
+  const showAlt = primaryStatus === "down" && link.url_alt != null;
+  const resolvedUrl = showAlt ? link.url_alt! : link.url;
+
   return (
     <a
-      href={link.url}
+      href={resolvedUrl}
       target="_blank"
       rel="noopener noreferrer"
       title={tooltip ? link.name : undefined}
       className="relative flex flex-col items-center justify-center gap-2 md:gap-3 p-4 md:p-5 rounded-2xl bg-white dark:bg-gray-800 retro:bg-retro-surface retro:rounded-none retro:border retro:border-retro-dim retro:shadow-none retro:hover:border-retro-green shadow hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group h-28 md:h-32 w-full"
     >
-      {intervalMs != null && <StatusDot url={link.url} />}
+      {intervalMs != null && <StatusDot url={resolvedUrl} showAlt={showAlt} />}
       <LinkIcon
         name={link.name}
         iconType={link.icon_type}
