@@ -37,6 +37,7 @@ export function StatusDot({ url, showAlt = false }: StatusDotProps) {
   return (
     <span className="absolute top-2 right-2 flex items-center gap-1">
       <span
+        role="img"
         aria-label="using alternative URL"
         className="text-[7px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 retro:text-retro-dim leading-none"
       >
