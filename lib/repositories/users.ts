@@ -88,3 +88,11 @@ export function deleteUser(db: Database.Database, id: number): boolean {
   const result = db.prepare("DELETE FROM users WHERE id = ?").run(id);
   return result.changes > 0;
 }
+
+export function getAdminUser(db: Database.Database): User | undefined {
+  return db
+    .prepare(
+      "SELECT id, email, role, avatar, created_at FROM users WHERE role = 'admin' ORDER BY id ASC LIMIT 1",
+    )
+    .get() as User | undefined;
+}

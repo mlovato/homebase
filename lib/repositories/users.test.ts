@@ -9,6 +9,7 @@ import {
   getAllUsers,
   updateUser,
   deleteUser,
+  getAdminUser,
 } from "./users";
 import type Database from "better-sqlite3";
 
@@ -157,5 +158,44 @@ describe("deleteUser", () => {
 
   it("returns false for unknown id", () => {
     expect(deleteUser(db, 999)).toBe(false);
+  });
+});
+
+describe("getAdminUser", () => {
+  it("returns the admin user when one exists", () => {
+    createUser(db, { email: "user@test.com", password_hash: "hash" });
+    createUser(db, {
+      email: "admin@test.com",
+      password_hash: "hash",
+      role: "admin",
+    });
+    const admin = getAdminUser(db);
+    expect(admin).toBeDefined();
+    expect(admin!.role).toBe("admin");
+    expect(admin!.email).toBe("admin@test.com");
+  });
+
+  it("returns the first admin when multiple admins exist", () => {
+    createUser(db, {
+      email: "a1@test.com",
+      password_hash: "hash",
+      role: "admin",
+    });
+    createUser(db, {
+      email: "a2@test.com",
+      password_hash: "hash",
+      role: "admin",
+    });
+    const admin = getAdminUser(db);
+    expect(admin!.email).toBe("a1@test.com");
+  });
+
+  it("returns undefined when no admin exists", () => {
+    createUser(db, { email: "user@test.com", password_hash: "hash" });
+    expect(getAdminUser(db)).toBeUndefined();
+  });
+
+  it("returns undefined when no users exist", () => {
+    expect(getAdminUser(db)).toBeUndefined();
   });
 });
