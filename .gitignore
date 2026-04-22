@@ -50,3 +50,6 @@ next-env.d.ts
 # uploaded icons
 /public/uploads/*
 !/public/uploads/.gitkeep
+
+# git worktrees
+.worktrees/
