@@ -27,6 +27,7 @@ const SCHEMA = `
     category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
     name TEXT NOT NULL,
     url TEXT NOT NULL,
+    url_alt TEXT,
     icon_type TEXT NOT NULL CHECK(icon_type IN ('builtin','upload','url')),
     icon_value TEXT,
     sort_order INTEGER DEFAULT 0
@@ -90,6 +91,8 @@ export async function runMigrations(
   if (!hasColumn(db, "users", "avatar")) {
     db.exec("ALTER TABLE users ADD COLUMN avatar TEXT");
   }
+
+  migrateAddUrlAlt(db);
 }
 
 function hasColumn(
@@ -116,6 +119,11 @@ function migrateAddUserId(db: Database.Database, table: string): void {
   db.prepare(`UPDATE ${table} SET user_id = ? WHERE user_id IS NULL`).run(
     adminUser.id,
   );
+}
+
+function migrateAddUrlAlt(db: Database.Database): void {
+  if (hasColumn(db, "links", "url_alt")) return;
+  db.exec("ALTER TABLE links ADD COLUMN url_alt TEXT");
 }
 
 function migrateSettings(db: Database.Database): void {

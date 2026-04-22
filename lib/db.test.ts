@@ -5,7 +5,47 @@ import { createTestDb } from "@/lib/db";
 import { runMigrations } from "@/lib/db";
 import { getUserByEmail } from "@/lib/repositories/users";
 import { verifyHashedPassword } from "@/lib/password";
-import type Database from "better-sqlite3";
+import Database from "better-sqlite3";
+
+function createDbWithoutUrlAlt(): Database.Database {
+  const legacy = new Database(":memory:");
+  legacy.pragma("journal_mode = WAL");
+  legacy.pragma("foreign_keys = OFF");
+  legacy.exec(`
+    CREATE TABLE users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'user',
+      avatar TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0
+    );
+    CREATE TABLE links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      category_id INTEGER,
+      name TEXT NOT NULL,
+      url TEXT NOT NULL,
+      icon_type TEXT NOT NULL CHECK(icon_type IN ('builtin','upload','url')),
+      icon_value TEXT,
+      sort_order INTEGER DEFAULT 0
+    );
+    CREATE TABLE settings (
+      user_id INTEGER NOT NULL,
+      key TEXT NOT NULL,
+      value TEXT NOT NULL,
+      PRIMARY KEY (user_id, key)
+    );
+  `);
+  legacy.pragma("foreign_keys = ON");
+  return legacy;
+}
 
 let db: Database.Database;
 
@@ -80,5 +120,24 @@ describe("runMigrations", () => {
       c: number;
     };
     expect(count.c).toBe(1);
+  });
+
+  it("adds url_alt column to links when missing", async () => {
+    const legacy = createDbWithoutUrlAlt();
+    const cols = legacy.pragma("table_info(links)") as { name: string }[];
+    expect(cols.map((c) => c.name)).not.toContain("url_alt");
+
+    await runMigrations(legacy);
+
+    const colsAfter = legacy.pragma("table_info(links)") as { name: string }[];
+    expect(colsAfter.map((c) => c.name)).toContain("url_alt");
+    legacy.close();
+  });
+
+  it("migrateAddUrlAlt is idempotent — running twice does not throw", async () => {
+    const legacy = createDbWithoutUrlAlt();
+    await runMigrations(legacy);
+    await expect(runMigrations(legacy)).resolves.not.toThrow();
+    legacy.close();
   });
 });
