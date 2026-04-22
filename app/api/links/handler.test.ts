@@ -138,3 +138,59 @@ describe("handleDeleteLink", () => {
     expect(result.status).toBe(404);
   });
 });
+
+describe("url_alt", () => {
+  const validBody = {
+    name: "Plex",
+    url: "http://plex.local",
+    icon_type: "builtin" as const,
+  };
+
+  it("handleCreateLink includes url_alt in response when provided", () => {
+    const result = handleCreateLink(db, userId, {
+      ...validBody,
+      url_alt: "http://plex.remote",
+    });
+    expect(result.status).toBe(201);
+    expect((result as { data: { url_alt: string } }).data.url_alt).toBe(
+      "http://plex.remote",
+    );
+  });
+
+  it("handleCreateLink sets url_alt to null when not provided", () => {
+    const result = handleCreateLink(db, userId, validBody);
+    expect(result.status).toBe(201);
+    expect((result as { data: { url_alt: null } }).data.url_alt).toBeNull();
+  });
+
+  it("handleUpdateLink can set url_alt", () => {
+    const link = createLink(db, userId, { ...validBody, icon_type: "builtin" });
+    const result = handleUpdateLink(db, userId, link.id, {
+      url_alt: "http://plex.remote",
+    });
+    expect(result.status).toBe(200);
+    expect((result as { data: { url_alt: string } }).data.url_alt).toBe(
+      "http://plex.remote",
+    );
+  });
+
+  it("handleUpdateLink can clear url_alt to null", () => {
+    const link = createLink(db, userId, {
+      ...validBody,
+      icon_type: "builtin",
+      url_alt: "http://plex.remote",
+    });
+    const result = handleUpdateLink(db, userId, link.id, { url_alt: null });
+    expect((result as { data: { url_alt: null } }).data.url_alt).toBeNull();
+  });
+
+  it("handleGetLinks includes url_alt in each link", () => {
+    createLink(db, userId, {
+      ...validBody,
+      icon_type: "builtin",
+      url_alt: "http://plex.remote",
+    });
+    const links = handleGetLinks(db, userId) as { url_alt: string }[];
+    expect(links[0].url_alt).toBe("http://plex.remote");
+  });
+});

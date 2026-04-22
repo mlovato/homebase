@@ -27,6 +27,10 @@ export function handleCreateLink(
     category_id: body.category_id ?? null,
     name: body.name.trim(),
     url: body.url.trim(),
+    url_alt:
+      typeof body.url_alt === "string" && body.url_alt.trim()
+        ? body.url_alt.trim()
+        : null,
     icon_type: body.icon_type,
     icon_value: body.icon_value ?? null,
     sort_order: body.sort_order ?? 0,
