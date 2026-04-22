@@ -74,7 +74,7 @@ export function getCategoriesWithLinks(
   const categories = getCategories(db, userId);
   const links = db
     .prepare(
-      "SELECT id, category_id, name, url, icon_type, icon_value, sort_order FROM links WHERE user_id = ? ORDER BY sort_order ASC, id ASC",
+      "SELECT id, category_id, name, url, url_alt, icon_type, icon_value, sort_order FROM links WHERE user_id = ? ORDER BY sort_order ASC, id ASC",
     )
     .all(userId) as import("@/lib/types").Link[];
 
@@ -90,7 +90,7 @@ export function getUncategorizedLinks(
 ): import("@/lib/types").Link[] {
   return db
     .prepare(
-      "SELECT id, category_id, name, url, icon_type, icon_value, sort_order FROM links WHERE user_id = ? AND category_id IS NULL ORDER BY sort_order ASC, id ASC",
+      "SELECT id, category_id, name, url, url_alt, icon_type, icon_value, sort_order FROM links WHERE user_id = ? AND category_id IS NULL ORDER BY sort_order ASC, id ASC",
     )
     .all(userId) as import("@/lib/types").Link[];
 }
