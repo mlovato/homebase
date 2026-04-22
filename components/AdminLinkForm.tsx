@@ -80,12 +80,10 @@ export function AdminLinkForm({
       setUrlError(error);
       return;
     }
-    if (urlAlt.trim()) {
-      const altError = validateUrl(urlAlt);
-      if (altError) {
-        setUrlAltError(altError);
-        return;
-      }
+    const altError = validateUrl(urlAlt);
+    if (altError) {
+      setUrlAltError(altError);
+      return;
     }
     onSubmit({
       name: name.trim(),
