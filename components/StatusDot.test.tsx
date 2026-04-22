@@ -45,3 +45,43 @@ describe("StatusDot", () => {
     );
   });
 });
+
+describe("showAlt prop", () => {
+  it("does not render alt pill by default", () => {
+    render(
+      <HealthCheckContext.Provider value={{ "http://plex.local": "up" }}>
+        <StatusDot url="http://plex.local" />
+      </HealthCheckContext.Provider>,
+    );
+    expect(screen.queryByLabelText(/alternative url/i)).not.toBeInTheDocument();
+  });
+
+  it("renders alt pill when showAlt is true", () => {
+    render(
+      <HealthCheckContext.Provider value={{ "http://alt.local": "up" }}>
+        <StatusDot url="http://alt.local" showAlt />
+      </HealthCheckContext.Provider>,
+    );
+    expect(screen.getByLabelText(/alternative url/i)).toBeInTheDocument();
+  });
+
+  it("shows green dot alongside alt pill when alt url is up", () => {
+    render(
+      <HealthCheckContext.Provider value={{ "http://alt.local": "up" }}>
+        <StatusDot url="http://alt.local" showAlt />
+      </HealthCheckContext.Provider>,
+    );
+    expect(screen.getByRole("status")).toHaveAttribute("aria-label", "online");
+    expect(screen.getByLabelText(/alternative url/i)).toBeInTheDocument();
+  });
+
+  it("shows red dot alongside alt pill when alt url is down", () => {
+    render(
+      <HealthCheckContext.Provider value={{ "http://alt.local": "down" }}>
+        <StatusDot url="http://alt.local" showAlt />
+      </HealthCheckContext.Provider>,
+    );
+    expect(screen.getByRole("status")).toHaveAttribute("aria-label", "offline");
+    expect(screen.getByLabelText(/alternative url/i)).toBeInTheDocument();
+  });
+});
