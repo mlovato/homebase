@@ -7,6 +7,7 @@ const customConfig: Config = {
   coverageProvider: "v8",
   testEnvironment: "jsdom",
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
+  testPathIgnorePatterns: ["/node_modules/", "/.worktrees/"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
   },
