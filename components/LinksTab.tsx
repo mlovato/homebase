@@ -248,6 +248,7 @@ export function LinksTab({
                   initialValues={{
                     name: modal.link.name,
                     url: modal.link.url,
+                    url_alt: modal.link.url_alt,
                     icon_type: modal.link.icon_type,
                     icon_value: modal.link.icon_value,
                     category_id: modal.link.category_id,
