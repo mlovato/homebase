@@ -1,9 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+  useContext,
+} from "react";
 import type { SearchLink, SearchShortcut } from "@/lib/types";
 import { parseShortcut } from "@/lib/types";
 import { LinkIcon } from "./LinkIcon";
+import { HealthCheckContext } from "./HealthCheckContext";
 
 interface SearchModalProps {
   links: SearchLink[];
@@ -42,9 +50,16 @@ export function SearchModal({
     },
     [onOpenChange],
   );
+  const statusMap = useContext(HealthCheckContext);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  function resolveUrl(link: SearchLink): string {
+    return statusMap[link.url] === "down" && link.url_alt != null
+      ? link.url_alt
+      : link.url;
+  }
 
   const filtered = useMemo(
     () =>
@@ -91,7 +106,11 @@ export function SearchModal({
       e.preventDefault();
       setSelectedIndex((i) => (i - 1 + count) % count);
     } else if (e.key === "Enter" && filtered[selectedIndex]) {
-      window.open(filtered[selectedIndex].url, "_blank", "noopener,noreferrer");
+      window.open(
+        resolveUrl(filtered[selectedIndex]),
+        "_blank",
+        "noopener,noreferrer",
+      );
       close();
     }
   }
@@ -163,7 +182,7 @@ export function SearchModal({
               <a
                 role="option"
                 aria-selected={i === selectedIndex}
-                href={link.url}
+                href={resolveUrl(link)}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={close}

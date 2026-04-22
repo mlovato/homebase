@@ -5,6 +5,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SearchModal } from "./SearchModal";
+import { HealthCheckContext } from "./HealthCheckContext";
 
 const links = [
   {
@@ -170,5 +171,56 @@ describe("SearchModal", () => {
     render(<SearchModal links={links} shortcut="mod+/" />);
     open("mod+/");
     expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+});
+
+describe("url_alt resolution", () => {
+  const altLinks = [
+    {
+      id: 1,
+      name: "Grafana",
+      url: "http://grafana.local",
+      url_alt: "http://grafana.remote",
+      icon_type: "builtin" as const,
+      icon_value: "grafana",
+    },
+  ];
+
+  it("uses alt url in anchor href when primary is down", () => {
+    render(
+      <HealthCheckContext.Provider value={{ "http://grafana.local": "down" }}>
+        <SearchModal links={altLinks} shortcut="mod+k" />
+      </HealthCheckContext.Provider>,
+    );
+    open();
+    const anchor = screen.getByRole("option");
+    expect(anchor).toHaveAttribute("href", "http://grafana.remote");
+  });
+
+  it("uses primary url in anchor href when primary is up", () => {
+    render(
+      <HealthCheckContext.Provider value={{ "http://grafana.local": "up" }}>
+        <SearchModal links={altLinks} shortcut="mod+k" />
+      </HealthCheckContext.Provider>,
+    );
+    open();
+    const anchor = screen.getByRole("option");
+    expect(anchor).toHaveAttribute("href", "http://grafana.local");
+  });
+
+  it("uses primary url when url_alt is null even if primary is down", () => {
+    render(
+      <HealthCheckContext.Provider value={{ "http://grafana.local": "down" }}>
+        <SearchModal
+          links={[{ ...altLinks[0], url_alt: null }]}
+          shortcut="mod+k"
+        />
+      </HealthCheckContext.Provider>,
+    );
+    open();
+    expect(screen.getByRole("option")).toHaveAttribute(
+      "href",
+      "http://grafana.local",
+    );
   });
 });
