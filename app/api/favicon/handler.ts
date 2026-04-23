@@ -42,7 +42,7 @@ export async function resolveFavicon(
       }
     }
   } catch {
-    return null;
+    // fall through to /favicon.ico fallback
   }
 
   try {

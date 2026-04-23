@@ -152,7 +152,24 @@ describe("LinkIcon", () => {
       );
     });
 
-    it("falls back to letter avatar when favicon also fails", () => {
+    it("tries direct favicon.ico when server proxy fails", () => {
+      render(
+        <LinkIcon
+          name="OpsPilot"
+          iconType="builtin"
+          iconValue={null}
+          size="lg"
+          url="http://opspilot.local:8080"
+        />,
+      );
+      fireEvent.error(screen.getByRole("img")); // proxy fails
+      expect(screen.getByRole("img", { name: "OpsPilot" })).toHaveAttribute(
+        "src",
+        "http://opspilot.local:8080/favicon.ico",
+      );
+    });
+
+    it("falls back to letter avatar when both proxy and direct favicon fail", () => {
       render(
         <LinkIcon
           name="Plex"
@@ -162,7 +179,8 @@ describe("LinkIcon", () => {
           url="http://localhost:32400"
         />,
       );
-      fireEvent.error(screen.getByRole("img"));
+      fireEvent.error(screen.getByRole("img")); // proxy fails → direct
+      fireEvent.error(screen.getByRole("img")); // direct fails → avatar
       expect(screen.queryByRole("img")).not.toBeInTheDocument();
       expect(screen.getByText("P")).toBeInTheDocument();
     });

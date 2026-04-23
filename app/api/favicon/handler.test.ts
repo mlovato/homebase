@@ -94,6 +94,16 @@ describe("resolveFavicon", () => {
     expect(result).toBeNull();
   });
 
+  it("falls back to /favicon.ico when page fetch throws a network error", async () => {
+    const throwingFetch = async (url: string) => {
+      if (url === "http://opspilot.local/favicon.ico")
+        return { ok: true, text: async () => "" };
+      throw new Error("ECONNREFUSED");
+    };
+    const result = await resolveFavicon("http://opspilot.local", throwingFetch);
+    expect(result).toBe("http://opspilot.local/favicon.ico");
+  });
+
   it("handles query params in favicon href", async () => {
     const html = `<link rel="icon" href="/icon.png?v=123">`;
     const result = await resolveFavicon(

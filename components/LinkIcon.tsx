@@ -17,10 +17,15 @@ interface LinkIconProps {
   url?: string;
 }
 
-function getFaviconUrl(url: string): string | null {
+function parseFaviconUrls(
+  url: string,
+): { proxy: string; direct: string } | null {
   try {
-    new URL(url);
-    return `/api/favicon?url=${encodeURIComponent(url)}`;
+    const { origin } = new URL(url);
+    return {
+      proxy: `/api/favicon?url=${encodeURIComponent(url)}`,
+      direct: `${origin}/favicon.ico`,
+    };
   } catch {
     return null;
   }
@@ -35,22 +40,38 @@ function FaviconFallback({
   name: string;
   size: "sm" | "lg";
 }) {
-  const [failed, setFailed] = useState(false);
-  const faviconUrl = url ? getFaviconUrl(url) : null;
+  const [step, setStep] = useState<"proxy" | "direct" | "avatar">("proxy");
+  const favicons = url ? parseFaviconUrls(url) : null;
 
-  if (!faviconUrl || failed) {
+  if (!favicons) {
     return <Avatar name={name} size={size} />;
   }
 
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={faviconUrl}
-      alt={name}
-      className={`${SIZE[size].img} object-contain shrink-0`}
-      onError={() => setFailed(true)}
-    />
-  );
+  if (step === "proxy") {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={favicons.proxy}
+        alt={name}
+        className={`${SIZE[size].img} object-contain shrink-0`}
+        onError={() => setStep("direct")}
+      />
+    );
+  }
+
+  if (step === "direct") {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={favicons.direct}
+        alt={name}
+        className={`${SIZE[size].img} object-contain shrink-0`}
+        onError={() => setStep("avatar")}
+      />
+    );
+  }
+
+  return <Avatar name={name} size={size} />;
 }
 
 function BuiltinIcon({

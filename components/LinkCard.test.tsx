@@ -82,7 +82,8 @@ describe("LinkCard", () => {
   it("falls back to letter avatar when favicon also fails", () => {
     const link: Link = { ...baseLink, icon_type: "builtin", icon_value: null };
     render(<LinkCard link={link} />);
-    fireEvent.error(screen.getByRole("img"));
+    fireEvent.error(screen.getByRole("img")); // proxy fails → direct
+    fireEvent.error(screen.getByRole("img")); // direct fails → avatar
     expect(screen.getByText("P")).toBeInTheDocument();
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
@@ -102,8 +103,10 @@ describe("LinkCard", () => {
       "src",
       "/api/favicon?url=http%3A%2F%2Flocalhost%3A32400",
     );
-    // Favicon fails → letter avatar
+    // Proxy favicon fails → direct favicon.ico
     fireEvent.error(favicon);
+    // Direct favicon fails → letter avatar
+    fireEvent.error(screen.getByRole("img", { name: "Plex" }));
     expect(screen.getByText("P")).toBeInTheDocument();
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
