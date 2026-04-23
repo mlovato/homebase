@@ -214,6 +214,39 @@ describe("HealthCheckProvider", () => {
     expect(checker).not.toHaveBeenCalled();
   });
 
+  it("updates each url independently as its check completes", async () => {
+    let resolveB!: (status: HealthStatus) => void;
+    const checker: Checker = jest.fn().mockImplementation((url: string) => {
+      if (url === "http://a.local")
+        return Promise.resolve("up" as HealthStatus);
+      return new Promise<HealthStatus>((res) => {
+        resolveB = res;
+      });
+    });
+
+    render(
+      <HealthCheckProvider
+        urls={["http://a.local", "http://b.local"]}
+        intervalMs={10000}
+        checker={checker}
+      >
+        <StatusConsumer url="http://a.local" />
+        <StatusConsumer url="http://b.local" />
+      </HealthCheckProvider>,
+    );
+
+    await act(async () => {});
+
+    const [statusA, statusB] = screen.getAllByTestId("status");
+    expect(statusA).toHaveTextContent("up");
+    expect(statusB).toHaveTextContent("unknown");
+
+    await act(async () => {
+      resolveB("down" as HealthStatus);
+    });
+    expect(statusB).toHaveTextContent("down");
+  });
+
   it("restarts health checks when tab becomes visible", async () => {
     const checker: Checker = jest.fn().mockResolvedValue("up" as HealthStatus);
     render(

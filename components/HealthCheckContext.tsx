@@ -72,20 +72,16 @@ export function HealthCheckProvider({
 
     const check = async () => {
       const id = ++cycleId;
-      const entries = await Promise.all(
-        urls.map(async (url) => [url, await checkerRef.current(url)] as const),
+      await Promise.all(
+        urls.map(async (url) => {
+          const status = await checkerRef.current(url);
+          if (id !== cycleId) return;
+          setStatuses((prev) =>
+            prev[url] === status ? prev : { ...prev, [url]: status },
+          );
+        }),
       );
       if (id !== cycleId) return;
-      const next = Object.fromEntries(entries) as StatusMap;
-      setStatuses((prev) => {
-        const keys = Object.keys(next);
-        if (
-          keys.length === Object.keys(prev).length &&
-          keys.every((k) => prev[k] === next[k])
-        )
-          return prev;
-        return next;
-      });
       timeoutId = setTimeout(check, intervalMs);
     };
 
