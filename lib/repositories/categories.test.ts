@@ -36,6 +36,27 @@ describe("createCategory", () => {
     const cat = createCategory(db, userId, { name: "Tools", sort_order: 5 });
     expect(cat.sort_order).toBe(5);
   });
+
+  it("appends new categories at the end when sort_order is not provided", () => {
+    createCategory(db, userId, { name: "First", sort_order: 5 });
+    createCategory(db, userId, { name: "Second", sort_order: 12 });
+
+    const appended = createCategory(db, userId, { name: "Third" });
+
+    expect(appended.sort_order).toBe(13);
+  });
+
+  it("scopes the next sort_order to the user", () => {
+    const userB = createUser(db, {
+      email: "b@test.com",
+      password_hash: "hash",
+    }).id;
+    createCategory(db, userB, { name: "Other user cat", sort_order: 99 });
+
+    const created = createCategory(db, userId, { name: "First for A" });
+
+    expect(created.sort_order).toBe(0);
+  });
 });
 
 describe("getCategories", () => {

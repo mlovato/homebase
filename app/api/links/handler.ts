@@ -33,7 +33,7 @@ export function handleCreateLink(
         : null,
     icon_type: body.icon_type,
     icon_value: body.icon_value ?? null,
-    sort_order: body.sort_order ?? 0,
+    sort_order: body.sort_order,
   });
   return { data: link, status: 201 };
 }

@@ -1,11 +1,34 @@
 import type Database from "better-sqlite3";
 import type { Link, CreateLinkInput, UpdateLinkInput } from "@/lib/types";
 
+function getNextSortOrder(
+  db: Database.Database,
+  userId: number,
+  categoryId: number | null,
+): number {
+  const row =
+    categoryId === null
+      ? db
+          .prepare(
+            "SELECT COALESCE(MAX(sort_order), -1) AS current_max FROM links WHERE user_id = ? AND category_id IS NULL",
+          )
+          .get(userId)
+      : db
+          .prepare(
+            "SELECT COALESCE(MAX(sort_order), -1) AS current_max FROM links WHERE user_id = ? AND category_id = ?",
+          )
+          .get(userId, categoryId);
+  return (row as { current_max: number }).current_max + 1;
+}
+
 export function createLink(
   db: Database.Database,
   userId: number,
   input: CreateLinkInput,
 ): Link {
+  const categoryId = input.category_id ?? null;
+  const sortOrder =
+    input.sort_order ?? getNextSortOrder(db, userId, categoryId);
   const stmt = db.prepare(`
     INSERT INTO links (user_id, category_id, name, url, url_alt, icon_type, icon_value, sort_order)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -13,13 +36,13 @@ export function createLink(
   `);
   return stmt.get(
     userId,
-    input.category_id ?? null,
+    categoryId,
     input.name,
     input.url,
     input.url_alt ?? null,
     input.icon_type,
     input.icon_value ?? null,
-    input.sort_order ?? 0,
+    sortOrder,
   ) as Link;
 }
 

@@ -6,15 +6,25 @@ import type {
   UpdateCategoryInput,
 } from "@/lib/types";
 
+function getNextSortOrder(db: Database.Database, userId: number): number {
+  const row = db
+    .prepare(
+      "SELECT COALESCE(MAX(sort_order), -1) AS current_max FROM categories WHERE user_id = ?",
+    )
+    .get(userId) as { current_max: number };
+  return row.current_max + 1;
+}
+
 export function createCategory(
   db: Database.Database,
   userId: number,
   input: CreateCategoryInput,
 ): Category {
+  const sortOrder = input.sort_order ?? getNextSortOrder(db, userId);
   const stmt = db.prepare(
     "INSERT INTO categories (user_id, name, sort_order) VALUES (?, ?, ?) RETURNING id, name, sort_order",
   );
-  return stmt.get(userId, input.name, input.sort_order ?? 0) as Category;
+  return stmt.get(userId, input.name, sortOrder) as Category;
 }
 
 export function getCategories(

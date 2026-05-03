@@ -66,6 +66,98 @@ describe("createLink", () => {
     expect(link.icon_type).toBe("upload");
     expect(link.icon_value).toBe("/uploads/custom.png");
   });
+
+  it("appends new links at the end of the category when sort_order is not provided", () => {
+    createLink(db, userId, {
+      category_id: categoryId,
+      name: "First",
+      url: "http://first",
+      icon_type: "builtin",
+      sort_order: 5,
+    });
+    createLink(db, userId, {
+      category_id: categoryId,
+      name: "Second",
+      url: "http://second",
+      icon_type: "builtin",
+      sort_order: 12,
+    });
+
+    const appended = createLink(db, userId, {
+      category_id: categoryId,
+      name: "Third",
+      url: "http://third",
+      icon_type: "builtin",
+    });
+
+    expect(appended.sort_order).toBe(13);
+  });
+
+  it("scopes the next sort_order to the link's category", () => {
+    const otherCategoryId = createCategory(db, userId, { name: "Tools" }).id;
+    createLink(db, userId, {
+      category_id: otherCategoryId,
+      name: "Other",
+      url: "http://other",
+      icon_type: "builtin",
+      sort_order: 99,
+    });
+
+    const created = createLink(db, userId, {
+      category_id: categoryId,
+      name: "First in Media",
+      url: "http://media",
+      icon_type: "builtin",
+    });
+
+    expect(created.sort_order).toBe(0);
+  });
+
+  it("computes the next sort_order for uncategorised links separately", () => {
+    createLink(db, userId, {
+      category_id: categoryId,
+      name: "InCategory",
+      url: "http://in",
+      icon_type: "builtin",
+      sort_order: 42,
+    });
+    createLink(db, userId, {
+      category_id: null,
+      name: "Orphan A",
+      url: "http://orphan-a",
+      icon_type: "builtin",
+      sort_order: 3,
+    });
+
+    const orphanB = createLink(db, userId, {
+      category_id: null,
+      name: "Orphan B",
+      url: "http://orphan-b",
+      icon_type: "builtin",
+    });
+
+    expect(orphanB.sort_order).toBe(4);
+  });
+
+  it("respects an explicit sort_order when provided", () => {
+    createLink(db, userId, {
+      category_id: categoryId,
+      name: "Anchor",
+      url: "http://anchor",
+      icon_type: "builtin",
+      sort_order: 50,
+    });
+
+    const explicit = createLink(db, userId, {
+      category_id: categoryId,
+      name: "Explicit",
+      url: "http://explicit",
+      icon_type: "builtin",
+      sort_order: 7,
+    });
+
+    expect(explicit.sort_order).toBe(7);
+  });
 });
 
 describe("getLinksByCategoryId", () => {

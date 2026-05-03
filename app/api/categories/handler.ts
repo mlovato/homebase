@@ -34,7 +34,7 @@ export function handleCreateCategory(
 
   const category = createCategory(db, userId, {
     name: trimmed,
-    sort_order: body.sort_order ?? 0,
+    sort_order: body.sort_order,
   });
   return { data: category, status: 201 };
 }

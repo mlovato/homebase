@@ -53,7 +53,7 @@ export function handleImport(
     for (const cat of body.categories) {
       const created = createCategory(db, userId, {
         name: cat.name,
-        sort_order: cat.sort_order ?? 0,
+        sort_order: cat.sort_order,
       });
       for (const link of cat.links) {
         createLink(db, userId, {
@@ -63,7 +63,7 @@ export function handleImport(
           url_alt: link.url_alt ?? null,
           icon_type: link.icon_type,
           icon_value: link.icon_value ?? null,
-          sort_order: link.sort_order ?? 0,
+          sort_order: link.sort_order,
         });
       }
     }
@@ -76,7 +76,7 @@ export function handleImport(
         url_alt: link.url_alt ?? null,
         icon_type: link.icon_type,
         icon_value: link.icon_value ?? null,
-        sort_order: link.sort_order ?? 0,
+        sort_order: link.sort_order,
       });
     }
   })();
