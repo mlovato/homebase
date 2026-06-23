@@ -47,6 +47,61 @@ function createDbWithoutUrlAlt(): Database.Database {
   return legacy;
 }
 
+/**
+ * A pre-multi-user database: categories, links and settings lack the user_id
+ * column, links lack url_alt, and users lack the avatar column.
+ */
+function createLegacySingleUserDb(): Database.Database {
+  const legacy = new Database(":memory:");
+  legacy.pragma("journal_mode = WAL");
+  legacy.pragma("foreign_keys = OFF");
+  legacy.exec(`
+    CREATE TABLE users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'user',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0
+    );
+    CREATE TABLE links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      category_id INTEGER,
+      name TEXT NOT NULL,
+      url TEXT NOT NULL,
+      icon_type TEXT NOT NULL CHECK(icon_type IN ('builtin','upload','url')),
+      icon_value TEXT,
+      sort_order INTEGER DEFAULT 0
+    );
+    CREATE TABLE settings (
+      key TEXT NOT NULL PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+  `);
+  return legacy;
+}
+
+function columnNames(db: Database.Database, table: string): string[] {
+  return (db.pragma(`table_info(${table})`) as { name: string }[]).map(
+    (c) => c.name,
+  );
+}
+
+function insertUser(
+  db: Database.Database,
+  email: string,
+  role: "admin" | "user",
+): number {
+  const { lastInsertRowid } = db
+    .prepare("INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)")
+    .run(email, "hash", role);
+  return Number(lastInsertRowid);
+}
+
 let db: Database.Database;
 
 beforeEach(() => {
@@ -71,9 +126,7 @@ describe("runMigrations", () => {
   });
 
   it("does not create admin when users already exist", async () => {
-    db.prepare(
-      "INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)",
-    ).run("existing@test.com", "hash", "user");
+    insertUser(db, "existing@test.com", "user");
 
     await runMigrations(db, {
       adminEmail: "admin@example.com",
@@ -139,5 +192,112 @@ describe("runMigrations", () => {
     await runMigrations(legacy);
     await expect(runMigrations(legacy)).resolves.not.toThrow();
     legacy.close();
+  });
+
+  it("adds user_id to categories and links and backfills the admin id", async () => {
+    const legacy = createLegacySingleUserDb();
+    const adminId = insertUser(legacy, "admin@test.com", "admin");
+    legacy.prepare("INSERT INTO categories (name) VALUES (?)").run("Work");
+    legacy
+      .prepare(
+        "INSERT INTO links (name, url, icon_type) VALUES (?,?,'builtin')",
+      )
+      .run("Mail", "http://mail");
+
+    await runMigrations(legacy);
+
+    expect(columnNames(legacy, "categories")).toContain("user_id");
+    expect(columnNames(legacy, "links")).toContain("user_id");
+    const category = legacy.prepare("SELECT user_id FROM categories").get() as {
+      user_id: number;
+    };
+    const link = legacy.prepare("SELECT user_id FROM links").get() as {
+      user_id: number;
+    };
+    expect(category.user_id).toBe(adminId);
+    expect(link.user_id).toBe(adminId);
+    legacy.close();
+  });
+
+  it("throws when categories need migrating but no admin user exists", async () => {
+    const legacy = createLegacySingleUserDb();
+    insertUser(legacy, "plain@test.com", "user");
+
+    await expect(runMigrations(legacy)).rejects.toThrow(
+      "Cannot migrate categories: no admin user found",
+    );
+    legacy.close();
+  });
+
+  it("rebuilds the settings table with user_id and preserves existing rows", async () => {
+    const legacy = createLegacySingleUserDb();
+    const adminId = insertUser(legacy, "admin@test.com", "admin");
+    legacy
+      .prepare("INSERT INTO settings (key, value) VALUES (?,?)")
+      .run("theme", "dark");
+
+    await runMigrations(legacy);
+
+    expect(columnNames(legacy, "settings")).toContain("user_id");
+    const setting = legacy.prepare("SELECT * FROM settings").get() as {
+      user_id: number;
+      key: string;
+      value: string;
+    };
+    expect(setting).toEqual({
+      user_id: adminId,
+      key: "theme",
+      value: "dark",
+    });
+    legacy.close();
+  });
+
+  it("throws when settings need migrating but no admin user exists", async () => {
+    // categories/links already have user_id so only the settings migration runs.
+    const legacy = createDbWithoutUrlAlt();
+    legacy.exec("DROP TABLE settings");
+    legacy.exec(
+      "CREATE TABLE settings (key TEXT NOT NULL PRIMARY KEY, value TEXT NOT NULL)",
+    );
+    insertUser(legacy, "plain@test.com", "user");
+
+    await expect(runMigrations(legacy)).rejects.toThrow(
+      "Cannot migrate settings: no admin user found",
+    );
+    legacy.close();
+  });
+
+  it("adds the avatar column to users when missing", async () => {
+    const legacy = createLegacySingleUserDb();
+    insertUser(legacy, "admin@test.com", "admin");
+    expect(columnNames(legacy, "users")).not.toContain("avatar");
+
+    await runMigrations(legacy);
+
+    expect(columnNames(legacy, "users")).toContain("avatar");
+    legacy.close();
+  });
+});
+
+describe("getDb", () => {
+  const originalPath = process.env.DATABASE_PATH;
+
+  afterEach(() => {
+    process.env.DATABASE_PATH = originalPath;
+    jest.resetModules();
+  });
+
+  it("returns a singleton database with the schema applied", async () => {
+    jest.resetModules();
+    process.env.DATABASE_PATH = ":memory:";
+    const { getDb } = await import("@/lib/db");
+
+    const first = getDb();
+    const second = getDb();
+
+    expect(first).toBe(second);
+    expect(columnNames(first, "users")).toContain("email");
+    expect(columnNames(first, "links")).toContain("url");
+    first.close();
   });
 });

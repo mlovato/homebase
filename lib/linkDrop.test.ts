@@ -6,9 +6,13 @@ import {
   findLinkById,
   linkContainerId,
   parseLinkContainerId,
+  parseSortableCategoryId,
+  resolveLinkDropContainers,
+  sortableCategoryId,
   UNCATEGORIZED_LINK_CONTAINER,
 } from "./linkDrop";
 import type { CategoryWithLinks, Link } from "@/lib/types";
+import type { DragEndEvent } from "@dnd-kit/core";
 
 function makeLink(id: number, categoryId: number | null, order: number): Link {
   return {
@@ -200,5 +204,80 @@ describe("findLinkById", () => {
 
   it("returns null when no match exists", () => {
     expect(findLinkById(999, categories, uncategorized)).toBeNull();
+  });
+});
+
+describe("sortableCategoryId / parseSortableCategoryId", () => {
+  it("round-trips a category id", () => {
+    expect(parseSortableCategoryId(sortableCategoryId(42))).toBe(42);
+  });
+
+  it("returns undefined for a non-string id", () => {
+    expect(parseSortableCategoryId(42)).toBeUndefined();
+  });
+
+  it("returns undefined for a string that is not a category id", () => {
+    expect(parseSortableCategoryId("category-abc")).toBeUndefined();
+    expect(parseSortableCategoryId("links-cat-1")).toBeUndefined();
+  });
+});
+
+describe("resolveLinkDropContainers", () => {
+  function makeEvent(active: unknown, over: unknown): DragEndEvent {
+    return { active, over } as unknown as DragEndEvent;
+  }
+
+  // A draggable/droppable belonging to a sortable container, as dnd-kit shapes it.
+  function sortableItem(id: unknown, containerId: string) {
+    return { id, data: { current: { sortable: { containerId } } } };
+  }
+
+  const linkInCat1 = sortableItem(10, "links-cat-1");
+
+  it("returns null when there is no drop target", () => {
+    expect(resolveLinkDropContainers(makeEvent(linkInCat1, null))).toBeNull();
+  });
+
+  it("returns null when the active id is not numeric", () => {
+    const active = sortableItem("category-1", "links-cat-1");
+    const over = sortableItem(20, "links-cat-2");
+    expect(resolveLinkDropContainers(makeEvent(active, over))).toBeNull();
+  });
+
+  it("returns null when the active item has no sortable container", () => {
+    const active = { id: 10, data: { current: {} } };
+    const over = sortableItem(20, "links-cat-2");
+    expect(resolveLinkDropContainers(makeEvent(active, over))).toBeNull();
+  });
+
+  it("resolves containers when dropping over another link", () => {
+    const over = sortableItem(21, "links-cat-2");
+    expect(resolveLinkDropContainers(makeEvent(linkInCat1, over))).toEqual({
+      activeId: 10,
+      source: 1,
+      target: 2,
+      overId: 21,
+    });
+  });
+
+  it("falls back to the droppable container id when over has no sortable data", () => {
+    const over = { id: UNCATEGORIZED_LINK_CONTAINER, data: { current: {} } };
+    expect(resolveLinkDropContainers(makeEvent(linkInCat1, over))).toEqual({
+      activeId: 10,
+      source: 1,
+      target: null,
+      overId: UNCATEGORIZED_LINK_CONTAINER,
+    });
+  });
+
+  it("returns null when the over container cannot be determined", () => {
+    const over = { id: 999, data: { current: {} } };
+    expect(resolveLinkDropContainers(makeEvent(linkInCat1, over))).toBeNull();
+  });
+
+  it("returns null when a resolved container is not a link container", () => {
+    const active = sortableItem(10, "category-1");
+    const over = sortableItem(21, "links-cat-2");
+    expect(resolveLinkDropContainers(makeEvent(active, over))).toBeNull();
   });
 });
