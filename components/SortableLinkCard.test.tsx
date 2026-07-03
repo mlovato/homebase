@@ -70,4 +70,21 @@ describe("SortableLinkCard", () => {
     );
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
+
+  it("shows edit/delete buttons by default on mobile, only hiding them behind hover on desktop", () => {
+    render(
+      <SortableLinkCard
+        link={link}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+        intervalMs={10000}
+      />,
+    );
+    const overlay = screen.getByText("Edit").parentElement;
+    const classes = overlay?.className.split(" ") ?? [];
+    expect(classes).toContain("opacity-100");
+    expect(classes).not.toContain("opacity-0");
+    expect(classes).toContain("md:opacity-0");
+    expect(classes).toContain("md:group-hover:opacity-100");
+  });
 });

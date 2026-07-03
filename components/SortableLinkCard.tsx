@@ -48,7 +48,7 @@ export function SortableLinkCard({
 
       <LinkCard link={link} tooltip={false} intervalMs={intervalMs} />
 
-      <div className="absolute inset-0 rounded-2xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none group-hover:pointer-events-auto">
+      <div className="absolute inset-0 rounded-2xl bg-black/50 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-auto md:pointer-events-none md:group-hover:pointer-events-auto">
         <button
           onClick={(e) => {
             e.preventDefault();
