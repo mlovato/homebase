@@ -15,63 +15,50 @@ interface LinkIconProps {
   iconValue: string | null;
   size: "sm" | "lg";
   url?: string;
+  urlAlt?: string | null;
 }
 
-function parseFaviconUrls(
-  url: string,
-): { proxy: string; direct: string } | null {
+function faviconUrls(url: string): string[] {
   try {
     const { origin } = new URL(url);
-    return {
-      proxy: `/api/favicon?url=${encodeURIComponent(url)}`,
-      direct: `${origin}/favicon.ico`,
-    };
+    return [
+      `/api/favicon?url=${encodeURIComponent(url)}`,
+      `${origin}/favicon.ico`,
+    ];
   } catch {
-    return null;
+    return [];
   }
 }
 
 function FaviconFallback({
   url,
+  urlAlt,
   name,
   size,
 }: {
   url?: string;
+  urlAlt?: string | null;
   name: string;
   size: "sm" | "lg";
 }) {
-  const [step, setStep] = useState<"proxy" | "direct" | "avatar">("proxy");
-  const favicons = url ? parseFaviconUrls(url) : null;
+  const attempts = [url, urlAlt]
+    .filter((u): u is string => !!u)
+    .flatMap(faviconUrls);
+  const [attempt, setAttempt] = useState(0);
 
-  if (!favicons) {
+  if (attempt >= attempts.length) {
     return <Avatar name={name} size={size} />;
   }
 
-  if (step === "proxy") {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={favicons.proxy}
-        alt={name}
-        className={`${SIZE[size].img} object-contain shrink-0`}
-        onError={() => setStep("direct")}
-      />
-    );
-  }
-
-  if (step === "direct") {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={favicons.direct}
-        alt={name}
-        className={`${SIZE[size].img} object-contain shrink-0`}
-        onError={() => setStep("avatar")}
-      />
-    );
-  }
-
-  return <Avatar name={name} size={size} />;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={attempts[attempt]}
+      alt={name}
+      className={`${SIZE[size].img} object-contain shrink-0`}
+      onError={() => setAttempt((a) => a + 1)}
+    />
+  );
 }
 
 function BuiltinIcon({
@@ -79,17 +66,21 @@ function BuiltinIcon({
   name,
   size,
   url,
+  urlAlt,
 }: {
   slug: string;
   name: string;
   size: "sm" | "lg";
   url?: string;
+  urlAlt?: string | null;
 }) {
   const variants = [`${slug}.svg`, `${slug}-light.svg`, `${slug}-dark.svg`];
   const [attempt, setAttempt] = useState(0);
 
   if (attempt >= variants.length) {
-    return <FaviconFallback url={url} name={name} size={size} />;
+    return (
+      <FaviconFallback url={url} urlAlt={urlAlt} name={name} size={size} />
+    );
   }
 
   return (
@@ -119,6 +110,7 @@ export function LinkIcon({
   iconValue,
   size,
   url,
+  urlAlt,
 }: LinkIconProps) {
   const iconKey = `${iconType}:${iconValue}`;
   const [failed, setFailed] = useState({ key: iconKey, value: false });
@@ -130,7 +122,15 @@ export function LinkIcon({
   const isFailed = failed.value;
 
   if (iconType === "builtin" && iconValue) {
-    return <BuiltinIcon slug={iconValue} name={name} size={size} url={url} />;
+    return (
+      <BuiltinIcon
+        slug={iconValue}
+        name={name}
+        size={size}
+        url={url}
+        urlAlt={urlAlt}
+      />
+    );
   }
 
   if ((iconType === "upload" || iconType === "url") && iconValue && !isFailed) {
@@ -145,5 +145,5 @@ export function LinkIcon({
     );
   }
 
-  return <FaviconFallback url={url} name={name} size={size} />;
+  return <FaviconFallback url={url} urlAlt={urlAlt} name={name} size={size} />;
 }

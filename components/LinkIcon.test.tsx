@@ -249,5 +249,53 @@ describe("LinkIcon", () => {
       expect(screen.queryByRole("img")).not.toBeInTheDocument();
       expect(screen.getByText("T")).toBeInTheDocument();
     });
+
+    it("falls back to the alternative url favicon after the primary favicon fails", () => {
+      render(
+        <LinkIcon
+          name="MediaPilot"
+          iconType="builtin"
+          iconValue={null}
+          size="lg"
+          url="http://mediapilot.local:8080"
+          urlAlt="http://192.168.1.120:8080"
+        />,
+      );
+      fireEvent.error(screen.getByRole("img")); // primary proxy fails → primary direct
+      expect(screen.getByRole("img")).toHaveAttribute(
+        "src",
+        "http://mediapilot.local:8080/favicon.ico",
+      );
+      fireEvent.error(screen.getByRole("img")); // primary direct fails → alt proxy
+      expect(screen.getByRole("img")).toHaveAttribute(
+        "src",
+        "/api/favicon?url=http%3A%2F%2F192.168.1.120%3A8080",
+      );
+      fireEvent.error(screen.getByRole("img")); // alt proxy fails → alt direct
+      expect(screen.getByRole("img")).toHaveAttribute(
+        "src",
+        "http://192.168.1.120:8080/favicon.ico",
+      );
+      fireEvent.error(screen.getByRole("img")); // alt direct fails → avatar
+      expect(screen.queryByRole("img")).not.toBeInTheDocument();
+      expect(screen.getByText("M")).toBeInTheDocument();
+    });
+
+    it("uses the alternative url favicon when the primary url is invalid", () => {
+      render(
+        <LinkIcon
+          name="MediaPilot"
+          iconType="builtin"
+          iconValue={null}
+          size="lg"
+          url="not-a-url"
+          urlAlt="http://192.168.1.120:8080"
+        />,
+      );
+      expect(screen.getByRole("img", { name: "MediaPilot" })).toHaveAttribute(
+        "src",
+        "/api/favicon?url=http%3A%2F%2F192.168.1.120%3A8080",
+      );
+    });
   });
 });
