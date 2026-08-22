@@ -159,7 +159,12 @@ Update a category's name or sort order.
 | `name`       | string | No       | New name        |
 | `sort_order` | number | No       | New sort order  |
 
+A supplied `name` is trimmed and must not be blank — omit the field to leave the
+name unchanged.
+
 **200 OK** — Returns the updated category.
+
+**400 Bad Request** — `name` was supplied but is empty or whitespace only.
 
 **404 Not Found** / **409 Conflict**
 
@@ -239,7 +244,13 @@ Update a link. All fields are optional.
 | `category_id` | number\|null  | No       | Move to a different category       |
 | `sort_order`  | number        | No       | New sort position                  |
 
+A supplied `name` or `url` is trimmed and must not be blank — omit the field to
+leave that value unchanged.
+
 **200 OK** — Returns the updated link.
+
+**400 Bad Request** — `name` or `url` was supplied but is empty or whitespace
+only, or `icon_type` is not one of `builtin`, `upload`, `url`.
 
 **404 Not Found**
 

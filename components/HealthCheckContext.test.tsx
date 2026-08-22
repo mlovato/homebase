@@ -190,6 +190,12 @@ describe("HealthCheckProvider", () => {
   afterEach(() => {
     jest.useRealTimers();
     jest.restoreAllMocks();
+    // Unconditional, so a failing assertion cannot leak "hidden" into the
+    // tests that follow.
+    Object.defineProperty(document, "visibilityState", {
+      value: "visible",
+      configurable: true,
+    });
   });
 
   it("calls checker for each url on mount", async () => {
@@ -263,6 +269,79 @@ describe("HealthCheckProvider", () => {
       resolveB("down" as HealthStatus);
     });
     expect(statusB).toHaveTextContent("down");
+  });
+
+  // The url list is rebuilt from component state, so a drag-and-drop reorder
+  // hands the provider the same urls in a new order. Restarting on that fires a
+  // fresh round of pings at every service for a change it cannot see.
+  it("does not restart when only the order of the urls changes", async () => {
+    const checker: Checker = jest.fn().mockResolvedValue("up" as HealthStatus);
+    const { rerender } = render(
+      <HealthCheckProvider
+        urls={["http://a.local", "http://b.local"]}
+        intervalMs={10000}
+        checker={checker}
+      >
+        <span />
+      </HealthCheckProvider>,
+    );
+    await act(async () => {});
+    expect(checker).toHaveBeenCalledTimes(2);
+
+    rerender(
+      <HealthCheckProvider
+        urls={["http://b.local", "http://a.local"]}
+        intervalMs={10000}
+        checker={checker}
+      >
+        <span />
+      </HealthCheckProvider>,
+    );
+    await act(async () => {});
+
+    expect(checker).toHaveBeenCalledTimes(2);
+  });
+
+  it("checks a url shared by two links only once per cycle", async () => {
+    const checker: Checker = jest.fn().mockResolvedValue("up" as HealthStatus);
+    render(
+      <HealthCheckProvider
+        urls={["http://a.local", "http://a.local"]}
+        intervalMs={10000}
+        checker={checker}
+      >
+        <span />
+      </HealthCheckProvider>,
+    );
+    await act(async () => {});
+
+    expect(checker).toHaveBeenCalledTimes(1);
+  });
+
+  // Documented behaviour: polling pauses while the tab is hidden. Without this
+  // a dashboard left open in a background tab pings every service forever.
+  it("stops polling while the tab is hidden", async () => {
+    const checker: Checker = jest.fn().mockResolvedValue("up" as HealthStatus);
+    Object.defineProperty(document, "visibilityState", {
+      value: "hidden",
+      configurable: true,
+    });
+    render(
+      <HealthCheckProvider
+        urls={["http://a.local"]}
+        intervalMs={1000}
+        checker={checker}
+      >
+        <span />
+      </HealthCheckProvider>,
+    );
+    await act(async () => {});
+    expect(checker).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+    });
+    expect(checker).toHaveBeenCalledTimes(1);
   });
 
   it("restarts health checks when tab becomes visible", async () => {

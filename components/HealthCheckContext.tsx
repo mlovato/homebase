@@ -62,10 +62,15 @@ export function HealthCheckProvider({
   const [statuses, setStatuses] = useState<StatusMap>({});
   const checkerRef = useRef(checker);
   checkerRef.current = checker;
-  const urlsKey = JSON.stringify(urls);
+  // Deduplicated and order-independent: the caller rebuilds this list from
+  // component state, so a drag-and-drop reorder hands over the same urls in a
+  // new order, and two links can legitimately share one url. Keying on the raw
+  // array restarted the whole cycle for a reorder and pinged shared urls twice.
+  const urlsKey = JSON.stringify([...new Set(urls)].sort());
 
   useEffect(() => {
-    if (urls.length === 0 || intervalMs === null) return;
+    const targets: string[] = JSON.parse(urlsKey);
+    if (targets.length === 0 || intervalMs === null) return;
 
     let cycleId = 0;
     let timeoutId: ReturnType<typeof setTimeout>;
@@ -73,7 +78,7 @@ export function HealthCheckProvider({
     const check = async () => {
       const id = ++cycleId;
       await Promise.all(
-        urls.map(async (url) => {
+        targets.map(async (url) => {
           const status = await checkerRef.current(url);
           if (id !== cycleId) return;
           setStatuses((prev) =>
@@ -82,6 +87,10 @@ export function HealthCheckProvider({
         }),
       );
       if (id !== cycleId) return;
+      // Hidden tabs stop polling; onVisibilityChange restarts the chain. Without
+      // this a dashboard left open in a background tab pings every service for
+      // as long as the browser is running.
+      if (document.visibilityState === "hidden") return;
       timeoutId = setTimeout(check, intervalMs);
     };
 
@@ -101,7 +110,6 @@ export function HealthCheckProvider({
       clearTimeout(timeoutId);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlsKey, intervalMs]);
 
   return (

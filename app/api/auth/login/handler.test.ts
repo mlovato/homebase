@@ -24,6 +24,32 @@ beforeEach(async () => {
 
 afterEach(() => db.close());
 
+// docs/manual-testing-plan.md asserts an unknown email is indistinguishable
+// from a wrong password. Skipping the hash made the two separable by response
+// time (~0.02 ms vs tens of ms), so the 5 ms floor sits well clear of both.
+describe("email enumeration", () => {
+  const MIN_HASH_MS = 5;
+
+  async function timeLogin(email: string) {
+    const started = process.hrtime.bigint();
+    const result = await handleLogin(
+      { email, password: "wrong" },
+      db,
+      JWT_SECRET,
+    );
+    return { result, ms: Number(process.hrtime.bigint() - started) / 1e6 };
+  }
+
+  it("costs the same whether or not the email exists", async () => {
+    const known = await timeLogin("admin@test.com");
+    const unknown = await timeLogin("ghost@example.com");
+
+    expect(unknown.result).toEqual(known.result);
+    expect(known.ms).toBeGreaterThan(MIN_HASH_MS);
+    expect(unknown.ms).toBeGreaterThan(MIN_HASH_MS);
+  });
+});
+
 describe("handleLogin", () => {
   it("returns success and token with correct credentials", async () => {
     const result = await handleLogin(

@@ -73,6 +73,7 @@ export default async function DashboardPage() {
             key={category.id}
             category={category}
             intervalMs={intervalMs}
+            userId={userId}
           />
         ))}
 

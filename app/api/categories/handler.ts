@@ -47,12 +47,18 @@ export function handleUpdateCategory(
 ) {
   if (isNaN(id)) return { error: "Invalid id", status: 400 };
 
-  if (body.name?.trim()) {
-    const trimmed = body.name.trim();
+  // Creating rejects a blank name, so accepting one here would leave a section
+  // whose heading renders empty and cannot be told from any other.
+  const name = body.name?.trim();
+  if (body.name !== undefined && !name) {
+    return { error: "Name is required", status: 400 };
+  }
+
+  if (name) {
     const existing = getCategories(db, userId);
     if (
       existing.some(
-        (c) => c.id !== id && c.name.toLowerCase() === trimmed.toLowerCase(),
+        (c) => c.id !== id && c.name.toLowerCase() === name.toLowerCase(),
       )
     ) {
       return {
@@ -62,7 +68,12 @@ export function handleUpdateCategory(
     }
   }
 
-  const updated = updateCategory(db, userId, id, body);
+  // Spread conditionally: `updateCategory` merges over the existing row, so an
+  // own key holding `undefined` would overwrite the stored name with NULL.
+  const updated = updateCategory(db, userId, id, {
+    ...body,
+    ...(name && { name }),
+  });
   if (!updated) return { error: "Not found", status: 404 };
 
   return { data: updated, status: 200 };

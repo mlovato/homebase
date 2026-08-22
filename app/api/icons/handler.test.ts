@@ -154,6 +154,42 @@ describe("metadata cache lifetime", () => {
     expect(second).toEqual(first);
   });
 
+  // A timeout or connection reset is the common way a refresh fails, and it
+  // arrives as a rejection rather than a non-ok response. Letting it propagate
+  // turned every icon search into a 500 while a usable cache sat in memory.
+  it.each([
+    ["a rejected fetch", () => Promise.reject(new Error("ECONNRESET"))],
+    [
+      "an unparsable body",
+      () =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.reject(new SyntaxError("Unexpected token")),
+        }),
+    ],
+  ])("serves the cached list after %s", async (_label, impl) => {
+    jest.useFakeTimers();
+    await searchIcons("plex", mockFetch(MOCK_METADATA));
+
+    jest.advanceTimersByTime(DAY_MS + 1);
+    const failing = jest.fn(impl) as unknown as typeof fetch;
+
+    const first = await searchIcons("plex", failing);
+    expect(first.map((r) => r.slug)).toContain("plex");
+
+    // and it backs off rather than retrying upstream on every keystroke
+    const second = await searchIcons("plex", failing);
+    expect(failing).toHaveBeenCalledTimes(1);
+    expect(second).toEqual(first);
+  });
+
+  it("still reports failure when a rejected fetch has no cache to fall back on", async () => {
+    const failing = jest
+      .fn()
+      .mockRejectedValue(new Error("ECONNRESET")) as unknown as typeof fetch;
+    await expect(searchIcons("plex", failing)).rejects.toThrow("ECONNRESET");
+  });
+
   it("does not let an empty response replace a good cache", async () => {
     jest.useFakeTimers();
     await searchIcons("plex", mockFetch(MOCK_METADATA));

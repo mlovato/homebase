@@ -3,7 +3,7 @@
  */
 import { createTestDb } from "@/lib/db";
 import { createUser } from "@/lib/repositories/users";
-import { createCategory } from "@/lib/repositories/categories";
+import { createCategory, getCategoryById } from "@/lib/repositories/categories";
 import {
   handleGetCategories,
   handleCreateCategory,
@@ -128,5 +128,28 @@ describe("handleDeleteCategory", () => {
   it("returns 404 when category not found", () => {
     const result = handleDeleteCategory(db, userId, 999);
     expect(result.status).toBe(404);
+  });
+});
+
+describe("handleUpdateCategory name validation", () => {
+  // handleCreateCategory rejects a blank name, so accepting one on rename
+  // leaves a section whose heading is empty and cannot be told from any other.
+  it.each([
+    ["an empty string", ""],
+    ["whitespace only", "   "],
+  ])("rejects %s with a 400", (_label, value) => {
+    const cat = createCategory(db, userId, { name: "Media" });
+    const result = handleUpdateCategory(db, userId, cat.id, { name: value });
+    expect(result).toMatchObject({ status: 400 });
+    expect(result.error).toMatch(/name/i);
+    expect(getCategoryById(db, userId, cat.id)?.name).toBe("Media");
+  });
+
+  it("trims a name it does accept", () => {
+    const cat = createCategory(db, userId, { name: "Media" });
+    const result = handleUpdateCategory(db, userId, cat.id, {
+      name: "  Movies  ",
+    });
+    expect(result.data).toMatchObject({ name: "Movies" });
   });
 });

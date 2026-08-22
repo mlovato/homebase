@@ -4,16 +4,22 @@ import { useEffect, useState } from "react";
 import type { CategoryWithLinks } from "@/lib/types";
 import { LinkCard } from "./LinkCard";
 
-const storageKey = (id: number) => `homebase:collapsed:${id}`;
+// Scoped to the account: two users sharing a browser both have a category id 1,
+// so an unscoped key let one user's collapsed section collapse an unrelated
+// category for the other.
+const storageKey = (userId: number, categoryId: number) =>
+  `homebase:collapsed:${userId}:${categoryId}`;
 
 interface CategorySectionProps {
   category: CategoryWithLinks;
   intervalMs: number | null;
+  userId: number;
 }
 
 export function CategorySection({
   category,
   intervalMs,
+  userId,
 }: CategorySectionProps) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -23,23 +29,23 @@ export function CategorySection({
   // server-rendered document and re-rendering it on the client.
   useEffect(() => {
     try {
-      if (localStorage.getItem(storageKey(category.id)) === "true") {
+      if (localStorage.getItem(storageKey(userId, category.id)) === "true") {
         // eslint-disable-next-line react-hooks/set-state-in-effect -- restoring a persisted preference after mount
         setCollapsed(true);
       }
     } catch {
       // Site data blocked: the section stays expanded.
     }
-  }, [category.id]);
+  }, [userId, category.id]);
 
   function toggle() {
     const next = !collapsed;
     setCollapsed(next);
     try {
       if (next) {
-        localStorage.setItem(storageKey(category.id), "true");
+        localStorage.setItem(storageKey(userId, category.id), "true");
       } else {
-        localStorage.removeItem(storageKey(category.id));
+        localStorage.removeItem(storageKey(userId, category.id));
       }
     } catch {
       // Site data blocked: the choice just is not remembered.

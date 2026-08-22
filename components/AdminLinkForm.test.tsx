@@ -225,6 +225,29 @@ describe("AdminLinkForm", () => {
     expect(screen.getByText(/enter a valid url/i)).toBeInTheDocument();
   });
 
+  // A single-label host is what a LAN or Docker network actually serves, and
+  // refusing it left no way to add such a service through the form at all.
+  it.each([
+    ["an explicit scheme and port", "http://nas:32400"],
+    ["an explicit scheme only", "http://plex"],
+    ["a port only", "nas:5000"],
+  ])("allows a single-label lan hostname with %s", async (_label, typed) => {
+    const onSubmit = jest.fn();
+    render(
+      <AdminLinkForm
+        onSubmit={onSubmit}
+        onCancel={jest.fn()}
+        categories={categories}
+      />,
+    );
+    await userEvent.type(screen.getByLabelText(/name/i), "Nas");
+    await userEvent.type(screen.getByLabelText(/^url$/i), typed);
+    fireEvent.click(screen.getByRole("button", { name: /create|save/i }));
+
+    expect(screen.queryByText(/enter a valid url/i)).not.toBeInTheDocument();
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
   it("allows localhost urls without a dot", async () => {
     const onSubmit = jest.fn();
     render(

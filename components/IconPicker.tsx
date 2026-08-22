@@ -110,6 +110,9 @@ export function IconPicker({ value, onChange, serviceName }: IconPickerProps) {
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    // A file input fires no change event when the same file is picked again, so
+    // clearing it now is what lets a failed upload be retried with that file.
+    e.target.value = "";
     if (!file) return;
     setUploading(true);
     const formData = new FormData();

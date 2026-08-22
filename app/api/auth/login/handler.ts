@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 import { createSessionToken } from "@/lib/auth";
-import { verifyHashedPassword } from "@/lib/password";
+import { DECOY_PASSWORD_HASH, verifyHashedPassword } from "@/lib/password";
 import { getUserByEmail } from "@/lib/repositories/users";
 
 export interface LoginRequest {
@@ -24,12 +24,13 @@ export async function handleLogin(
   }
 
   const user = getUserByEmail(db, body.email);
-  if (!user) {
-    return { success: false, error: "Invalid email or password" };
-  }
-
-  const valid = await verifyHashedPassword(body.password, user.password_hash);
-  if (!valid) {
+  // Verified against the decoy when the email is unknown: skipping the hash
+  // made the two cases separable by response time, enumerating every account.
+  const valid = await verifyHashedPassword(
+    body.password,
+    user?.password_hash ?? DECOY_PASSWORD_HASH,
+  );
+  if (!user || !valid) {
     return { success: false, error: "Invalid email or password" };
   }
 

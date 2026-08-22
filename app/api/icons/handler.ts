@@ -43,24 +43,33 @@ async function loadIcons(fetchFn: typeof fetch): Promise<IconEntry[]> {
     return cache?.entries ?? [];
   };
 
-  const res = await withFetchTimeout((signal) =>
-    fetchFn(METADATA_URL, {
-      signal,
-      next: { revalidate: CACHE_TTL_MS / 1000 },
-    } as RequestInit),
-  );
-  if (!res.ok) return serveStale();
+  try {
+    const res = await withFetchTimeout((signal) =>
+      fetchFn(METADATA_URL, {
+        signal,
+        next: { revalidate: CACHE_TTL_MS / 1000 },
+      } as RequestInit),
+    );
+    if (!res.ok) return serveStale();
 
-  const raw: Record<string, RawMeta> = await res.json();
-  const entries = Object.entries(raw).map(([slug, meta]) => ({
-    slug,
-    name: slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-    aliases: meta.aliases ?? [],
-  }));
-  if (entries.length === 0) return serveStale();
+    const raw: Record<string, RawMeta> = await res.json();
+    const entries = Object.entries(raw).map(([slug, meta]) => ({
+      slug,
+      name: slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+      aliases: meta.aliases ?? [],
+    }));
+    if (entries.length === 0) return serveStale();
 
-  cache = { entries, expiresAt: Date.now() + CACHE_TTL_MS };
-  return entries;
+    cache = { entries, expiresAt: Date.now() + CACHE_TTL_MS };
+    return entries;
+  } catch (error) {
+    // A timeout, connection reset or unparsable body is the usual way a refresh
+    // fails, and it arrives as a rejection rather than a non-ok response. It
+    // must not throw away a cache that is still perfectly usable. With nothing
+    // cached there is nothing to serve, so the failure stays loud.
+    if (!cache) throw error;
+    return serveStale();
+  }
 }
 
 export async function searchIcons(

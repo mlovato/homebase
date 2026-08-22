@@ -140,6 +140,41 @@ describe("IconPicker", () => {
     expect(newImg.style.display).not.toBe("none");
   });
 
+  // A file input fires no change event when the same file is picked again, so
+  // leaving the value set meant a retry after a failed upload did nothing at all.
+  it("clears the file input so the same file can be retried", async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValue({ ok: false, json: async () => ({ error: "boom" }) });
+    jest.spyOn(window, "alert").mockImplementation(() => {});
+
+    render(
+      <IconPicker
+        value={{ icon_type: "upload", icon_value: null }}
+        onChange={jest.fn()}
+        serviceName=""
+      />,
+    );
+    const input = screen.getByLabelText(/icon file/i) as HTMLInputElement;
+    const file = new File(["x"], "icon.png", { type: "image/png" });
+
+    // jsdom does not clear `files` when `value` is reset, so the reset itself is
+    // what the test can observe.
+    const setValue = jest.fn();
+    Object.defineProperty(input, "value", {
+      configurable: true,
+      get: () => "C:\\fakepath\\icon.png",
+      set: setValue,
+    });
+
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [file] } });
+    });
+
+    expect(window.alert).toHaveBeenCalled();
+    expect(setValue).toHaveBeenCalledWith("");
+  });
+
   it("calls onChange when url tab value is entered", () => {
     const onChange = jest.fn();
     render(

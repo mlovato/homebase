@@ -61,6 +61,18 @@ export function handleUpdateLink(
   body: Partial<UpdateLinkInput>,
 ) {
   if (isNaN(id)) return { error: "Invalid id", status: 400 };
+
+  // Blanking a field is not the same as omitting it: an empty name leaves the
+  // card with no label, and an empty url renders href="" so the card navigates
+  // back to the dashboard. Creating rejects both, so updating must too.
+  const name = body.name?.trim();
+  const url = body.url?.trim();
+  if (body.name !== undefined && !name) {
+    return { error: "Name is required", status: 400 };
+  }
+  if (body.url !== undefined && !url) {
+    return { error: "URL is required", status: 400 };
+  }
   if (
     body.icon_type !== undefined &&
     !VALID_ICON_TYPES.includes(body.icon_type)
@@ -71,7 +83,13 @@ export function handleUpdateLink(
     return { error: "Category not found", status: 404 };
   }
 
-  const updated = updateLink(db, userId, id, body);
+  // Spread conditionally: `updateLink` merges over the existing row, so an own
+  // key holding `undefined` would overwrite the stored value with NULL.
+  const updated = updateLink(db, userId, id, {
+    ...body,
+    ...(name && { name }),
+    ...(url && { url }),
+  });
   if (!updated) return { error: "Not found", status: 404 };
 
   return { data: updated, status: 200 };

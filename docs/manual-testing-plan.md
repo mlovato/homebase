@@ -2,7 +2,7 @@
 
 Comprehensive manual testing plan for Homebase.
 Target instance: `localhost:7000` (adjust for your environment)
-Last updated: v1.2.3
+Last updated: v1.5.0
 
 ---
 
@@ -46,7 +46,7 @@ Last updated: v1.2.3
 - [ ] After logout, accessing `/admin` redirects to `/admin/login`
 - [ ] Unauthenticated access to `/admin/login` loads the login page (no redirect loop)
 - [ ] Refreshing the page while logged in maintains the session (JWT cookie persistence)
-- [ ] Session expires after 24 hours (JWT TTL)
+- [ ] Session expires after 30 days (JWT TTL, see `SESSION_TTL_SECONDS`)
 
 ---
 
@@ -85,6 +85,8 @@ Last updated: v1.2.3
 - [ ] Gray dot appears for URLs with unknown status
 - [ ] Status dots update automatically based on the configured interval
 - [ ] Status dots refresh when the browser tab regains focus
+- [ ] Polling stops while the tab is hidden (no requests in the network log)
+- [ ] Reordering links in the admin panel does not trigger a fresh round of pings
 
 ---
 
@@ -145,6 +147,8 @@ Last updated: v1.2.3
 - [ ] Submit with valid Name and URL -- link is created
 - [ ] Submit with empty Name -- validation error is shown
 - [ ] Submit with empty URL -- validation error is shown
+- [ ] Submit a LAN hostname with no dot (e.g. `http://nas:32400`) -- link is created
+- [ ] Submit a bare word with no scheme or port (e.g. `bibbo`) -- validation error is shown
 - [ ] Submit with a category selected -- link is placed in that category
 - [ ] Submit with no category selected -- link appears as uncategorized
 - [ ] Click edit on a link -- edit form appears with current values
@@ -161,6 +165,7 @@ Last updated: v1.2.3
 - [ ] Upload an SVG -- rejected as an unsupported file type
 - [ ] Upload a file larger than 2 MB -- error is shown
 - [ ] Upload an unsupported file type -- error is shown
+- [ ] After a failed upload, pick the same file again -- the upload is retried
 - [ ] Enter a custom URL -- URL is assigned as the icon source
 
 ### 5.5 Drag-and-Drop Reordering

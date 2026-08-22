@@ -302,3 +302,44 @@ describe("icon_type validation on update", () => {
     );
   });
 });
+
+describe("handleUpdateLink required fields", () => {
+  function makeLink() {
+    return createLink(db, userId, {
+      category_id: null,
+      name: "Plex",
+      url: "http://plex.local",
+      icon_type: "builtin",
+    });
+  }
+
+  // handleCreateLink rejects both, so accepting them on update leaves a link
+  // with no visible label, or an href of "" that navigates to the dashboard.
+  it.each([
+    ["name", "", /name/i],
+    ["name", "   ", /name/i],
+    ["url", "", /url/i],
+    ["url", "   ", /url/i],
+  ])("rejects a blank %s with a 400", (field, value, matcher) => {
+    const link = makeLink();
+    const result = handleUpdateLink(db, userId, link.id, { [field]: value });
+    expect(result).toMatchObject({ status: 400 });
+    expect(result.error).toMatch(matcher);
+    expect(getLinkById(db, userId, link.id)).toMatchObject({
+      name: "Plex",
+      url: "http://plex.local",
+    });
+  });
+
+  it("trims a name and url it does accept", () => {
+    const link = makeLink();
+    const result = handleUpdateLink(db, userId, link.id, {
+      name: "  Jellyfin  ",
+      url: "  http://jellyfin.local  ",
+    });
+    expect(result.data).toMatchObject({
+      name: "Jellyfin",
+      url: "http://jellyfin.local",
+    });
+  });
+});

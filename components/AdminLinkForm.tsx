@@ -4,6 +4,44 @@ import { useState } from "react";
 import { IconPicker, type IconPickerValue } from "./IconPicker";
 import type { Category, IconType } from "@/lib/types";
 
+const URL_ERROR = "Please enter a valid URL";
+const HAS_SCHEME = /^https?:\/\//i;
+const HOST_LABEL = /^[a-z0-9_-]+$/i;
+
+function normalizeUrl(raw: string): string {
+  const trimmed = raw.trim();
+  return HAS_SCHEME.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+/**
+ * A single-label host like `nas` or `plex` is exactly what a LAN or Docker
+ * network serves, so it must not be rejected for lacking a dot. A bare word
+ * with neither a scheme nor a port is still far more likely a typo than a URL,
+ * so that stays rejected.
+ */
+function isValidUrl(trimmed: string): boolean {
+  try {
+    const { hostname, port } = new URL(normalizeUrl(trimmed));
+    if (hostname.startsWith("[")) return true; // bracketed IPv6 literal
+    const labels = hostname.split(".");
+    if (!labels.every((label) => HOST_LABEL.test(label))) return false;
+    return (
+      labels.length > 1 ||
+      hostname === "localhost" ||
+      HAS_SCHEME.test(trimmed) ||
+      port !== ""
+    );
+  } catch {
+    return false;
+  }
+}
+
+function validateUrl(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  return isValidUrl(trimmed) ? null : URL_ERROR;
+}
+
 interface InitialValues {
   name: string;
   url: string;
@@ -49,29 +87,6 @@ export function AdminLinkForm({
   // The dialog closes only once the request comes back, so the button stays
   // clickable for the whole round trip and a second click duplicates the link.
   const [submitting, setSubmitting] = useState(false);
-
-  const URL_ERROR = "Please enter a valid URL";
-
-  function normalizeUrl(raw: string): string {
-    const trimmed = raw.trim();
-    if (/^https?:\/\//i.test(trimmed)) return trimmed;
-    return `https://${trimmed}`;
-  }
-
-  function isValidUrl(value: string): boolean {
-    try {
-      const parsed = new URL(value);
-      return parsed.hostname.includes(".") || parsed.hostname === "localhost";
-    } catch {
-      return false;
-    }
-  }
-
-  function validateUrl(raw: string): string | null {
-    const trimmed = raw.trim();
-    if (!trimmed) return null;
-    return isValidUrl(normalizeUrl(trimmed)) ? null : URL_ERROR;
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
