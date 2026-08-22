@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -22,6 +23,8 @@ export function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  useEscapeKey(open, onCancel);
 
   if (!open) return null;
 

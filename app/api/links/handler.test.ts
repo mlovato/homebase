@@ -343,3 +343,95 @@ describe("handleUpdateLink required fields", () => {
     });
   });
 });
+
+describe("link inputs the dashboard could not use", () => {
+  const validBody = {
+    name: "Plex",
+    url: "http://localhost:32400",
+    icon_type: "builtin" as const,
+  };
+
+  it.each([
+    "javascript:alert(document.domain)",
+    "data:text/html,<script>alert(1)</script>",
+    "ftp://files.local",
+  ])("refuses to create a link pointing at %s", (url) => {
+    const result = handleCreateLink(db, userId, { ...validBody, url });
+
+    expect(result.status).toBe(400);
+    expect(result.error).toMatch(/http/i);
+  });
+
+  // `body.name?.trim()` only guarded null and undefined, so a numeric name threw
+  // and the admin panel could only report "Request failed (500)".
+  it.each([
+    ["name", { name: 42 }],
+    ["url", { url: 42 }],
+  ])("refuses a non-string %s without throwing", (_field, override) => {
+    const result = handleCreateLink(db, userId, {
+      ...validBody,
+      ...override,
+    } as unknown as Parameters<typeof handleCreateLink>[2]);
+
+    expect(result.status).toBe(400);
+  });
+
+  it("refuses a non-string name on update", () => {
+    const link = createLink(db, userId, { ...validBody, name: "P" });
+
+    const result = handleUpdateLink(db, userId, link.id, {
+      name: 42,
+    } as unknown as Parameters<typeof handleUpdateLink>[3]);
+
+    expect(result.status).toBe(400);
+    expect(getLinkById(db, userId, link.id)?.name).toBe("P");
+  });
+
+  it("refuses the same scheme in the alternative url", () => {
+    const result = handleCreateLink(db, userId, {
+      ...validBody,
+      url_alt: "javascript:alert(1)",
+    });
+    expect(result.status).toBe(400);
+  });
+
+  it("still accepts a blank alternative url, which means none", () => {
+    const result = handleCreateLink(db, userId, { ...validBody, url_alt: "" });
+    expect(result.status).toBe(201);
+  });
+
+  it("refuses to update a link to a non-http url", () => {
+    const link = createLink(db, userId, { ...validBody, name: "P" });
+
+    const result = handleUpdateLink(db, userId, link.id, {
+      url: "javascript:alert(1)",
+    });
+
+    expect(result.status).toBe(400);
+    expect(getLinkById(db, userId, link.id)?.url).toBe(validBody.url);
+  });
+
+  // Text in an INTEGER column sorts after every number, so the row would sit at
+  // the end of its list for good and hand its position to the next link created.
+  it.each(["zzz", "3", 1.5, null])(
+    "refuses the unusable sort_order %p on create",
+    (sort_order) => {
+      const result = handleCreateLink(db, userId, {
+        ...validBody,
+        sort_order: sort_order as unknown as number,
+      });
+      expect(result.status).toBe(400);
+    },
+  );
+
+  it("refuses an unusable sort_order on update", () => {
+    const link = createLink(db, userId, { ...validBody, name: "P" });
+
+    const result = handleUpdateLink(db, userId, link.id, {
+      sort_order: "zzz" as unknown as number,
+    });
+
+    expect(result.status).toBe(400);
+    expect(getLinkById(db, userId, link.id)?.sort_order).toBe(0);
+  });
+});

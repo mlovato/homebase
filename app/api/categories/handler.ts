@@ -8,6 +8,11 @@ import {
   getUncategorizedLinks,
 } from "@/lib/repositories/categories";
 import type { CreateCategoryInput, UpdateCategoryInput } from "@/lib/types";
+import {
+  isFilledString,
+  isOptionalSortOrder,
+  SORT_ORDER_ERROR,
+} from "@/lib/validation";
 
 export function handleGetCategories(db: Database.Database, userId: number) {
   return {
@@ -21,7 +26,11 @@ export function handleCreateCategory(
   userId: number,
   body: Partial<CreateCategoryInput>,
 ) {
-  if (!body.name?.trim()) return { error: "Name is required", status: 400 };
+  if (!isFilledString(body.name))
+    return { error: "Name is required", status: 400 };
+  if (!isOptionalSortOrder(body.sort_order)) {
+    return { error: SORT_ORDER_ERROR, status: 400 };
+  }
 
   const trimmed = body.name.trim();
   const existing = getCategories(db, userId);
@@ -49,9 +58,12 @@ export function handleUpdateCategory(
 
   // Creating rejects a blank name, so accepting one here would leave a section
   // whose heading renders empty and cannot be told from any other.
-  const name = body.name?.trim();
-  if (body.name !== undefined && !name) {
+  if (body.name !== undefined && !isFilledString(body.name)) {
     return { error: "Name is required", status: 400 };
+  }
+  const name = body.name?.trim();
+  if (!isOptionalSortOrder(body.sort_order)) {
+    return { error: SORT_ORDER_ERROR, status: 400 };
   }
 
   if (name) {

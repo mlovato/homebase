@@ -11,6 +11,7 @@ import {
 import { hashPassword } from "@/lib/password";
 import { VALID_ROLES, AVATAR_OPTIONS } from "@/lib/types";
 import type { UserRole } from "@/lib/types";
+import { isFilledString } from "@/lib/validation";
 
 const MIN_PASSWORD_LENGTH = 4;
 
@@ -35,8 +36,12 @@ export async function handleCreateUser(
   db: Database.Database,
   body: { email?: string; password?: string; role?: string; avatar?: string },
 ) {
-  if (!body.email?.trim()) return { error: "Email is required", status: 400 };
-  if (!body.password || body.password.length < MIN_PASSWORD_LENGTH) {
+  if (!isFilledString(body.email))
+    return { error: "Email is required", status: 400 };
+  if (
+    !isFilledString(body.password) ||
+    body.password.length < MIN_PASSWORD_LENGTH
+  ) {
     return {
       error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters`,
       status: 400,
@@ -98,14 +103,17 @@ export async function handleUpdateUser(
     role?: UserRole;
     avatar?: string | null;
   } = {};
-  if (body.email?.trim()) {
+  if (isFilledString(body.email)) {
     const email = body.email.trim();
     if (emailTakenByOther(db, email, id))
       return { error: "Email already in use", status: 409 };
     updates.email = email;
   }
-  if (body.password) {
-    if (body.password.length < MIN_PASSWORD_LENGTH) {
+  if (body.password !== undefined) {
+    if (
+      !isFilledString(body.password) ||
+      body.password.length < MIN_PASSWORD_LENGTH
+    ) {
       return {
         error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters`,
         status: 400,

@@ -306,3 +306,29 @@ describe("handleDeleteUser guards", () => {
     expect(getUserById(db, victim.id)).toBeUndefined();
   });
 });
+
+// A non-string email reached `.trim()` and a non-string password reached
+// scrypt; both threw and the admin panel could only say "Failed to create user".
+describe("malformed user bodies", () => {
+  it.each([
+    ["a non-string email", { email: 42, password: "pass1234" }],
+    ["a non-string password", { email: "a@b.c", password: 1234 }],
+  ])("reports %s as a validation error on create", async (_label, body) => {
+    const result = await handleCreateUser(
+      db,
+      body as unknown as Parameters<typeof handleCreateUser>[1],
+    );
+
+    expect(result.status).toBe(400);
+  });
+
+  it("reports a non-string password as a validation error on update", async () => {
+    const user = createUser(db, { email: "u@t.com", password_hash: "h" });
+
+    const result = await handleUpdateUser(db, user.id, {
+      password: 1234,
+    } as unknown as Parameters<typeof handleUpdateUser>[2]);
+
+    expect(result.status).toBe(400);
+  });
+});

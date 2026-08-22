@@ -297,3 +297,44 @@ describe("query whitespace", () => {
     expect(screen.getByText("Gitea")).toBeInTheDocument();
   });
 });
+
+describe("SearchModal fuzzy filtering", () => {
+  it("finds a link from an abbreviation with letters in order", async () => {
+    render(<SearchModal links={links} shortcut="mod+k" />);
+    open();
+
+    await userEvent.type(screen.getByRole("combobox"), "gta");
+
+    expect(screen.getByText("Gitea")).toBeInTheDocument();
+    expect(screen.queryByText("Grafana")).not.toBeInTheDocument();
+  });
+
+  it("still finds nothing for letters that are not there", async () => {
+    render(<SearchModal links={links} shortcut="mod+k" />);
+    open();
+
+    await userEvent.type(screen.getByRole("combobox"), "zzz");
+
+    expect(screen.getByText(/no results/i)).toBeInTheDocument();
+  });
+});
+
+describe("SearchModal keyboard selection stays visible", () => {
+  // The list scrolls at eight or so entries, so arrowing down moved the
+  // highlight out of sight and Enter opened a link the user could not see.
+  it("scrolls the newly selected option into view", () => {
+    const scrollIntoView = jest.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scrollIntoView;
+
+    try {
+      render(<SearchModal links={links} shortcut="mod+k" />);
+      open();
+      fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
+
+      expect(scrollIntoView).toHaveBeenCalled();
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+});

@@ -116,6 +116,19 @@ describe("GET /api/favicon", () => {
     expect(afterChange.headers.get("ETag")).not.toBe(oldEtag);
   });
 
+  it("marks the proxied bytes non-sniffable and script-free", async () => {
+    // The bytes come from a third-party host but are served from this app's
+    // origin, so opening the proxy URL directly must not run anything.
+    global.fetch = mockFetchSequence(FAVICON_BYTES) as unknown as typeof fetch;
+
+    const res = await GET(request());
+
+    expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(res.headers.get("Content-Security-Policy")).toContain(
+      "default-src 'none'",
+    );
+  });
+
   it("returns 404 when no favicon can be resolved", async () => {
     global.fetch = jest.fn(async () => ({
       ok: false,

@@ -10,6 +10,7 @@ import {
 } from "@/lib/types";
 import { ShortcutRecorder } from "./ShortcutRecorder";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { useSessionGuard } from "@/lib/hooks/useSessionGuard";
 
 const THEME_OPTIONS: { value: string; label: string; icon: React.ReactNode }[] =
   [
@@ -123,7 +124,7 @@ export function SettingsTab({
     scope: "interval" | "shortcut";
     message: string;
   } | null>(null);
-  const [importMsg, setImportMsg] = useState<{
+  const [transferMsg, setTransferMsg] = useState<{
     ok: boolean;
     text: string;
   } | null>(null);
@@ -137,6 +138,7 @@ export function SettingsTab({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const msgTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
   const [pendingImport, setPendingImport] = useState<string | null>(null);
+  const requireSession = useSessionGuard();
 
   useEffect(() => {
     return () => {
@@ -166,6 +168,7 @@ export function SettingsTab({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      if (!requireSession(res)) return false;
       if (res.ok) return true;
       const data = await res.json().catch(() => ({}));
       setSaveError({
@@ -197,18 +200,27 @@ export function SettingsTab({
   }
 
   async function handleExport() {
-    const res = await fetch("/api/export");
-    if (!res.ok) return;
-    const data = await res.json();
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `homebase-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    setTransferMsg(null);
+    try {
+      const res = await fetch("/api/export");
+      if (!requireSession(res)) return;
+      if (!res.ok) {
+        setTransferMsg({ ok: false, text: `Export failed (${res.status}).` });
+        return;
+      }
+      const data = await res.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `homebase-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setTransferMsg({ ok: false, text: "Export failed — please try again." });
+    }
   }
 
   async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -220,7 +232,7 @@ export function SettingsTab({
     try {
       JSON.parse(text);
     } catch {
-      setImportMsg({ ok: false, text: "Invalid JSON file." });
+      setTransferMsg({ ok: false, text: "Invalid JSON file." });
       return;
     }
 
@@ -234,12 +246,13 @@ export function SettingsTab({
       body: text,
     }).catch(() => null);
 
+    if (res && !requireSession(res)) return;
     if (!res || !res.ok) {
       const err = await res?.json().catch(() => ({}));
-      setImportMsg({ ok: false, text: err?.error ?? "Import failed." });
+      setTransferMsg({ ok: false, text: err?.error ?? "Import failed." });
     } else {
-      setImportMsg({ ok: true, text: "Imported successfully." });
-      msgTimerRef.current = setTimeout(() => setImportMsg(null), 4000);
+      setTransferMsg({ ok: true, text: "Imported successfully." });
+      msgTimerRef.current = setTimeout(() => setTransferMsg(null), 4000);
       await onImported?.();
     }
   }
@@ -261,6 +274,7 @@ export function SettingsTab({
           newPassword: pwNew,
         }),
       });
+      if (!requireSession(res)) return;
       if (res.ok) {
         setPwMsg({ ok: true, text: "Password updated successfully." });
         setPwCurrent("");
@@ -355,11 +369,11 @@ export function SettingsTab({
             onChange={handleImportFile}
           />
         </div>
-        {importMsg && (
+        {transferMsg && (
           <p
-            className={`mt-3 text-xs ${importMsg.ok ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"} retro:text-retro-green`}
+            className={`mt-3 text-xs ${transferMsg.ok ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"} retro:text-retro-green`}
           >
-            {importMsg.text}
+            {transferMsg.text}
           </p>
         )}
         <p className="mt-3 text-xs text-gray-400 dark:text-gray-500 retro:text-retro-dim">

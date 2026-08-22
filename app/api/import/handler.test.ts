@@ -9,7 +9,7 @@ import {
   getCategoriesWithLinks,
   getUncategorizedLinks,
 } from "@/lib/repositories/categories";
-import { createLink } from "@/lib/repositories/links";
+import { createLink, getAllLinks } from "@/lib/repositories/links";
 import { handleImport } from "./handler";
 import type Database from "better-sqlite3";
 
@@ -257,5 +257,74 @@ describe("handleImport trims link fields", () => {
     const link = getCategoriesWithLinks(db, userId)[0].links[0];
     expect(link.name).toBe("Sonarr");
     expect(link.url).toBe("http://sonarr.local");
+  });
+});
+
+describe("import rejects data the app could not use", () => {
+  function withUncategorized(link: Record<string, unknown>) {
+    return { version: 1, categories: [], uncategorized: [link] };
+  }
+
+  const validLink = {
+    name: "Plex",
+    url: "http://plex.local",
+    icon_type: "builtin",
+    icon_value: "plex",
+    sort_order: 0,
+  };
+
+  it("rejects a link whose url the dashboard could not open", () => {
+    const result = handleImport(
+      db,
+      userId,
+      withUncategorized({ ...validLink, url: "javascript:alert(1)" }),
+    );
+    expect(result.status).toBe(400);
+  });
+
+  it("rejects a link whose alternative url is not http", () => {
+    const result = handleImport(
+      db,
+      userId,
+      withUncategorized({ ...validLink, url_alt: "javascript:alert(1)" }),
+    );
+    expect(result.status).toBe(400);
+  });
+
+  // Reported as a schema failure rather than crashing the write with a 500 that
+  // reaches the user as a bare "Import failed".
+  it("reports a non-numeric sort_order as an invalid format", () => {
+    const result = handleImport(
+      db,
+      userId,
+      withUncategorized({ ...validLink, sort_order: "zzz" }),
+    );
+    expect(result.status).toBe(400);
+    expect(result.error).toBe("Invalid import format");
+  });
+
+  it("reports a non-numeric category sort_order as an invalid format", () => {
+    const result = handleImport(db, userId, {
+      version: 1,
+      categories: [{ name: "Media", sort_order: {}, links: [] }],
+      uncategorized: [],
+    });
+    expect(result.status).toBe(400);
+  });
+
+  it("leaves existing data untouched when the file is rejected", () => {
+    createLink(db, userId, {
+      name: "Keep",
+      url: "http://keep.local",
+      icon_type: "builtin",
+    });
+
+    handleImport(
+      db,
+      userId,
+      withUncategorized({ ...validLink, sort_order: "zzz" }),
+    );
+
+    expect(getAllLinks(db, userId).map((l) => l.name)).toEqual(["Keep"]);
   });
 });

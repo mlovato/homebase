@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/apiAuth";
+import { parseRouteId } from "@/lib/validation";
 import { handleUpdateUser, handleDeleteUser } from "../handler";
 
 interface Params {
@@ -15,7 +16,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
   const { id } = await params;
   const body = await request.json().catch(() => ({}));
-  const result = await handleUpdateUser(getDb(), parseInt(id, 10), body);
+  const result = await handleUpdateUser(getDb(), parseRouteId(id), body);
 
   if (result.error) {
     return NextResponse.json(
@@ -33,7 +34,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   }
 
   const { id } = await params;
-  const result = handleDeleteUser(getDb(), parseInt(id, 10), user.userId);
+  const result = handleDeleteUser(getDb(), parseRouteId(id), user.userId);
 
   if (result.error) {
     return NextResponse.json(

@@ -1,0 +1,77 @@
+/**
+ * Input rules shared by the API handlers.
+ *
+ * The admin forms already enforce these, but the forms are not the only caller:
+ * the REST API and the import file reach the same repositories, so a rule that
+ * lives only in a form is not a rule at all.
+ */
+
+/**
+ * Text that is actually present.
+ *
+ * A JSON body can type any field as anything, and handing a non-string to a
+ * query parameter or to scrypt throws — which reached the caller as an empty
+ * 500 rather than the documented validation error.
+ */
+export function isFilledString(value: unknown): value is string {
+  return typeof value === "string" && value.trim() !== "";
+}
+
+/**
+ * A URL the dashboard can actually open.
+ *
+ * React refuses to render a `javascript:` href, so a link stored with one shows
+ * a card that silently does nothing when clicked, and its health dot never
+ * leaves "checking". Anything that is not http(s) is rejected at the boundary
+ * instead.
+ */
+export function isHttpUrl(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  try {
+    const { protocol } = new URL(value.trim());
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The same rule for a field where blank means "not set" — the alternative URL
+ * is stored as NULL when empty, so only a filled one has to be openable.
+ */
+export function isOptionalHttpUrl(value: unknown): boolean {
+  if (value == null) return true;
+  if (typeof value === "string" && value.trim() === "") return true;
+  return isHttpUrl(value);
+}
+
+/**
+ * A usable sort position.
+ *
+ * SQLite keeps a non-numeric value in an INTEGER column as text, and text sorts
+ * after every number — so one bad write pins that row to the end of its list
+ * forever, and `MAX(sort_order) + 1` then hands the same position to the next
+ * row created.
+ */
+export function isSortOrder(value: unknown): boolean {
+  return typeof value === "number" && Number.isSafeInteger(value);
+}
+
+/** The same rule where the field is optional: absent means "append at the end". */
+export function isOptionalSortOrder(value: unknown): boolean {
+  return value === undefined || isSortOrder(value);
+}
+
+export const SORT_ORDER_ERROR = "sort_order must be a whole number";
+
+/**
+ * A path segment that is exactly a whole number.
+ *
+ * `parseInt` reads a leading number and ignores whatever follows, so
+ * `/api/links/1abc` used to address link 1 — a mangled URL quietly edited or
+ * deleted the wrong row. NaN is returned so the handlers' existing check
+ * answers 400.
+ */
+export function parseRouteId(raw: string): number {
+  return /^\d+$/.test(raw) ? Number(raw) : NaN;
+}

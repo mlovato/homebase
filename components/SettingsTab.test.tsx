@@ -1,6 +1,12 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { SettingsTab } from "./SettingsTab";
 
+const push = jest.fn();
+
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push, refresh: jest.fn() }),
+}));
+
 const mockSetTheme = jest.fn();
 
 jest.mock("next-themes", () => ({
@@ -274,5 +280,56 @@ describe("save errors appear next to the control that failed", () => {
     const message = await screen.findByText("Invalid search_shortcut format");
     // The shortcut section, not the interval section further down.
     expect(message.closest("section")?.textContent).toContain("Open search");
+  });
+});
+
+describe("export reports failure", () => {
+  // The click used to return silently on a non-ok response, so a signed-out or
+  // erroring server looked exactly like a broken button.
+  it("shows a message when the export request fails", async () => {
+    global.fetch = jest.fn(async (url: string) => {
+      if (String(url) === "/api/export") {
+        return { ok: false, status: 500, json: async () => ({}) };
+      }
+      return { ok: true, json: async () => ({}) };
+    }) as unknown as typeof fetch;
+
+    render(<SettingsTab />);
+    fireEvent.click(screen.getByRole("button", { name: /export json/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/export failed/i)).toBeInTheDocument(),
+    );
+  });
+
+  it("shows a message when the export request cannot be sent", async () => {
+    global.fetch = jest.fn(async (url: string) => {
+      if (String(url) === "/api/export") throw new Error("offline");
+      return { ok: true, json: async () => ({}) };
+    }) as unknown as typeof fetch;
+
+    render(<SettingsTab />);
+    fireEvent.click(screen.getByRole("button", { name: /export json/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/export failed/i)).toBeInTheDocument(),
+    );
+  });
+});
+
+describe("a refused session leaves the panel", () => {
+  it("sends the user to login instead of reporting an export failure", async () => {
+    global.fetch = jest.fn(async (url: string) => {
+      if (String(url) === "/api/export") {
+        return { ok: false, status: 401, json: async () => ({}) };
+      }
+      return { ok: true, json: async () => ({}) };
+    }) as unknown as typeof fetch;
+
+    render(<SettingsTab />);
+    fireEvent.click(screen.getByRole("button", { name: /export json/i }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/admin/login"));
+    expect(screen.queryByText(/export failed/i)).not.toBeInTheDocument();
   });
 });

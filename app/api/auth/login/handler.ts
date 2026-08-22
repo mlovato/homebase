@@ -2,6 +2,7 @@ import type Database from "better-sqlite3";
 import { createSessionToken } from "@/lib/auth";
 import { DECOY_PASSWORD_HASH, verifyHashedPassword } from "@/lib/password";
 import { getUserByEmail } from "@/lib/repositories/users";
+import { isFilledString } from "@/lib/validation";
 
 export interface LoginRequest {
   email: string;
@@ -19,7 +20,7 @@ export async function handleLogin(
   db: Database.Database,
   jwtSecret: string,
 ): Promise<LoginResult> {
-  if (!body.email || !body.password) {
+  if (!isFilledString(body.email) || !isFilledString(body.password)) {
     return { success: false, error: "Email and password are required" };
   }
 

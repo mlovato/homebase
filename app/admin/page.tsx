@@ -35,12 +35,14 @@ import {
   type LinkDropResult,
 } from "@/lib/linkDrop";
 import { persistReorder } from "@/lib/persistReorder";
+import { useSessionGuard } from "@/lib/hooks/useSessionGuard";
 
 type Modal = LinksTabProps["modal"];
 type Tab = "links" | "settings" | "users";
 
 export default function AdminPage() {
   const router = useRouter();
+  const requireSession = useSessionGuard();
   const [tab, setTab] = useState<Tab>("links");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [categories, setCategories] = useState<CategoryWithLinks[]>([]);
@@ -68,11 +70,7 @@ export default function AdminPage() {
 
   const loadCategories = useCallback(async () => {
     const res = await fetch("/api/categories");
-    if (res.status === 401) {
-      // The session is valid but the account behind it is gone or demoted.
-      router.push("/admin/login");
-      return;
-    }
+    if (!requireSession(res)) return;
     if (!res.ok) {
       showError("Failed to load links. Please refresh.");
       return;
@@ -80,7 +78,7 @@ export default function AdminPage() {
     const data = await res.json();
     setCategories(data.categories);
     setUncategorized(data.uncategorized);
-  }, [showError, router]);
+  }, [showError, requireSession]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- async data fetch on mount
@@ -123,6 +121,7 @@ export default function AdminPage() {
   ): Promise<boolean> {
     try {
       const res = await fn();
+      if (!requireSession(res)) return false;
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         showError(data.error ?? `Request failed (${res.status})`);

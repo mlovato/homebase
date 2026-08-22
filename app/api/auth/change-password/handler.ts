@@ -1,6 +1,7 @@
 import type Database from "better-sqlite3";
 import { hashPassword, verifyHashedPassword } from "@/lib/password";
 import { getUserByIdWithHash, updateUser } from "@/lib/repositories/users";
+import { isFilledString } from "@/lib/validation";
 
 const MIN_PASSWORD_LENGTH = 4;
 
@@ -19,7 +20,10 @@ export async function handleChangePassword(
   userId: number,
   body: ChangePasswordInput,
 ): Promise<ChangePasswordResult> {
-  if (!body.newPassword) {
+  if (!isFilledString(body.currentPassword)) {
+    return { success: false, error: "Current password is required" };
+  }
+  if (!isFilledString(body.newPassword)) {
     return { success: false, error: "New password is required" };
   }
   if (body.newPassword.length < MIN_PASSWORD_LENGTH) {

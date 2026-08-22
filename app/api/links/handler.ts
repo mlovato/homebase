@@ -8,6 +8,16 @@ import {
 import { getCategoryById } from "@/lib/repositories/categories";
 import type { CreateLinkInput, UpdateLinkInput } from "@/lib/types";
 import { VALID_ICON_TYPES } from "@/lib/types";
+import {
+  isFilledString,
+  isHttpUrl,
+  isOptionalHttpUrl,
+  isOptionalSortOrder,
+  SORT_ORDER_ERROR,
+} from "@/lib/validation";
+
+const URL_ERROR = "URL must start with http:// or https://";
+const ALT_URL_ERROR = "Alternative URL must start with http:// or https://";
 
 /**
  * A link pointing at someone else's category satisfies the foreign key, but the
@@ -33,8 +43,16 @@ export function handleCreateLink(
   userId: number,
   body: Partial<CreateLinkInput>,
 ) {
-  if (!body.name?.trim()) return { error: "Name is required", status: 400 };
-  if (!body.url?.trim()) return { error: "URL is required", status: 400 };
+  if (!isFilledString(body.name))
+    return { error: "Name is required", status: 400 };
+  if (!isFilledString(body.url))
+    return { error: "URL is required", status: 400 };
+  if (!isHttpUrl(body.url)) return { error: URL_ERROR, status: 400 };
+  if (!isOptionalHttpUrl(body.url_alt))
+    return { error: ALT_URL_ERROR, status: 400 };
+  if (!isOptionalSortOrder(body.sort_order)) {
+    return { error: SORT_ORDER_ERROR, status: 400 };
+  }
   if (!body.icon_type || !VALID_ICON_TYPES.includes(body.icon_type)) {
     return { error: "icon_type must be builtin, upload, or url", status: 400 };
   }
@@ -65,13 +83,19 @@ export function handleUpdateLink(
   // Blanking a field is not the same as omitting it: an empty name leaves the
   // card with no label, and an empty url renders href="" so the card navigates
   // back to the dashboard. Creating rejects both, so updating must too.
-  const name = body.name?.trim();
-  const url = body.url?.trim();
-  if (body.name !== undefined && !name) {
+  if (body.name !== undefined && !isFilledString(body.name)) {
     return { error: "Name is required", status: 400 };
   }
-  if (body.url !== undefined && !url) {
-    return { error: "URL is required", status: 400 };
+  if (body.url !== undefined) {
+    if (!isFilledString(body.url))
+      return { error: "URL is required", status: 400 };
+    if (!isHttpUrl(body.url)) return { error: URL_ERROR, status: 400 };
+  }
+  if (body.url_alt !== undefined && !isOptionalHttpUrl(body.url_alt)) {
+    return { error: ALT_URL_ERROR, status: 400 };
+  }
+  if (!isOptionalSortOrder(body.sort_order)) {
+    return { error: SORT_ORDER_ERROR, status: 400 };
   }
   if (
     body.icon_type !== undefined &&
@@ -87,8 +111,8 @@ export function handleUpdateLink(
   // key holding `undefined` would overwrite the stored value with NULL.
   const updated = updateLink(db, userId, id, {
     ...body,
-    ...(name && { name }),
-    ...(url && { url }),
+    ...(body.name !== undefined && { name: body.name.trim() }),
+    ...(body.url !== undefined && { url: body.url.trim() }),
   });
   if (!updated) return { error: "Not found", status: 404 };
 

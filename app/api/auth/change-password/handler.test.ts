@@ -78,3 +78,28 @@ describe("handleChangePassword", () => {
     expect(result).toEqual({ success: false, error: "User not found" });
   });
 });
+
+// The route has no catch of its own, so a throw here reached the user as an
+// empty 500 and the settings form could only say "Failed to change password".
+describe("malformed request body", () => {
+  it.each([
+    ["a missing current password", { newPassword: "newpass" }],
+    [
+      "a non-string current password",
+      { currentPassword: 1, newPassword: "np" },
+    ],
+    [
+      "a non-string new password",
+      { currentPassword: "old", newPassword: 1234 },
+    ],
+  ])("reports %s as a validation error", async (_label, body) => {
+    const result = await handleChangePassword(
+      db,
+      userId,
+      body as unknown as Parameters<typeof handleChangePassword>[2],
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeTruthy();
+  });
+});

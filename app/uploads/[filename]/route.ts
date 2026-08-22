@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import path from "path";
+import { FOREIGN_CONTENT_HEADERS } from "@/lib/constants";
 import {
   UPLOADS_DIR,
   isStoredUploadName,
@@ -34,8 +35,7 @@ export async function GET(_request: Request, { params }: Params) {
         headers: {
           "Content-Type": contentType,
           "Cache-Control": "public, max-age=31536000, immutable",
-          "X-Content-Type-Options": "nosniff",
-          "Content-Security-Policy": "default-src 'none'; sandbox",
+          ...FOREIGN_CONTENT_HEADERS,
         },
       },
     );

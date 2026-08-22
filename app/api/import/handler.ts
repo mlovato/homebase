@@ -3,15 +3,21 @@ import { createCategory } from "@/lib/repositories/categories";
 import { createLink } from "@/lib/repositories/links";
 import type { ExportData, IconType } from "@/lib/types";
 import { VALID_ICON_TYPES } from "@/lib/types";
+import {
+  isFilledString,
+  isHttpUrl,
+  isOptionalHttpUrl,
+  isOptionalSortOrder,
+} from "@/lib/validation";
 
 function isValidLink(l: unknown): boolean {
   if (!l || typeof l !== "object") return false;
   const link = l as Record<string, unknown>;
   return (
-    typeof link.name === "string" &&
-    link.name.trim() !== "" &&
-    typeof link.url === "string" &&
-    link.url.trim() !== "" &&
+    isFilledString(link.name) &&
+    isHttpUrl(link.url) &&
+    isOptionalHttpUrl(link.url_alt) &&
+    isOptionalSortOrder(link.sort_order) &&
     VALID_ICON_TYPES.includes(link.icon_type as IconType)
   );
 }
@@ -37,8 +43,8 @@ function isValidBody(data: unknown): data is ExportData {
       if (!c || typeof c !== "object") return false;
       const cat = c as Record<string, unknown>;
       return (
-        typeof cat.name === "string" &&
-        cat.name.trim() !== "" &&
+        isFilledString(cat.name) &&
+        isOptionalSortOrder(cat.sort_order) &&
         Array.isArray(cat.links) &&
         cat.links.every(isValidLink)
       );

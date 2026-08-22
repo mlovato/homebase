@@ -90,12 +90,15 @@ Client                          Server
   │  200 (rendered HTML)          │
   │◄──────────────────────────────┤
   │                               │
-  │  GET  /api/health/batch       │
-  │  { urls: [...] }              │
+  │  GET  /api/health?url=…       │
+  │  (one request per link URL)   │
   ├──────────────────────────────►│
-  │                               ├── HEAD request to each URL (5s timeout)
-  │  200 { url → status }         │
+  │                               ├── HEAD request to that URL (5s timeout)
+  │  200 { status }               │
   │◄──────────────────────────────┤
+  │  then a no-cors HEAD straight │
+  │  from the browser, which is   │
+  │  what decides up/down         │
   │                               │
   │  (repeats on interval)        │
 ```

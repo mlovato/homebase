@@ -10,6 +10,7 @@ import {
 } from "react";
 import type { SearchLink, SearchShortcut } from "@/lib/types";
 import { parseShortcut } from "@/lib/types";
+import { fuzzyMatches } from "@/lib/fuzzy";
 import { LinkIcon } from "./LinkIcon";
 import { HealthCheckContext } from "./HealthCheckContext";
 
@@ -62,6 +63,7 @@ export function SearchModal({
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const selectedRef = useRef<HTMLAnchorElement>(null);
 
   function resolveUrl(link: SearchLink): string {
     return statusMap[link.url] === "down" && link.url_alt != null
@@ -70,9 +72,9 @@ export function SearchModal({
   }
 
   const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
+    const needle = query.trim();
     if (needle === "") return links;
-    return links.filter((l) => l.name.toLowerCase().includes(needle));
+    return links.filter((l) => fuzzyMatches(needle, l.name));
   }, [query, links]);
 
   const close = useCallback(() => {
@@ -105,6 +107,12 @@ export function SearchModal({
   useEffect(() => {
     if (open) inputRef.current?.focus();
   }, [open]);
+
+  // The result list scrolls, so the highlight has to be brought along with the
+  // arrow keys — otherwise Enter opens a link that is no longer on screen.
+  useEffect(() => {
+    selectedRef.current?.scrollIntoView({ block: "nearest" });
+  }, [selectedIndex]);
 
   function onInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     const count = Math.max(filtered.length, 1);
@@ -189,6 +197,7 @@ export function SearchModal({
           {filtered.map((link, i) => (
             <li key={link.id} role="none">
               <a
+                ref={i === selectedIndex ? selectedRef : undefined}
                 role="option"
                 aria-selected={i === selectedIndex}
                 href={resolveUrl(link)}

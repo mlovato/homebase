@@ -108,6 +108,33 @@ describe("resolveFavicon", () => {
     expect(result).toBe("http://opspilot.local/favicon.ico");
   });
 
+  // github.com ships `data-base-href` in the same <link> as `href`, and a word
+  // boundary sits inside it, so the resolver used to pick the extension-less
+  // URL — which 404s, leaving the card with a letter avatar instead of an icon.
+  it("ignores an attribute that merely ends in href", async () => {
+    const html =
+      `<link rel="icon" class="js-site-favicon" type="image/svg+xml" ` +
+      `href="https://cdn.example.com/favicon.svg" ` +
+      `data-base-href="https://cdn.example.com/favicon">`;
+    const result = await resolveFavicon(
+      "http://example.com",
+      mockFetch({ "http://example.com": { ok: true, body: html } }),
+    );
+    expect(result).toBe("https://cdn.example.com/favicon.svg");
+  });
+
+  it("ignores an attribute that merely ends in rel", async () => {
+    const html = `<link data-rel="icon" href="/wrong.png">`;
+    const result = await resolveFavicon(
+      "http://example.com",
+      mockFetch({
+        "http://example.com": { ok: true, body: html },
+        "http://example.com/favicon.ico": { ok: true },
+      }),
+    );
+    expect(result).toBe("http://example.com/favicon.ico");
+  });
+
   it("handles query params in favicon href", async () => {
     const html = `<link rel="icon" href="/icon.png?v=123">`;
     const result = await resolveFavicon(
@@ -242,5 +269,46 @@ describe("favicon fetches are bounded", () => {
       }),
     );
     expect(result).not.toBeNull();
+  });
+});
+
+describe("favicon content types are restricted to images", () => {
+  it.each([
+    ["text/html", "HTML would run as a document on our origin"],
+    ["application/javascript", "script served from our own origin"],
+    ["text/plain", "not an image at all"],
+    ["application/octet-stream", "a soft 404 pretending to be a download"],
+  ])("rejects %s (%s)", async (contentType) => {
+    const result = await fetchFaviconImage(
+      "http://example.com/icon",
+      mockImageFetch(new Uint8Array([1, 2, 3]), contentType),
+    );
+    expect(result).toBeNull();
+  });
+
+  it("accepts an image type declared with a charset parameter", async () => {
+    const result = await fetchFaviconImage(
+      "http://example.com/icon.png",
+      mockImageFetch(new Uint8Array([1]), "IMAGE/PNG; charset=binary"),
+    );
+    expect(result?.contentType).toBe("image/png");
+  });
+
+  // Most modern sites have no other favicon. The route serves it sandboxed, so
+  // it cannot script or reach anything on this origin.
+  it("accepts svg, which the route neutralises with its headers", async () => {
+    const result = await fetchFaviconImage(
+      "http://example.com/favicon.svg",
+      mockImageFetch(new Uint8Array([1]), "image/svg+xml"),
+    );
+    expect(result?.contentType).toBe("image/svg+xml");
+  });
+
+  it("accepts the IANA name for .ico", async () => {
+    const result = await fetchFaviconImage(
+      "http://example.com/favicon.ico",
+      mockImageFetch(new Uint8Array([1]), "image/vnd.microsoft.icon"),
+    );
+    expect(result?.contentType).toBe("image/vnd.microsoft.icon");
   });
 });

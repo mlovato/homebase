@@ -6,6 +6,8 @@ import { AVATAR_OPTIONS } from "@/lib/types";
 import { UserAvatar } from "./UserAvatar";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { formatStoredDate } from "@/lib/formatDate";
+import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
+import { useSessionGuard } from "@/lib/hooks/useSessionGuard";
 
 const inputClass =
   "px-3 py-2 rounded-lg retro:rounded-none border border-gray-300 dark:border-gray-600 retro:border-retro-dim bg-white dark:bg-gray-700 retro:bg-retro-bg text-gray-900 dark:text-gray-100 retro:text-retro-green focus:outline-none focus:ring-2 focus:ring-indigo-500 retro:focus:ring-retro-green text-sm";
@@ -22,10 +24,12 @@ export function UsersTab({ showError }: UsersTabProps) {
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<Modal>({ type: "none" });
   const [pendingDelete, setPendingDelete] = useState<User | null>(null);
+  const requireSession = useSessionGuard();
 
   const loadUsers = useCallback(async () => {
     try {
       const res = await fetch("/api/users");
+      if (!requireSession(res)) return;
       if (!res.ok) {
         showError("Failed to load users");
         return;
@@ -34,7 +38,7 @@ export function UsersTab({ showError }: UsersTabProps) {
     } catch {
       showError("Network error loading users");
     }
-  }, [showError]);
+  }, [showError, requireSession]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- async data fetch on mount
@@ -44,6 +48,7 @@ export function UsersTab({ showError }: UsersTabProps) {
   async function executeDeleteUser(user: User) {
     try {
       const res = await fetch(`/api/users/${user.id}`, { method: "DELETE" });
+      if (!requireSession(res)) return;
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         showError(data.error ?? "Failed to delete user");
@@ -228,6 +233,8 @@ function UserFormModal({
   );
   const [saving, setSaving] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const requireSession = useSessionGuard();
+  useEscapeKey(true, onClose);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -262,6 +269,7 @@ function UserFormModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      if (!requireSession(res)) return;
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         showError(

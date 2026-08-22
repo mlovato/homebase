@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type {
   CategoryWithLinks,
   Link,
@@ -36,6 +36,7 @@ import {
   sortableCategoryId,
   UNCATEGORIZED_LINK_CONTAINER,
 } from "@/lib/linkDrop";
+import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 const collisionDetection: CollisionDetection = (args) => {
   const pointer = pointerWithin(args);
@@ -88,6 +89,8 @@ export function LinksTab({
   intervalMs,
 }: LinksTabProps) {
   const [activeLink, setActiveLink] = useState<Link | null>(null);
+  const closeModal = useCallback(() => setModal({ type: "none" }), [setModal]);
+  useEscapeKey(modal.type !== "none", closeModal);
 
   function handleDragStart(event: DragStartEvent) {
     if (event.active.data.current?.type !== DND_TYPE.LINK) return;

@@ -71,4 +71,23 @@ describe("ConfirmDialog", () => {
     render(<ConfirmDialog {...defaultProps} cancelLabel="Go back" />);
     expect(screen.getByRole("button", { name: "Go back" })).toBeInTheDocument();
   });
+
+  // docs/manual-testing-plan.md §13.2 asks for this; a delete prompt used to be
+  // dismissable only by mouse.
+  it("calls onCancel on Escape", () => {
+    render(<ConfirmDialog {...defaultProps} />);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(defaultProps.onCancel).toHaveBeenCalledTimes(1);
+    expect(defaultProps.onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("ignores Escape while closed", () => {
+    render(<ConfirmDialog {...defaultProps} open={false} />);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(defaultProps.onCancel).not.toHaveBeenCalled();
+  });
 });

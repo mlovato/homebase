@@ -4,7 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { SearchModal } from "./SearchModal";
 import { UserAvatar } from "./UserAvatar";
-import type { SearchLink, SearchShortcut, User } from "@/lib/types";
+import {
+  formatShortcut,
+  type SearchLink,
+  type SearchShortcut,
+  type User,
+} from "@/lib/types";
 
 interface DashboardHeaderProps {
   user: User | null;
@@ -32,7 +37,7 @@ export function DashboardHeader({
         </h1>
         <div className="flex items-center gap-3">
           <button
-            className="md:hidden p-2 -mr-1 rounded-lg text-gray-500 dark:text-gray-400 retro:text-retro-dim hover:bg-gray-100 dark:hover:bg-gray-700 retro:hover:bg-transparent transition-colors"
+            className="flex items-center gap-2 p-2 -mr-1 rounded-lg text-gray-500 dark:text-gray-400 retro:text-retro-dim hover:bg-gray-100 dark:hover:bg-gray-700 retro:hover:bg-transparent transition-colors"
             onClick={() => setSearchOpen(true)}
             aria-label="Search"
           >
@@ -49,6 +54,12 @@ export function DashboardHeader({
                 d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"
               />
             </svg>
+            <kbd
+              data-testid="search-shortcut-hint"
+              className="hidden sm:inline text-xs font-mono border border-gray-200 dark:border-gray-600 retro:border-retro-dim rounded px-1.5 py-0.5"
+            >
+              {formatShortcut(shortcut)}
+            </kbd>
           </button>
           <Link
             href="/admin"

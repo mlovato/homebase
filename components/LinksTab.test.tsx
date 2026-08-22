@@ -187,3 +187,29 @@ describe("uncategorized drop target", () => {
     expect(screen.getByText(/drop a link here/i)).toBeInTheDocument();
   });
 });
+
+describe("LinksTab modal keyboard exit", () => {
+  it("closes the open form on Escape", () => {
+    const setModal = jest.fn();
+    render(
+      <LinksTab
+        {...baseProps}
+        modal={{ type: "create-category" }}
+        setModal={setModal}
+      />,
+    );
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(setModal).toHaveBeenCalledWith({ type: "none" });
+  });
+
+  it("does not fire while no form is open", () => {
+    const setModal = jest.fn();
+    render(<LinksTab {...baseProps} setModal={setModal} />);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(setModal).not.toHaveBeenCalled();
+  });
+});

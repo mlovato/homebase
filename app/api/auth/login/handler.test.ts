@@ -133,3 +133,24 @@ describe("handleLogin", () => {
     expect(verified.role).toBe("user");
   });
 });
+
+// A hand-rolled or buggy client can send any JSON shape. Passing a non-string
+// straight to the query or to scrypt threw, and the caller saw an empty 500
+// instead of the documented 401/400.
+describe("malformed credentials", () => {
+  it.each([
+    ["an object email", { email: { $ne: null }, password: "Secret123!" }],
+    ["a numeric email", { email: 42, password: "Secret123!" }],
+    ["an object password", { email: "admin@test.com", password: {} }],
+    ["a numeric password", { email: "admin@test.com", password: 1234 }],
+  ])("refuses %s without throwing", async (_label, body) => {
+    const result = await handleLogin(
+      body as unknown as Parameters<typeof handleLogin>[0],
+      db,
+      JWT_SECRET,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeTruthy();
+  });
+});

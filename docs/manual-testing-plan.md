@@ -18,9 +18,9 @@ Last updated: v1.5.0
 
 - [ ] Submit with both fields empty -- validation errors are shown
 - [ ] Submit with an invalid email format -- validation error is shown
-- [ ] Submit with valid email but wrong password -- "Invalid credentials" error is shown
-- [ ] Submit with a non-existent email -- "Invalid credentials" error is shown (no user enumeration)
-- [ ] Submit with password shorter than 4 characters -- validation error is shown
+- [ ] Submit with valid email but wrong password -- "Invalid email or password" is shown
+- [ ] Submit with a non-existent email -- the same message, in the same time (no user enumeration)
+- [ ] Submit with a password shorter than 4 characters -- the same generic message (the login form states no policy)
 
 ### 1.3 Successful Login
 
@@ -40,6 +40,7 @@ Last updated: v1.5.0
 
 - [ ] Authenticated user can access the dashboard (`/`)
 - [ ] Authenticated user can access the admin panel (`/admin`)
+- [ ] Delete the signed-in account from another session, then act in any admin tab (save a link, load Users, export, change password) -- the panel navigates to `/admin/login` rather than showing "Unauthorized"
 - [ ] Clicking Logout clears the session
 - [ ] After logout, user is redirected to `/admin/login`
 - [ ] After logout, accessing `/` redirects to `/admin/login`
@@ -55,7 +56,8 @@ Last updated: v1.5.0
 ### 3.1 Layout & Header
 
 - [ ] Dashboard loads without errors after login
-- [ ] Header displays the search button (mobile) or search shortcut hint
+- [ ] Header displays the search control at every width, naming the current shortcut from tablet up
+- [ ] Clicking that control opens the search modal on desktop too
 - [ ] Header displays the user avatar linking to the admin panel
 - [ ] User avatar shows the assigned emoji or email initial
 
@@ -102,6 +104,7 @@ Last updated: v1.5.0
 ### 4.2 Search Behavior
 
 - [ ] Type a query -- results are filtered in real-time using fuzzy search
+- [ ] An abbreviation whose letters appear in order (e.g. "gta" for "Gitea") matches; one whose letters do not, does not
 - [ ] Results display matching link names and icons
 - [ ] Results update as the query changes
 - [ ] Empty query shows no results or all links
@@ -149,6 +152,7 @@ Last updated: v1.5.0
 - [ ] Submit with empty URL -- validation error is shown
 - [ ] Submit a LAN hostname with no dot (e.g. `http://nas:32400`) -- link is created
 - [ ] Submit a bare word with no scheme or port (e.g. `bibbo`) -- validation error is shown
+- [ ] `POST /api/links` with a non-`http(s)` url (e.g. `javascript:alert(1)`) -- rejected with 400
 - [ ] Submit with a category selected -- link is placed in that category
 - [ ] Submit with no category selected -- link appears as uncategorized
 - [ ] Click edit on a link -- edit form appears with current values
@@ -217,6 +221,7 @@ Last updated: v1.5.0
 ### 6.5 Import & Export
 
 - [ ] Click Export -- JSON file is downloaded
+- [ ] Click Export while signed out in another tab -- an "Export failed" message is shown, not silence
 - [ ] Exported file contains version, timestamp, categories, and uncategorized links
 - [ ] Exported file contains link details: name, url, icon_type, icon_value, sort_order
 - [ ] Click Import -- file picker opens
@@ -224,6 +229,7 @@ Last updated: v1.5.0
 - [ ] After import, dashboard reflects the imported data
 - [ ] Import an invalid JSON file -- error is shown
 - [ ] Import a file with incorrect format/version -- error is shown
+- [ ] Import a file whose link url is not `http(s)`, or whose sort_order is not a number -- "Invalid import format", existing data untouched
 
 ---
 
@@ -298,7 +304,10 @@ Last updated: v1.5.0
 
 - [ ] `GET /api/favicon?url=<website-url>` returns the favicon image
 - [ ] Favicon is extracted from the website's HTML meta tags
+- [ ] A site with an SVG favicon and a `data-base-href` beside it (e.g. github.com) still resolves its icon
 - [ ] Falls back to `/favicon.ico` at the domain root if no meta tag is found
+- [ ] A url whose favicon answers with HTML or script returns 404, not those bytes
+- [ ] Every 200 carries `X-Content-Type-Options: nosniff` and `Content-Security-Policy: default-src 'none'; sandbox`
 - [ ] Returns an appropriate error for unreachable URLs
 
 ---
@@ -308,7 +317,7 @@ Last updated: v1.5.0
 - [ ] `GET /api/icons?q=gi` returns matching icons (min 2 characters)
 - [ ] `GET /api/icons?q=g` with 1 character -- returns empty or validation error
 - [ ] Results return top 8 matching icons from the Dashboard Icons CDN
-- [ ] Fuzzy matching works (e.g., "gthb" returns "github")
+- [ ] Fuzzy matching works (e.g., "gthb" returns "github"), and a literal match still ranks first
 
 ---
 
@@ -351,12 +360,13 @@ Last updated: v1.5.0
 - [ ] `POST /api/links` with valid name, url, icon_type -- creates link
 - [ ] `POST /api/links` with missing required fields -- returns validation error
 - [ ] `PUT /api/links/{id}` with updated fields -- updates link
+- [ ] `PUT /api/links/{id}` with a non-numeric id (e.g. `1abc`) -- 400, and link 1 is untouched
 - [ ] `DELETE /api/links/{id}` -- deletes link
 
 ### 12.4 Users API (Admin Only)
 
 - [ ] `GET /api/users` as admin -- returns all users
-- [ ] `GET /api/users` as non-admin -- returns 403 error
+- [ ] `GET /api/users` as non-admin -- returns 401 error
 - [ ] `POST /api/users` with valid data -- creates user
 - [ ] `POST /api/users` with duplicate email -- returns validation error
 - [ ] `PUT /api/users/{id}` -- updates user
@@ -382,8 +392,9 @@ Last updated: v1.5.0
 
 ### 12.8 Unauthenticated Access
 
-- [ ] All API endpoints (except `/api/auth/login`) return 401 for unauthenticated requests
-- [ ] `/api/auth/login` is accessible without authentication
+- [ ] All API endpoints return 401 for unauthenticated requests, except the three below
+- [ ] `/api/auth/login`, `/api/public/services` and `/api/openapi` are accessible without authentication
+- [ ] `GET /api/icons?q=…` without a session returns 401 and makes no upstream request
 
 ---
 
@@ -406,7 +417,8 @@ Last updated: v1.5.0
 - [ ] Forms can be submitted with the Enter key
 - [ ] Buttons and links have visible focus indicators
 - [ ] Search modal can be fully operated via keyboard
-- [ ] Confirmation dialogs can be dismissed with Escape
+- [ ] Every modal can be dismissed with Escape: confirmation dialogs, the link and category forms, the user form, and search
+- [ ] Arrowing through search results keeps the highlighted entry in view
 
 ### 13.3 Browser Navigation
 

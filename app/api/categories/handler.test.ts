@@ -3,7 +3,11 @@
  */
 import { createTestDb } from "@/lib/db";
 import { createUser } from "@/lib/repositories/users";
-import { createCategory, getCategoryById } from "@/lib/repositories/categories";
+import {
+  createCategory,
+  getCategories,
+  getCategoryById,
+} from "@/lib/repositories/categories";
 import {
   handleGetCategories,
   handleCreateCategory,
@@ -151,5 +155,51 @@ describe("handleUpdateCategory name validation", () => {
       name: "  Movies  ",
     });
     expect(result.data).toMatchObject({ name: "Movies" });
+  });
+});
+
+describe("category names must be text", () => {
+  it("refuses a non-string name on create without throwing", () => {
+    const result = handleCreateCategory(db, userId, {
+      name: 42,
+    } as unknown as Parameters<typeof handleCreateCategory>[2]);
+
+    expect(result.status).toBe(400);
+  });
+
+  it("refuses a non-string name on update without throwing", () => {
+    const created = handleCreateCategory(db, userId, { name: "Media" });
+    const id = (created.data as { id: number }).id;
+
+    const result = handleUpdateCategory(db, userId, id, {
+      name: 42,
+    } as unknown as Parameters<typeof handleUpdateCategory>[3]);
+
+    expect(result.status).toBe(400);
+    expect(getCategories(db, userId)[0].name).toBe("Media");
+  });
+});
+
+describe("category sort positions must be usable", () => {
+  // Text in an INTEGER column sorts after every number, so the section would be
+  // stuck at the bottom of the dashboard and could not be dragged back.
+  it("refuses a non-numeric sort_order on create", () => {
+    const result = handleCreateCategory(db, userId, {
+      name: "Media",
+      sort_order: "zzz" as unknown as number,
+    });
+    expect(result.status).toBe(400);
+  });
+
+  it("refuses a non-numeric sort_order on update", () => {
+    const created = handleCreateCategory(db, userId, { name: "Media" });
+    const id = (created.data as { id: number }).id;
+
+    const result = handleUpdateCategory(db, userId, id, {
+      sort_order: "zzz" as unknown as number,
+    });
+
+    expect(result.status).toBe(400);
+    expect(getCategories(db, userId)[0].sort_order).toBe(0);
   });
 });

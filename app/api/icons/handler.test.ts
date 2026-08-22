@@ -200,3 +200,31 @@ describe("metadata cache lifetime", () => {
     expect(results.length).toBeGreaterThan(0);
   });
 });
+
+// docs/manual-testing-plan.md §10 asks for "gthb" to find "github"; a plain
+// substring test returned nothing for any abbreviation or dropped vowel.
+describe("fuzzy matching", () => {
+  const meta = {
+    github: { aliases: [] },
+    "home-assistant": { aliases: [] },
+    plex: { aliases: [] },
+  };
+
+  it.each([
+    ["gthb", "github"],
+    ["hmasst", "home-assistant"],
+  ])("finds %s", async (query, slug) => {
+    const results = await searchIcons(query, mockFetch(meta));
+    expect(results.map((r) => r.slug)).toContain(slug);
+  });
+
+  it("still ranks a literal match above a subsequence one", async () => {
+    const results = await searchIcons("plex", mockFetch(meta));
+    expect(results[0].slug).toBe("plex");
+  });
+
+  it("does not match letters that appear out of order", async () => {
+    const results = await searchIcons("xelp", mockFetch(meta));
+    expect(results).toEqual([]);
+  });
+});
