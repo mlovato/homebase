@@ -2,7 +2,8 @@
  * @jest-environment node
  */
 import { createTestDb } from "@/lib/db";
-import { createUser, getUserById } from "@/lib/repositories/users";
+import { hashPassword } from "@/lib/password";
+import { createUser, getAllUsers, getUserById } from "@/lib/repositories/users";
 import {
   handleListUsers,
   handleCreateUser,
@@ -10,6 +11,15 @@ import {
   handleDeleteUser,
 } from "./handler";
 import type Database from "better-sqlite3";
+
+jest.mock("@/lib/password", () => {
+  const actual = jest.requireActual("@/lib/password");
+  return { ...actual, hashPassword: jest.fn(actual.hashPassword) };
+});
+
+const mockHashPassword = hashPassword as jest.MockedFunction<
+  typeof hashPassword
+>;
 
 let db: Database.Database;
 
@@ -330,5 +340,41 @@ describe("malformed user bodies", () => {
     } as unknown as Parameters<typeof handleUpdateUser>[2]);
 
     expect(result.status).toBe(400);
+  });
+});
+
+// Forcing the competing write from inside the hash pins the constraint path
+// itself, rather than racing two calls and hoping the interleaving lands right.
+describe("a duplicate email that races past the pre-check", () => {
+  it("reports a conflict rather than crashing on create", async () => {
+    mockHashPassword.mockImplementationOnce(async () => {
+      createUser(db, { email: "race@t.com", password_hash: "someone-else" });
+      return "hashed";
+    });
+
+    const result = await handleCreateUser(db, {
+      email: "race@t.com",
+      password: "pass1234",
+    });
+
+    expect(result.status).toBe(409);
+    expect(result.error).toBe("Email already in use");
+    expect(getAllUsers(db)).toHaveLength(1);
+  });
+
+  it("reports a conflict rather than crashing on update", async () => {
+    const mover = createUser(db, { email: "mover@t.com", password_hash: "h" });
+    mockHashPassword.mockImplementationOnce(async () => {
+      createUser(db, { email: "taken@t.com", password_hash: "someone-else" });
+      return "hashed";
+    });
+
+    const result = await handleUpdateUser(db, mover.id, {
+      email: "taken@t.com",
+      password: "pass1234",
+    });
+
+    expect(result.status).toBe(409);
+    expect(getUserById(db, mover.id)?.email).toBe("mover@t.com");
   });
 });

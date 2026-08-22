@@ -22,6 +22,33 @@ beforeEach(() => {
 
 afterEach(() => jest.clearAllMocks());
 
+const importPayload = JSON.stringify({
+  version: 1,
+  categories: [],
+  uncategorized: [],
+});
+
+/** jsdom's File has no text() of its own, so the component's read needs one. */
+function selectImportFile(container: HTMLElement) {
+  const input = container.querySelector(
+    'input[type="file"]',
+  ) as HTMLInputElement;
+  const file = new File([importPayload], "backup.json", {
+    type: "application/json",
+  });
+  Object.defineProperty(file, "text", { value: async () => importPayload });
+  fireEvent.change(input, { target: { files: [file] } });
+}
+
+function mockImportResponse(response: unknown) {
+  global.fetch = jest.fn(async (url: string) => {
+    if (String(url) === "/api/import") {
+      return { ok: true, status: 200, json: async () => response };
+    }
+    return { ok: true, status: 200, json: async () => ({}) };
+  }) as unknown as typeof fetch;
+}
+
 describe("SettingsTab", () => {
   it("renders the Settings heading", () => {
     render(<SettingsTab />);
@@ -106,23 +133,6 @@ describe("SettingsTab", () => {
 });
 
 describe("import notifies the parent", () => {
-  const payload = JSON.stringify({
-    version: 1,
-    categories: [],
-    uncategorized: [],
-  });
-
-  function selectImportFile(container: HTMLElement) {
-    const input = container.querySelector(
-      'input[type="file"]',
-    ) as HTMLInputElement;
-    const file = new File([payload], "backup.json", {
-      type: "application/json",
-    });
-    Object.defineProperty(file, "text", { value: async () => payload });
-    fireEvent.change(input, { target: { files: [file] } });
-  }
-
   it("calls onImported after a successful import", async () => {
     const onImported = jest.fn();
     global.fetch = jest.fn(async (url: string | URL | Request) => {
@@ -331,5 +341,37 @@ describe("a refused session leaves the panel", () => {
 
     await waitFor(() => expect(push).toHaveBeenCalledWith("/admin/login"));
     expect(screen.queryByText(/export failed/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("import warns about icons it could not restore", () => {
+  it("says how many uploaded icons are missing", async () => {
+    const { container } = render(<SettingsTab />);
+    mockImportResponse({ ok: true, missingIcons: 2 });
+    selectImportFile(container);
+
+    await waitFor(() =>
+      expect(screen.getByText("Yes, import")).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByText("Yes, import"));
+
+    await waitFor(() =>
+      expect(screen.getByText(/2 uploaded icons/i)).toBeInTheDocument(),
+    );
+  });
+
+  it("stays quiet when every icon was found", async () => {
+    const { container } = render(<SettingsTab />);
+    mockImportResponse({ ok: true, missingIcons: 0 });
+    selectImportFile(container);
+
+    await waitFor(() =>
+      expect(screen.getByText("Yes, import")).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByText("Yes, import"));
+
+    await waitFor(() =>
+      expect(screen.getByText("Imported successfully.")).toBeInTheDocument(),
+    );
   });
 });

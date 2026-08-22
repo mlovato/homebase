@@ -1,7 +1,8 @@
 import type Database from "better-sqlite3";
+import { storedUploadExists } from "@/lib/uploads";
 import { createCategory } from "@/lib/repositories/categories";
 import { createLink } from "@/lib/repositories/links";
-import type { ExportData, IconType } from "@/lib/types";
+import type { ExportData, ExportedLink, IconType } from "@/lib/types";
 import { VALID_ICON_TYPES } from "@/lib/types";
 import {
   isFilledString,
@@ -9,6 +10,26 @@ import {
   isOptionalHttpUrl,
   isOptionalSortOrder,
 } from "@/lib/validation";
+
+/**
+ * How many uploaded icons the import refers to but the store does not have.
+ *
+ * An export names those files without carrying them, so restoring a backup on
+ * another machine leaves those cards with no icon of their own. Reporting the
+ * count is what stops that being silent. Counted per distinct file, since the
+ * same icon may be reused by several links.
+ */
+function countMissingIcons(
+  links: ExportedLink[],
+  iconExists: (iconValue: string) => boolean,
+): number {
+  const uploaded = new Set(
+    links
+      .filter((link) => link.icon_type === "upload" && link.icon_value)
+      .map((link) => link.icon_value as string),
+  );
+  return [...uploaded].filter((icon) => !iconExists(icon)).length;
+}
 
 function isValidLink(l: unknown): boolean {
   if (!l || typeof l !== "object") return false;
@@ -58,6 +79,7 @@ export function handleImport(
   db: Database.Database,
   userId: number,
   body: unknown,
+  iconExists: (iconValue: string) => boolean = storedUploadExists,
 ) {
   if (!isValidBody(body))
     return { error: "Invalid import format", status: 400 };
@@ -101,5 +123,12 @@ export function handleImport(
     }
   })();
 
-  return { data: { ok: true }, status: 200 };
+  const allLinks = [
+    ...body.categories.flatMap((c) => c.links),
+    ...body.uncategorized,
+  ];
+  return {
+    data: { ok: true, missingIcons: countMissingIcons(allLinks, iconExists) },
+    status: 200,
+  };
 }

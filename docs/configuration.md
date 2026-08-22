@@ -18,7 +18,7 @@ Environment variables can be set in the shell (development) or via Docker enviro
 | ---------------------------- | ---------------- | ---------------------------------------------- |
 | `DATABASE_PATH`              | `./homebase.db`  | Path to the SQLite database file               |
 | `PORT`                       | `3000`           | Server listening port (Docker default: `7000`) |
-| `NEXT_PUBLIC_APP_VERSION`    | from package.json| App version displayed in the admin panel       |
+| `NEXT_PUBLIC_APP_VERSION`    | from package.json| App version displayed in the admin panel. Baked in by `next build` from `package.json`, so setting it at run time has no effect |
 
 ## Application Constants
 
@@ -103,11 +103,19 @@ Single service:
    ```bash
    docker build -t homebase:latest .
    ```
-2. Start the service:
+2. Edit `docker-compose.yml` and replace `ADMIN_EMAIL`, `ADMIN_PASSWORD` and
+   `JWT_SECRET` with your own values:
+   ```bash
+   openssl rand -base64 32   # use the output as JWT_SECRET
+   ```
+   The shipped `JWT_SECRET` is the example value, which the startup check
+   refuses — left as-is with `restart: unless-stopped`, the container restarts
+   forever and the reason is only visible in its logs.
+3. Start the service:
    ```bash
    docker compose up -d
    ```
-3. Access the app at `http://<host>:7000`.
+4. Access the app at `http://<host>:7000`.
 
 ## Next.js Configuration
 

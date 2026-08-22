@@ -105,6 +105,22 @@ const actionButtonClass =
 const inputClass =
   "px-3 py-2 rounded-lg retro:rounded-none border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500";
 
+/**
+ * An export names uploaded icons but does not carry the images, so a backup
+ * restored on another machine has cards whose icon file is simply not there.
+ * Saying how many beats letting them appear as initial-letter avatars.
+ */
+function importedMessage(missingIcons: unknown): string {
+  if (typeof missingIcons !== "number" || missingIcons < 1) {
+    return "Imported successfully.";
+  }
+  const icons = missingIcons === 1 ? "icon" : "icons";
+  return (
+    `Imported successfully, but ${missingIcons} uploaded ${icons} ` +
+    "could not be found — re-upload them from each link."
+  );
+}
+
 interface SettingsTabProps {
   onIntervalChange?: (value: HealthCheckInterval) => void;
   /** Import replaces every link and category, so the caller's copy is stale. */
@@ -251,7 +267,8 @@ export function SettingsTab({
       const err = await res?.json().catch(() => ({}));
       setTransferMsg({ ok: false, text: err?.error ?? "Import failed." });
     } else {
-      setTransferMsg({ ok: true, text: "Imported successfully." });
+      const body = await res.json().catch(() => ({}));
+      setTransferMsg({ ok: true, text: importedMessage(body.missingIcons) });
       msgTimerRef.current = setTimeout(() => setTransferMsg(null), 4000);
       await onImported?.();
     }

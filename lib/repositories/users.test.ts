@@ -10,6 +10,7 @@ import {
   updateUser,
   deleteUser,
   getAdminUser,
+  isDuplicateEmailError,
 } from "./users";
 import type Database from "better-sqlite3";
 
@@ -216,5 +217,37 @@ describe("getUserByEmail is case-insensitive", () => {
   it("still distinguishes different addresses", () => {
     createUser(db, { email: "a@company.com", password_hash: "h" });
     expect(getUserByEmail(db, "b@company.com")).toBeUndefined();
+  });
+});
+
+// Matched on the driver's code rather than with `instanceof`: better-sqlite3 is
+// a native addon whose error can come from another realm, and the guard then
+// rejected the very error it was written for — intermittently, under load.
+describe("isDuplicateEmailError", () => {
+  it("recognises the email uniqueness constraint", () => {
+    createUser(db, { email: "taken@test.com", password_hash: "h" });
+
+    try {
+      createUser(db, { email: "taken@test.com", password_hash: "h" });
+      throw new Error("expected the insert to fail");
+    } catch (error) {
+      expect(isDuplicateEmailError(error)).toBe(true);
+    }
+  });
+
+  it("recognises it on a plain object with the same code, not just an Error", () => {
+    expect(isDuplicateEmailError({ code: "SQLITE_CONSTRAINT_UNIQUE" })).toBe(
+      true,
+    );
+  });
+
+  it.each([
+    new Error("boom"),
+    { code: "SQLITE_BUSY" },
+    null,
+    undefined,
+    "SQLITE_CONSTRAINT_UNIQUE",
+  ])("does not claim %p", (error) => {
+    expect(isDuplicateEmailError(error)).toBe(false);
   });
 });

@@ -3,7 +3,11 @@ import { writeFile } from "fs/promises";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { getAuthenticatedUser } from "@/lib/apiAuth";
-import { ALLOWED_UPLOAD_EXTENSIONS, UPLOADS_DIR } from "@/lib/uploads";
+import {
+  ALLOWED_UPLOAD_EXTENSIONS,
+  UPLOADS_DIR,
+  uploadPublicPath,
+} from "@/lib/uploads";
 
 const MAX_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
 
@@ -45,5 +49,8 @@ export async function POST(request: NextRequest) {
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(uploadPath, buffer);
 
-  return NextResponse.json({ path: `/uploads/${filename}` }, { status: 201 });
+  return NextResponse.json(
+    { path: uploadPublicPath(filename) },
+    { status: 201 },
+  );
 }

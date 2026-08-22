@@ -7,6 +7,7 @@ import {
   getUserByEmail,
   getUserById,
   countAdmins,
+  isDuplicateEmailError,
 } from "@/lib/repositories/users";
 import { hashPassword } from "@/lib/password";
 import { VALID_ROLES, AVATAR_OPTIONS } from "@/lib/types";
@@ -18,6 +19,14 @@ const MIN_PASSWORD_LENGTH = 4;
 function isOnlyAdmin(db: Database.Database, id: number): boolean {
   return getUserById(db, id)?.role === "admin" && countAdmins(db) === 1;
 }
+
+/**
+ * The `emailTakenByOther` pre-check cannot be the whole answer: hashing the
+ * password is awaited between that check and the write, so a second request for
+ * the same address slips in behind it and the uniqueness constraint decides.
+ * Both writers turn that into the conflict the API documents.
+ */
+const EMAIL_TAKEN_ERROR = "Email already in use";
 
 function emailTakenByOther(
   db: Database.Database,
@@ -58,16 +67,22 @@ export async function handleCreateUser(
   }
 
   if (emailTakenByOther(db, body.email.trim()))
-    return { error: "Email already in use", status: 409 };
+    return { error: EMAIL_TAKEN_ERROR, status: 409 };
 
   const passwordHash = await hashPassword(body.password);
-  const user = createUser(db, {
-    email: body.email.trim(),
-    password_hash: passwordHash,
-    role: (body.role as UserRole) ?? "user",
-    avatar: body.avatar ?? null,
-  });
-  return { data: user, status: 201 };
+  try {
+    const user = createUser(db, {
+      email: body.email.trim(),
+      password_hash: passwordHash,
+      role: (body.role as UserRole) ?? "user",
+      avatar: body.avatar ?? null,
+    });
+    return { data: user, status: 201 };
+  } catch (error) {
+    if (isDuplicateEmailError(error))
+      return { error: EMAIL_TAKEN_ERROR, status: 409 };
+    throw error;
+  }
 }
 
 export async function handleUpdateUser(
@@ -106,7 +121,7 @@ export async function handleUpdateUser(
   if (isFilledString(body.email)) {
     const email = body.email.trim();
     if (emailTakenByOther(db, email, id))
-      return { error: "Email already in use", status: 409 };
+      return { error: EMAIL_TAKEN_ERROR, status: 409 };
     updates.email = email;
   }
   if (body.password !== undefined) {
@@ -124,10 +139,15 @@ export async function handleUpdateUser(
   if (body.role) updates.role = body.role as UserRole;
   if (body.avatar !== undefined) updates.avatar = body.avatar ?? null;
 
-  const updated = updateUser(db, id, updates);
-  if (!updated) return { error: "Not found", status: 404 };
-
-  return { data: updated, status: 200 };
+  try {
+    const updated = updateUser(db, id, updates);
+    if (!updated) return { error: "Not found", status: 404 };
+    return { data: updated, status: 200 };
+  } catch (error) {
+    if (isDuplicateEmailError(error))
+      return { error: EMAIL_TAKEN_ERROR, status: 409 };
+    throw error;
+  }
 }
 
 export function handleDeleteUser(

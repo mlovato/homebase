@@ -4,6 +4,20 @@ import { COOKIE_NAME, SESSION_TTL_SECONDS } from "@/lib/auth";
 import { jwtSecret } from "@/lib/env";
 import { handleLogin } from "./handler";
 
+/**
+ * Whether the visit reached us over TLS.
+ *
+ * The session cookie is marked Secure only then. Setting it unconditionally
+ * would make the browser drop the cookie on the plain-HTTP LAN deployment this
+ * app is usually run as, and nobody could log in; leaving it off on an HTTPS
+ * deployment lets the session go out in the clear on any stray http:// request.
+ */
+function isSecureRequest(request: NextRequest): boolean {
+  const forwarded = request.headers.get("x-forwarded-proto");
+  if (forwarded) return forwarded.split(",")[0].trim() === "https";
+  return request.nextUrl.protocol === "https:";
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const result = await handleLogin(body, getDb(), jwtSecret());
@@ -18,6 +32,7 @@ export async function POST(request: NextRequest) {
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_TTL_SECONDS,
+    secure: isSecureRequest(request),
   });
   return response;
 }

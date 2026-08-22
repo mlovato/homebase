@@ -22,7 +22,8 @@ Homebase follows a standard Next.js App Router architecture with server-rendered
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  Middleware (proxy.ts)                                     │   │
-│  │  Checks JWT cookie → redirect to /admin/login if invalid  │   │
+│  │  Pages: verify JWT cookie → redirect to /admin/login      │   │
+│  │  API: refuse a mutation whose Origin is not this host     │   │
 │  └──────────────────────────┬───────────────────────────────┘   │
 │                              │                                   │
 │  ┌──────────────────────────▼───────────────────────────────┐   │

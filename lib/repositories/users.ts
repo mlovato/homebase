@@ -6,6 +6,21 @@ import type {
   UpdateUserInput,
 } from "@/lib/types";
 
+/**
+ * Whether a write failed because the email is already taken.
+ *
+ * The driver's error shape belongs to this layer, not to the callers. Matched
+ * on the code alone: better-sqlite3 is a native addon, so its SqliteError can
+ * come from a different realm than a caller's `Error` and an `instanceof` guard
+ * then silently rejects the very error it was written for.
+ */
+export function isDuplicateEmailError(error: unknown): boolean {
+  return (
+    (error as { code?: string } | null | undefined)?.code ===
+    "SQLITE_CONSTRAINT_UNIQUE"
+  );
+}
+
 export function createUser(
   db: Database.Database,
   input: CreateUserInput,

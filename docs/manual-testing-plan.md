@@ -28,6 +28,8 @@ Last updated: v1.5.0
 - [ ] User is redirected to the dashboard (`/`)
 - [ ] Session persists across page refreshes
 - [ ] Session persists across new tabs in the same browser
+- [ ] Over plain HTTP the `homebase_session` cookie is `HttpOnly; SameSite=lax` and **not** `Secure`, so login works on a LAN
+- [ ] Behind an HTTPS reverse proxy (`X-Forwarded-Proto: https`) the same cookie is marked `Secure`
 
 ### 1.4 Initial Admin Account
 
@@ -230,6 +232,7 @@ Last updated: v1.5.0
 - [ ] Import an invalid JSON file -- error is shown
 - [ ] Import a file with incorrect format/version -- error is shown
 - [ ] Import a file whose link url is not `http(s)`, or whose sort_order is not a number -- "Invalid import format", existing data untouched
+- [ ] Import a backup on a machine that does not have its uploaded icon files -- the result says how many icons could not be found, rather than reporting a clean success
 
 ---
 
@@ -394,6 +397,9 @@ Last updated: v1.5.0
 
 - [ ] All API endpoints return 401 for unauthenticated requests, except the three below
 - [ ] `/api/auth/login`, `/api/public/services` and `/api/openapi` are accessible without authentication
+- [ ] A POST/PUT/DELETE carrying an `Origin` from another port on the same host is refused with 403, even with a valid session cookie (`curl -b cookies -H 'Origin: http://<host>:9999' -H 'content-type: text/plain' -X POST .../api/import -d '{"version":1,"categories":[],"uncategorized":[]}'`)
+- [ ] The same request without an `Origin` header still succeeds, so scripts and `curl` keep working
+- [ ] A GET with a foreign `Origin` is not refused
 - [ ] `GET /api/icons?q=…` without a session returns 401 and makes no upstream request
 
 ---

@@ -328,3 +328,77 @@ describe("import rejects data the app could not use", () => {
     expect(getAllLinks(db, userId).map((l) => l.name)).toEqual(["Keep"]);
   });
 });
+
+describe("import reports uploaded icons it could not find", () => {
+  const uploadLink = {
+    name: "Plex",
+    url: "http://plex.local",
+    icon_type: "upload",
+    icon_value: "/uploads/3f2504e0-4f89-11d3-9a0c-0305e82c3301.png",
+    sort_order: 0,
+  };
+
+  function body(links: Record<string, unknown>[]) {
+    return { version: 1, categories: [], uncategorized: links };
+  }
+
+  it("counts an uploaded icon whose file is absent", () => {
+    const result = handleImport(db, userId, body([uploadLink]), () => false);
+
+    expect(result.status).toBe(200);
+    expect(result.data).toEqual({ ok: true, missingIcons: 1 });
+  });
+
+  it("reports none when every file is present", () => {
+    const result = handleImport(db, userId, body([uploadLink]), () => true);
+
+    expect(result.data).toEqual({ ok: true, missingIcons: 0 });
+  });
+
+  it("counts icons inside categories as well as uncategorized ones", () => {
+    const other = {
+      ...uploadLink,
+      name: "Sonarr",
+      icon_value: "/uploads/3f2504e0-4f89-11d3-9a0c-0305e82c3302.png",
+    };
+
+    const result = handleImport(
+      db,
+      userId,
+      {
+        version: 1,
+        categories: [{ name: "Media", sort_order: 0, links: [uploadLink] }],
+        uncategorized: [other],
+      },
+      () => false,
+    );
+
+    expect(result.data).toEqual({ ok: true, missingIcons: 2 });
+  });
+
+  // Two links can share one uploaded file, and it is one icon to re-upload.
+  it("counts a file shared by several links once", () => {
+    const result = handleImport(
+      db,
+      userId,
+      body([uploadLink, { ...uploadLink, name: "Second" }]),
+      () => false,
+    );
+
+    expect(result.data).toEqual({ ok: true, missingIcons: 1 });
+  });
+
+  it("ignores builtin and remote icons, which need no local file", () => {
+    const result = handleImport(
+      db,
+      userId,
+      body([
+        { ...uploadLink, icon_type: "builtin", icon_value: "plex" },
+        { ...uploadLink, icon_type: "url", icon_value: "https://x/i.png" },
+      ]),
+      () => false,
+    );
+
+    expect(result.data).toEqual({ ok: true, missingIcons: 0 });
+  });
+});

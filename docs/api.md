@@ -2,6 +2,8 @@
 
 All API endpoints are under `/api/`. All endpoints except `/api/auth/login`, `/api/public/services` and `/api/openapi` require authentication via a JWT cookie (`homebase_session`). Endpoints that manage users require the `admin` role, and refuse anyone else with **401**.
 
+State-changing requests (POST, PUT, PATCH, DELETE) must come from this instance: if an `Origin` header is present and its host is not this instance's own (`X-Forwarded-Host`, else `Host`), the request is refused with **403 Cross-origin request refused**. `SameSite=lax` alone is not enough — a site does not include the port, so another service on the same host counts as same-site and its pages would otherwise post with the user's cookie. A script or `curl`, which sends no `Origin`, is unaffected.
+
 Any `:id` in a path must be a plain whole number. Anything else — `1abc`, `1.5` — is refused with **400 Invalid id** rather than being read up to the first non-digit.
 
 The caller's role is read from the database on every request, not from the session token, so promoting, demoting or deleting an account takes effect on its next request rather than when the token expires.
@@ -27,7 +29,7 @@ Log in with email and password. Returns a JWT session cookie.
 { "ok": true }
 ```
 
-Sets `homebase_session` HTTP-only cookie (30d TTL).
+Sets the `homebase_session` cookie: `HttpOnly`, `SameSite=lax`, `Path=/`, 30-day TTL. It is also marked `Secure` when the request arrived over TLS (directly, or via `X-Forwarded-Proto: https`) — not on a plain-HTTP LAN deployment, where the browser would drop it and nobody could log in.
 
 **401 Unauthorized** — Invalid credentials, or either field missing or not a string. The same message is returned for an unknown email and a wrong password, and both take the same time to answer.
 
@@ -325,7 +327,7 @@ Create a new user.
 password, a password under 4 characters, an unknown role, or an avatar outside
 the preset list.
 
-**409 Conflict** — Email already exists.
+**409 Conflict** — Email already exists. Also returned when two creates for the same address overlap and the second loses the uniqueness constraint.
 
 ---
 
@@ -565,7 +567,9 @@ before anything is deleted.
 **200 OK**
 
 ```json
-{ "ok": true }
+{ "ok": true, "missingIcons": 0 }
 ```
+
+`missingIcons` counts imported links whose `icon_type` is `upload` but whose file is not in the icon store. An export names those files without carrying them, so restoring a backup on another machine reports how many icons need re-uploading instead of quietly showing initial-letter avatars.
 
 **400 Bad Request** — Invalid format or schema validation failure.
