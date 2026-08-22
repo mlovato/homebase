@@ -32,7 +32,8 @@ const spec = {
                         example: "http://plex.local:32400",
                       },
                       url_alt: {
-                        type: ["string", "null"],
+                        type: "string",
+                        nullable: true,
                         format: "uri",
                         example: "https://plex.example.com",
                       },

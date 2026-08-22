@@ -276,7 +276,8 @@ Last updated: v1.2.3
 
 ### 8.2 Batch URL Check
 
-- [ ] `POST /api/health/batch` with multiple URLs -- returns status for each URL
+- [ ] `GET /api/health/batch?url=...&url=...` with multiple URLs -- returns status for each URL
+- [ ] `GET /api/health/batch` with more than 100 URLs -- rejected with 400
 - [ ] Response maps each URL to its status (up/down/unknown)
 - [ ] Mix of reachable and unreachable URLs returns correct statuses for each
 

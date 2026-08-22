@@ -119,6 +119,10 @@ export function SettingsTab({
   const [shortcut, setShortcut] = useState<SearchShortcut>(
     DEFAULT_SEARCH_SHORTCUT,
   );
+  const [saveError, setSaveError] = useState<{
+    scope: "interval" | "shortcut";
+    message: string;
+  } | null>(null);
   const [importMsg, setImportMsg] = useState<{
     ok: boolean;
     text: string;
@@ -151,14 +155,45 @@ export function SettingsTab({
       .catch(() => {});
   }, []);
 
-  function updateInterval(value: HealthCheckInterval) {
+  async function saveSetting(
+    scope: "interval" | "shortcut",
+    body: Record<string, string>,
+  ): Promise<boolean> {
+    setSaveError(null);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) return true;
+      const data = await res.json().catch(() => ({}));
+      setSaveError({
+        scope,
+        message: data.error ?? "Could not save that setting.",
+      });
+    } catch {
+      setSaveError({
+        scope,
+        message: "Network error — that setting was not saved.",
+      });
+    }
+    return false;
+  }
+
+  function saveErrorFor(scope: "interval" | "shortcut"): string | null {
+    return saveError?.scope === scope ? saveError.message : null;
+  }
+
+  async function updateInterval(value: HealthCheckInterval) {
+    const previous = interval;
     setInterval(value);
     onIntervalChange?.(value);
-    fetch("/api/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ health_check_interval: value }),
-    }).catch(() => {});
+    if (await saveSetting("interval", { health_check_interval: value })) return;
+    // Do not leave the UI (and the health poller) claiming a value the server
+    // rejected.
+    setInterval(previous);
+    onIntervalChange?.(previous);
   }
 
   async function handleExport() {
@@ -246,13 +281,11 @@ export function SettingsTab({
     }
   }
 
-  function updateShortcut(value: SearchShortcut) {
+  async function updateShortcut(value: SearchShortcut) {
+    const previous = shortcut;
     setShortcut(value);
-    fetch("/api/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ search_shortcut: value }),
-    }).catch(() => {});
+    if (await saveSetting("shortcut", { search_shortcut: value })) return;
+    setShortcut(previous);
   }
 
   return (
@@ -293,6 +326,11 @@ export function SettingsTab({
           </span>
           <ShortcutRecorder value={shortcut} onChange={updateShortcut} />
         </div>
+        {saveErrorFor("shortcut") && (
+          <p className="mt-3 text-xs text-red-500 dark:text-red-400 retro:text-retro-green">
+            {saveErrorFor("shortcut")}
+          </p>
+        )}
       </section>
 
       <section className="mb-10">
@@ -353,6 +391,11 @@ export function SettingsTab({
           How often to ping each service. Set to Never to hide status
           indicators.
         </p>
+        {saveErrorFor("interval") && (
+          <p className="mt-3 text-xs text-red-500 dark:text-red-400 retro:text-retro-green">
+            {saveErrorFor("interval")}
+          </p>
+        )}
       </section>
 
       <section className="mt-10">

@@ -48,7 +48,7 @@ export function IconPicker({ value, onChange, serviceName }: IconPickerProps) {
     onChangeRef.current = onChange;
   });
 
-  const { suggestions } = useIconSearch(searchQuery);
+  const { suggestions, failed: searchFailed } = useIconSearch(searchQuery);
 
   // Auto-suggest from service name when user hasn't manually picked an icon
   useEffect(() => {
@@ -181,6 +181,11 @@ export function IconPicker({ value, onChange, serviceName }: IconPickerProps) {
               placeholder="Search icon (e.g. plex, sonarr, grafana)"
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
+            {searchFailed && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 retro:text-retro-dim">
+                Icon search is unavailable right now.
+              </p>
+            )}
             {suggestionsOpen && suggestions.length > 0 && (
               <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg overflow-hidden">
                 {suggestions.map((result) => (

@@ -69,15 +69,11 @@ export function SearchModal({
       : link.url;
   }
 
-  const filtered = useMemo(
-    () =>
-      query.trim() === ""
-        ? links
-        : links.filter((l) =>
-            l.name.toLowerCase().includes(query.toLowerCase()),
-          ),
-    [query, links],
-  );
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (needle === "") return links;
+    return links.filter((l) => l.name.toLowerCase().includes(needle));
+  }, [query, links]);
 
   const close = useCallback(() => {
     setOpen(false);

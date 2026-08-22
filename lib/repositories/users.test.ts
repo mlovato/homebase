@@ -199,3 +199,22 @@ describe("getAdminUser", () => {
     expect(getAdminUser(db)).toBeUndefined();
   });
 });
+
+describe("getUserByEmail is case-insensitive", () => {
+  it("finds an account created with different capitalisation", () => {
+    createUser(db, { email: "John.Doe@Company.com", password_hash: "h" });
+    expect(getUserByEmail(db, "john.doe@company.com")?.email).toBe(
+      "John.Doe@Company.com",
+    );
+  });
+
+  it("finds an account when the stored value is lowercase", () => {
+    createUser(db, { email: "jane@company.com", password_hash: "h" });
+    expect(getUserByEmail(db, "JANE@COMPANY.COM")).toBeDefined();
+  });
+
+  it("still distinguishes different addresses", () => {
+    createUser(db, { email: "a@company.com", password_hash: "h" });
+    expect(getUserByEmail(db, "b@company.com")).toBeUndefined();
+  });
+});

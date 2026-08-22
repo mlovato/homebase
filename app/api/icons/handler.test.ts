@@ -115,3 +115,52 @@ describe("searchIcons", () => {
     expect(results.map((r) => r.slug)).toContain("plex");
   });
 });
+
+describe("metadata cache lifetime", () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  afterEach(() => jest.useRealTimers());
+
+  it("refreshes after the TTL rather than caching for the process lifetime", async () => {
+    jest.useFakeTimers();
+    const fetchFn = mockFetch(MOCK_METADATA);
+
+    await searchIcons("plex", fetchFn);
+    await searchIcons("plex", fetchFn);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+
+    jest.advanceTimersByTime(DAY_MS + 1);
+    await searchIcons("plex", fetchFn);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+
+  // Serving the stale list without moving the expiry meant every later request
+  // re-downloaded the (1 MB) metadata file while upstream was unhealthy.
+  it("backs off instead of refetching on every request after a failed refresh", async () => {
+    jest.useFakeTimers();
+    await searchIcons("plex", mockFetch(MOCK_METADATA));
+
+    jest.advanceTimersByTime(DAY_MS + 1);
+    const failing = jest
+      .fn()
+      .mockResolvedValue({ ok: false } as Response) as unknown as typeof fetch;
+
+    const first = await searchIcons("plex", failing);
+    const second = await searchIcons("plex", failing);
+
+    expect(failing).toHaveBeenCalledTimes(1);
+    // and the previously loaded entries are still served
+    expect(first.length).toBeGreaterThan(0);
+    expect(second).toEqual(first);
+  });
+
+  it("does not let an empty response replace a good cache", async () => {
+    jest.useFakeTimers();
+    await searchIcons("plex", mockFetch(MOCK_METADATA));
+
+    jest.advanceTimersByTime(DAY_MS + 1);
+    const results = await searchIcons("plex", mockFetch({}));
+
+    expect(results.length).toBeGreaterThan(0);
+  });
+});

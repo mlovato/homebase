@@ -163,3 +163,116 @@ describe("import notifies the parent", () => {
     expect(onImported).not.toHaveBeenCalled();
   });
 });
+
+describe("settings saves report failure", () => {
+  function mockSettingsFetch(putResponse: Partial<Response>) {
+    global.fetch = jest.fn(
+      async (url: string | URL | Request, init?: RequestInit) => {
+        if (init?.method === "PUT") return putResponse as Response;
+        return {
+          ok: true,
+          json: async () => ({
+            health_check_interval: "30s",
+            search_shortcut: "mod+k",
+          }),
+        } as Response;
+      },
+    ) as unknown as typeof fetch;
+  }
+
+  // The write used to be fire-and-forget: the button highlighted, health polling
+  // changed, the database did not, and the choice reverted on the next reload.
+  it("shows an error and reverts the interval when the save is rejected", async () => {
+    mockSettingsFetch({
+      ok: false,
+      json: async () => ({ error: "Unauthorized" }),
+    });
+
+    render(<SettingsTab />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Never" })).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Never" }));
+
+    await waitFor(() =>
+      expect(screen.getByText("Unauthorized")).toBeInTheDocument(),
+    );
+  });
+
+  it("reports a network failure", async () => {
+    global.fetch = jest.fn(async (_url: unknown, init?: RequestInit) => {
+      if (init?.method === "PUT") throw new TypeError("Failed to fetch");
+      return {
+        ok: true,
+        json: async () => ({
+          health_check_interval: "30s",
+          search_shortcut: "mod+k",
+        }),
+      } as Response;
+    }) as unknown as typeof fetch;
+
+    render(<SettingsTab />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Never" })).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Never" }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/was not saved/i)).toBeInTheDocument(),
+    );
+  });
+
+  it("says nothing when the save succeeds", async () => {
+    mockSettingsFetch({ ok: true, json: async () => ({}) });
+
+    render(<SettingsTab />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Never" })).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Never" }));
+
+    // Wait for the PUT to actually settle before asserting the absence.
+    await waitFor(() =>
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/settings",
+        expect.objectContaining({ method: "PUT" }),
+      ),
+    );
+    expect(screen.queryByText(/not saved/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/could not save/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("save errors appear next to the control that failed", () => {
+  it("puts a shortcut failure under the shortcut control, not the interval one", async () => {
+    global.fetch = jest.fn(async (_url: unknown, init?: RequestInit) => {
+      if (init?.method === "PUT") {
+        return {
+          ok: false,
+          json: async () => ({ error: "Invalid search_shortcut format" }),
+        } as Response;
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          health_check_interval: "30s",
+          search_shortcut: "mod+k",
+        }),
+      } as Response;
+    }) as unknown as typeof fetch;
+
+    render(<SettingsTab />);
+    await waitFor(() =>
+      expect(screen.getByText("Open search")).toBeInTheDocument(),
+    );
+
+    // Record a new shortcut, which the server rejects.
+    const recorder = screen.getByRole("button", { name: /⌘K/ });
+    fireEvent.click(recorder);
+    fireEvent.keyDown(recorder, { key: "j", metaKey: true });
+
+    const message = await screen.findByText("Invalid search_shortcut format");
+    // The shortcut section, not the interval section further down.
+    expect(message.closest("section")?.textContent).toContain("Open search");
+  });
+});

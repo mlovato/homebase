@@ -4,6 +4,7 @@ import {
   DEFAULT_HEALTH_CHECK_INTERVAL,
   HEALTH_CHECK_INTERVALS,
   DEFAULT_SEARCH_SHORTCUT,
+  isValidShortcut,
 } from "@/lib/types";
 
 export function getSetting(
@@ -46,5 +47,7 @@ export function getSearchShortcut(
   db: Database.Database,
   userId: number,
 ): SearchShortcut {
-  return getSetting(db, userId, "search_shortcut") ?? DEFAULT_SEARCH_SHORTCUT;
+  const stored = getSetting(db, userId, "search_shortcut");
+  if (stored && isValidShortcut(stored)) return stored as SearchShortcut;
+  return DEFAULT_SEARCH_SHORTCUT;
 }

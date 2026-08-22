@@ -61,8 +61,11 @@ export function handleUpdateLink(
   body: Partial<UpdateLinkInput>,
 ) {
   if (isNaN(id)) return { error: "Invalid id", status: 400 };
-  if (body.icon_type && !VALID_ICON_TYPES.includes(body.icon_type)) {
-    return { error: "Invalid icon_type", status: 400 };
+  if (
+    body.icon_type !== undefined &&
+    !VALID_ICON_TYPES.includes(body.icon_type)
+  ) {
+    return { error: "icon_type must be builtin, upload, or url", status: 400 };
   }
   if (!ownsCategory(db, userId, body.category_id)) {
     return { error: "Category not found", status: 404 };

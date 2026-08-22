@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CategoryWithLinks } from "@/lib/types";
 import { LinkCard } from "./LinkCard";
 
@@ -15,19 +15,34 @@ export function CategorySection({
   category,
   intervalMs,
 }: CategorySectionProps) {
-  const [collapsed, setCollapsed] = useState(() =>
-    typeof window !== "undefined"
-      ? localStorage.getItem(storageKey(category.id)) === "true"
-      : false,
-  );
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Read after mount, not in the initializer. The server always renders
+  // expanded, so reading storage during the first client render makes the two
+  // trees disagree, and React answers that mismatch by discarding the whole
+  // server-rendered document and re-rendering it on the client.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(storageKey(category.id)) === "true") {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- restoring a persisted preference after mount
+        setCollapsed(true);
+      }
+    } catch {
+      // Site data blocked: the section stays expanded.
+    }
+  }, [category.id]);
 
   function toggle() {
     const next = !collapsed;
     setCollapsed(next);
-    if (next) {
-      localStorage.setItem(storageKey(category.id), "true");
-    } else {
-      localStorage.removeItem(storageKey(category.id));
+    try {
+      if (next) {
+        localStorage.setItem(storageKey(category.id), "true");
+      } else {
+        localStorage.removeItem(storageKey(category.id));
+      }
+    } catch {
+      // Site data blocked: the choice just is not remembered.
     }
   }
 

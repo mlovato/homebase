@@ -38,7 +38,7 @@ export function formatShortcut(shortcut: SearchShortcut): string {
 }
 
 export function isValidShortcut(shortcut: string): boolean {
-  return /^(mod\+)?[a-z0-9`~!@#$%^&*()\-=[\]\\;',./ ]$/i.test(shortcut);
+  return /^(mod\+)?[a-z0-9`~!@#$%^&*()\-=[\]\\;',./]$/i.test(shortcut);
 }
 
 export const VALID_ICON_TYPES: IconType[] = ["builtin", "upload", "url"];

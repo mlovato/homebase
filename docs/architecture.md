@@ -90,7 +90,7 @@ Client                          Server
   │  200 (rendered HTML)          │
   │◄──────────────────────────────┤
   │                               │
-  │  POST /api/health/batch       │
+  │  GET  /api/health/batch       │
   │  { urls: [...] }              │
   ├──────────────────────────────►│
   │                               ├── HEAD request to each URL (5s timeout)
@@ -154,7 +154,7 @@ Client                          Server
 
 ### JWT Authentication with HTTP-Only Cookies
 
-Sessions are managed via JWT tokens stored in HTTP-only cookies rather than server-side sessions. This eliminates the need for a sessions table and simplifies horizontal scaling. The `homebase_session` cookie is set with `SameSite=lax` for CSRF protection. Tokens expire after 24 hours.
+Sessions are managed via JWT tokens stored in HTTP-only cookies rather than server-side sessions. This eliminates the need for a sessions table and simplifies horizontal scaling. The `homebase_session` cookie is set with `SameSite=lax` for CSRF protection. Tokens expire after 30 days.
 
 ### SQLite with WAL Mode
 

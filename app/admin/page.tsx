@@ -60,14 +60,19 @@ export default function AdminPage() {
     id: number;
   } | null>(null);
 
-  function showError(msg: string) {
+  const showError = useCallback((msg: string) => {
     setError(msg);
     if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
     errorTimerRef.current = setTimeout(() => setError(null), 5000);
-  }
+  }, []);
 
   const loadCategories = useCallback(async () => {
     const res = await fetch("/api/categories");
+    if (res.status === 401) {
+      // The session is valid but the account behind it is gone or demoted.
+      router.push("/admin/login");
+      return;
+    }
     if (!res.ok) {
       showError("Failed to load links. Please refresh.");
       return;
@@ -75,7 +80,7 @@ export default function AdminPage() {
     const data = await res.json();
     setCategories(data.categories);
     setUncategorized(data.uncategorized);
-  }, []);
+  }, [showError, router]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- async data fetch on mount

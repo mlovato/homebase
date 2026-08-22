@@ -4,6 +4,8 @@ All API endpoints are under `/api/`. All endpoints except `/api/auth/login` and 
 
 The caller's role is read from the database on every request, not from the session token, so promoting, demoting or deleting an account takes effect on its next request rather than when the token expires.
 
+Email addresses are matched case-insensitively, so `User@Example.com` and `user@example.com` identify the same account.
+
 ## Authentication
 
 ### POST /api/auth/login
@@ -78,7 +80,7 @@ Change the current user's password.
 **200 OK**
 
 ```json
-{ "success": true }
+{ "ok": true }
 ```
 
 **400 Bad Request** — Current password incorrect or new password too short.
@@ -363,7 +365,7 @@ Update user settings.
 | Field                   | Type   | Required | Description                                    |
 | ----------------------- | ------ | -------- | ---------------------------------------------- |
 | `health_check_interval` | string | No       | One of: `10s`, `30s`, `60s`, `never`           |
-| `search_shortcut`       | string | No       | Format: `mod+<key>` or single character        |
+| `search_shortcut`       | string | No       | Format: `mod+<key>` or a single printable character (space excluded) |
 
 **200 OK** — Returns the updated settings.
 

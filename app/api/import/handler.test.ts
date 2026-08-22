@@ -209,3 +209,53 @@ describe("handleImport normalization", () => {
     expect(getCategories(db, userId)).toHaveLength(0);
   });
 });
+
+describe("handleImport trims link fields", () => {
+  // Validation trimmed but storage did not, so " http://x" failed checkHealth's
+  // scheme test and the card's status dot stayed on "checking" forever.
+  it("stores a trimmed name and url", () => {
+    handleImport(db, userId, {
+      version: 1,
+      categories: [],
+      uncategorized: [
+        {
+          name: "  Plex  ",
+          url: " http://plex.local:32400 ",
+          icon_type: "builtin",
+          icon_value: null,
+          sort_order: 0,
+        },
+      ],
+    });
+
+    const link = getUncategorizedLinks(db, userId)[0];
+    expect(link.name).toBe("Plex");
+    expect(link.url).toBe("http://plex.local:32400");
+  });
+
+  it("trims links nested in a category too", () => {
+    handleImport(db, userId, {
+      version: 1,
+      categories: [
+        {
+          name: "Media",
+          sort_order: 0,
+          links: [
+            {
+              name: " Sonarr ",
+              url: " http://sonarr.local ",
+              icon_type: "builtin",
+              icon_value: null,
+              sort_order: 0,
+            },
+          ],
+        },
+      ],
+      uncategorized: [],
+    });
+
+    const link = getCategoriesWithLinks(db, userId)[0].links[0];
+    expect(link.name).toBe("Sonarr");
+    expect(link.url).toBe("http://sonarr.local");
+  });
+});

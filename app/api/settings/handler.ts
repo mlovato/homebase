@@ -18,21 +18,26 @@ export function handleUpdateSettings(
   userId: number,
   body: Partial<{ health_check_interval: string; search_shortcut: string }>,
 ) {
-  if (body.health_check_interval !== undefined) {
-    if (!HEALTH_CHECK_INTERVALS.includes(body.health_check_interval as never)) {
-      return {
-        error: `health_check_interval must be one of: ${HEALTH_CHECK_INTERVALS.join(", ")}`,
-        status: 400,
-      };
-    }
-    setSetting(db, userId, "health_check_interval", body.health_check_interval);
+  const { health_check_interval: interval, search_shortcut: shortcut } = body;
+
+  if (
+    interval !== undefined &&
+    !HEALTH_CHECK_INTERVALS.includes(interval as never)
+  ) {
+    return {
+      error: `health_check_interval must be one of: ${HEALTH_CHECK_INTERVALS.join(", ")}`,
+      status: 400,
+    };
+  }
+  if (shortcut !== undefined && !isValidShortcut(shortcut)) {
+    return { error: "Invalid search_shortcut format", status: 400 };
   }
 
-  if (body.search_shortcut !== undefined) {
-    if (!isValidShortcut(body.search_shortcut)) {
-      return { error: "Invalid search_shortcut format", status: 400 };
-    }
-    setSetting(db, userId, "search_shortcut", body.search_shortcut);
+  if (interval !== undefined) {
+    setSetting(db, userId, "health_check_interval", interval);
+  }
+  if (shortcut !== undefined) {
+    setSetting(db, userId, "search_shortcut", shortcut);
   }
 
   return { data: handleGetSettings(db, userId), status: 200 };

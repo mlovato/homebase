@@ -82,7 +82,7 @@ environment:
 
 4. Click **Deploy the stack**
 
-Homebase will be available at `http://<nas-ip>:3000`.
+Homebase will be available at `http://<nas-ip>:7000`.
 
 On first startup, an admin user is automatically created from `ADMIN_EMAIL` and `ADMIN_PASSWORD`. Log in with those credentials.
 
@@ -125,7 +125,7 @@ Then in Portainer: **Stacks → homebase → Editor → Update the stack** (or s
 
 ```bash
 npm install
-ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=changeme JWT_SECRET=dev-secret npm run dev
+ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=changeme JWT_SECRET=local-dev-secret-not-for-production npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).

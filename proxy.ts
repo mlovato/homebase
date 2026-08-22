@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySessionToken, COOKIE_NAME } from "@/lib/auth";
+import { jwtSecret } from "@/lib/env";
 
 const PUBLIC_PATHS = ["/admin/login", "/api/auth/login"];
 
@@ -11,7 +12,7 @@ export async function proxy(request: NextRequest) {
   }
 
   const token = request.cookies.get(COOKIE_NAME)?.value ?? "";
-  const result = await verifySessionToken(token, process.env.JWT_SECRET ?? "");
+  const result = await verifySessionToken(token, jwtSecret());
 
   if (!result.valid) {
     return NextResponse.redirect(new URL("/admin/login", request.url));

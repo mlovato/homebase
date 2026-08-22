@@ -72,8 +72,8 @@ export function handleImport(
       for (const link of cat.links) {
         createLink(db, userId, {
           category_id: created.id,
-          name: link.name,
-          url: link.url,
+          name: link.name.trim(),
+          url: link.url.trim(),
           url_alt: link.url_alt ?? null,
           icon_type: link.icon_type,
           icon_value: link.icon_value ?? null,
@@ -85,8 +85,8 @@ export function handleImport(
     for (const link of body.uncategorized) {
       createLink(db, userId, {
         category_id: null,
-        name: link.name,
-        url: link.url,
+        name: link.name.trim(),
+        url: link.url.trim(),
         url_alt: link.url_alt ?? null,
         icon_type: link.icon_type,
         icon_value: link.icon_value ?? null,

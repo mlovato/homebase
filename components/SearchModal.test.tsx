@@ -267,3 +267,33 @@ describe("single-key shortcut does not swallow typing", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
+
+describe("query whitespace", () => {
+  it("still matches when the query has a trailing space", () => {
+    render(<SearchModal links={links} shortcut="mod+k" />);
+    open();
+    fireEvent.change(screen.getByRole("combobox"), {
+      target: { value: "grafana " },
+    });
+    expect(screen.getByText("Grafana")).toBeInTheDocument();
+  });
+
+  it("still matches when the query has a leading space", () => {
+    render(<SearchModal links={links} shortcut="mod+k" />);
+    open();
+    fireEvent.change(screen.getByRole("combobox"), {
+      target: { value: " gitea" },
+    });
+    expect(screen.getByText("Gitea")).toBeInTheDocument();
+  });
+
+  it("treats a whitespace-only query as empty", () => {
+    render(<SearchModal links={links} shortcut="mod+k" />);
+    open();
+    fireEvent.change(screen.getByRole("combobox"), {
+      target: { value: "   " },
+    });
+    expect(screen.getByText("Grafana")).toBeInTheDocument();
+    expect(screen.getByText("Gitea")).toBeInTheDocument();
+  });
+});

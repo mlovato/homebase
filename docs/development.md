@@ -23,7 +23,7 @@ Create a `.env.local` file for local development:
 ```bash
 ADMIN_EMAIL=admin@homebase.local
 ADMIN_PASSWORD=changeme
-JWT_SECRET=change-this-to-a-long-random-string-at-least-32-chars
+JWT_SECRET=generate-with-openssl-rand-base64-32
 ```
 
 ## Running the Dev Server
@@ -32,13 +32,13 @@ JWT_SECRET=change-this-to-a-long-random-string-at-least-32-chars
 npm run dev
 ```
 
-The app starts at [http://localhost:7000](http://localhost:7000).
+The app starts at [http://localhost:3000](http://localhost:3000). (The Docker image sets `PORT=7000`.)
 
 ## NPM Scripts
 
 | Script               | Command               | Description                                 |
 | -------------------- | --------------------- | ------------------------------------------- |
-| `npm run dev`        | `next dev --port 7000`| Start development server                    |
+| `npm run dev`        | `next dev`            | Start development server (port 3000)        |
 | `npm run build`      | `next build`          | Create production build (standalone output) |
 | `npm run start`      | `next start`          | Start production server                     |
 | `npm run lint`       | `eslint`              | Run ESLint on the codebase                  |

@@ -260,3 +260,45 @@ describe("category ownership", () => {
     ).toBe(200);
   });
 });
+
+describe("icon_type validation on update", () => {
+  function makeLink() {
+    return createLink(db, userId, {
+      category_id: null,
+      name: "Plex",
+      url: "http://plex.local",
+      icon_type: "builtin",
+    });
+  }
+
+  // These are falsy, so they used to skip the guard and hit the schema's CHECK /
+  // NOT NULL constraint as an opaque 500.
+  it.each([
+    ["an empty string", ""],
+    ["null", null],
+  ])(
+    "rejects %s with a 400 rather than a constraint error",
+    (_label, value) => {
+      const link = makeLink();
+      const result = handleUpdateLink(db, userId, link.id, {
+        icon_type: value as never,
+      });
+      expect(result).toMatchObject({ status: 400 });
+      expect(result.error).toMatch(/icon_type/);
+    },
+  );
+
+  it("still accepts a valid icon_type", () => {
+    const link = makeLink();
+    expect(
+      handleUpdateLink(db, userId, link.id, { icon_type: "url" }).status,
+    ).toBe(200);
+  });
+
+  it("still allows an update that omits icon_type", () => {
+    const link = makeLink();
+    expect(handleUpdateLink(db, userId, link.id, { name: "New" }).status).toBe(
+      200,
+    );
+  });
+});

@@ -50,7 +50,7 @@ homebase/
 ## How It Works
 
 1. On first launch, an admin account is auto-created from environment variables (`ADMIN_EMAIL`, `ADMIN_PASSWORD`).
-2. Users log in with email and password; a JWT cookie maintains the session for 24 hours.
+2. Users log in with email and password; a JWT cookie maintains the session for 30 days.
 3. Each user manages their own categories and links via the admin panel.
 4. The dashboard displays all links organized by category with health check status indicators.
 5. Links can be reordered via drag-and-drop; categories can be reordered the same way.

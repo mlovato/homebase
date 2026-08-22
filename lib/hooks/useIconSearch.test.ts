@@ -35,7 +35,10 @@ describe("useIconSearch", () => {
     renderHook(() => useIconSearch("pl"));
     act(() => jest.runAllTimers());
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
-    expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining("q=pl"));
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("q=pl"),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it("returns suggestions from API response", async () => {
@@ -80,5 +83,66 @@ describe("useIconSearch", () => {
 
     act(() => jest.runAllTimers());
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe("stale and failed responses", () => {
+  it("does not show the previous query's matches after a failure", async () => {
+    mockFetchResults([
+      { slug: "plex", name: "Plex", url: "https://cdn.example.com/plex.svg" },
+    ]);
+    const { result, rerender } = renderHook(({ q }) => useIconSearch(q), {
+      initialProps: { q: "plex" },
+    });
+    act(() => jest.runAllTimers());
+    await waitFor(() => expect(result.current.suggestions).toHaveLength(1));
+
+    global.fetch = jest.fn().mockResolvedValue({ ok: false } as Response);
+    rerender({ q: "sonarr" });
+    act(() => jest.runAllTimers());
+
+    await waitFor(() => expect(result.current.failed).toBe(true));
+    expect(result.current.suggestions).toEqual([]);
+  });
+
+  it("reports a network error as a failure rather than stale matches", async () => {
+    global.fetch = jest
+      .fn()
+      .mockRejectedValue(new TypeError("Failed to fetch"));
+    const { result } = renderHook(() => useIconSearch("plex"));
+    act(() => jest.runAllTimers());
+
+    await waitFor(() => expect(result.current.failed).toBe(true));
+    expect(result.current.suggestions).toEqual([]);
+  });
+
+  it("ignores a response that arrives for an older query", async () => {
+    const resolvers: ((value: unknown) => void)[] = [];
+    global.fetch = jest.fn(
+      () =>
+        new Promise((resolve) => {
+          resolvers.push(resolve);
+        }),
+    ) as unknown as typeof fetch;
+
+    const { result, rerender } = renderHook(({ q }) => useIconSearch(q), {
+      initialProps: { q: "son" },
+    });
+    act(() => jest.runAllTimers()); // fires the request for "son"
+
+    rerender({ q: "sonarr" });
+    act(() => jest.runAllTimers()); // fires the request for "sonarr"
+
+    // The "son" response lands after the query has already moved on.
+    await act(async () => {
+      resolvers[0]({
+        ok: true,
+        json: async () => ({
+          results: [{ slug: "son", name: "Son", url: "https://x/son.svg" }],
+        }),
+      });
+    });
+
+    expect(result.current.suggestions).toEqual([]);
   });
 });

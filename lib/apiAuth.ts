@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import type Database from "better-sqlite3";
 import { verifySessionToken, COOKIE_NAME } from "@/lib/auth";
+import { jwtSecret } from "@/lib/env";
 import { getDb } from "@/lib/db";
 import { getUserById } from "@/lib/repositories/users";
 import type { TokenClaims } from "@/lib/auth";
@@ -19,7 +20,7 @@ export async function getAuthenticatedUser(
   db?: Database.Database,
 ): Promise<TokenClaims | null> {
   const token = request.cookies.get(COOKIE_NAME)?.value ?? "";
-  const result = await verifySessionToken(token, process.env.JWT_SECRET ?? "");
+  const result = await verifySessionToken(token, jwtSecret());
   if (!result.valid) return null;
 
   const user = getUserById(db ?? getDb(), result.userId);

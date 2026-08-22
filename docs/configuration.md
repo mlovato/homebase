@@ -10,7 +10,7 @@ Environment variables can be set in the shell (development) or via Docker enviro
 | ---------------- | ------- | --------------------------------------------------------- |
 | `ADMIN_EMAIL`    | —       | Email for the initial admin account (required on first run)|
 | `ADMIN_PASSWORD` | —       | Password for the initial admin account (required on first run)|
-| `JWT_SECRET`     | —       | Secret for signing JWT tokens (min 32 characters recommended)|
+| `JWT_SECRET`     | —       | Secret for signing JWT tokens (min 32 characters recommended). Validated at startup: the server refuses to boot if it is missing, shorter than 16 characters, or still the example value from `docker-compose.yml`. |
 
 ### Optional
 
@@ -70,7 +70,7 @@ type SearchShortcut = string; // "mod+k", "mod+j", or single character
 | Icon search min     | 2 chars  | `/api/icons`     |
 | Icon search results | 8 max    | `/api/icons`     |
 | Health check timeout| 5 seconds| `/api/health`    |
-| JWT expiry          | 24 hours | `lib/auth.ts`    |
+| JWT expiry          | 30 days  | `lib/auth.ts`    |
 | Password min length | 4 chars  | API validation   |
 
 ## Docker Configuration

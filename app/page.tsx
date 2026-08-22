@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { getDb } from "@/lib/db";
 import { verifySessionToken, COOKIE_NAME } from "@/lib/auth";
+import { jwtSecret } from "@/lib/env";
 import {
   getCategoriesWithLinks,
   getUncategorizedLinks,
@@ -22,7 +23,7 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value ?? "";
-  const result = await verifySessionToken(token, process.env.JWT_SECRET ?? "");
+  const result = await verifySessionToken(token, jwtSecret());
 
   if (!result.valid) {
     redirect("/admin/login");
@@ -31,6 +32,9 @@ export default async function DashboardPage() {
   const db = getDb();
   const userId = result.userId;
   const user = getUserById(db, userId);
+  if (!user) {
+    redirect("/admin/login");
+  }
   const categories = getCategoriesWithLinks(db, userId);
   const uncategorized = getUncategorizedLinks(db, userId);
   const intervalMs = INTERVAL_TO_MS[getHealthCheckInterval(db, userId)];
@@ -103,7 +107,7 @@ export default async function DashboardPage() {
     <main className="min-h-screen retro:bg-retro-bg">
       <HealthCheckProvider urls={allUrls} intervalMs={intervalMs}>
         <DashboardHeader
-          user={user ?? null}
+          user={user}
           searchLinks={searchLinks}
           shortcut={searchShortcut}
         />

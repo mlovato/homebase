@@ -20,7 +20,13 @@ export function verifyHashedPassword(
     const [salt, key] = hash.split(":");
     scrypt(password, salt, SCRYPT_KEYLEN, (err, derived) => {
       if (err) return reject(err);
-      resolve(timingSafeEqual(Buffer.from(key, "hex"), derived));
+      try {
+        resolve(timingSafeEqual(Buffer.from(key, "hex"), derived));
+      } catch {
+        // Wrong length or unparsable hex: not a match, and never a thrown
+        // callback — that would strand the promise and hang the request.
+        resolve(false);
+      }
     });
   });
 }

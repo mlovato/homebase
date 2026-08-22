@@ -94,3 +94,72 @@ describe("CategorySection", () => {
     expect(screen.queryByText("Plex")).not.toBeInTheDocument();
   });
 });
+
+describe("collapsed state and hydration", () => {
+  /* eslint-disable-next-line @typescript-eslint/no-require-imports */
+  const { renderToString } = require("react-dom/server");
+
+  const category = {
+    id: 4,
+    name: "Media",
+    sort_order: 0,
+    links: [
+      {
+        id: 1,
+        category_id: 4,
+        name: "Plex",
+        url: "http://plex.local",
+        url_alt: null,
+        icon_type: "builtin" as const,
+        icon_value: null,
+        sort_order: 0,
+      },
+    ],
+  };
+
+  afterEach(() => localStorage.clear());
+
+  // The render pass must not read localStorage: the server cannot see it, so a
+  // render-time read makes the client's first tree disagree with the server HTML
+  // and React answers that by discarding the whole server-rendered document.
+  // renderToString runs the render function without effects, which is exactly
+  // the pass that has to match.
+  it("renders expanded during render even when stored collapsed", () => {
+    localStorage.setItem("homebase:collapsed:4", "true");
+
+    const html = renderToString(
+      <CategorySection category={category} intervalMs={null} />,
+    );
+
+    expect(html).toContain("Plex");
+    expect(html).toContain('aria-expanded="true"');
+  });
+
+  it("restores the collapsed preference after mount", () => {
+    localStorage.setItem("homebase:collapsed:4", "true");
+    render(<CategorySection category={category} intervalMs={null} />);
+    expect(screen.getByRole("button")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+
+  it("stays expanded when nothing is stored", () => {
+    render(<CategorySection category={category} intervalMs={null} />);
+    expect(screen.getByRole("button")).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("renders when localStorage access throws", () => {
+    const getItem = jest
+      .spyOn(Storage.prototype, "getItem")
+      .mockImplementation(() => {
+        throw new DOMException("blocked");
+      });
+    try {
+      render(<CategorySection category={category} intervalMs={null} />);
+      expect(screen.getByText("Media")).toBeInTheDocument();
+    } finally {
+      getItem.mockRestore();
+    }
+  });
+});

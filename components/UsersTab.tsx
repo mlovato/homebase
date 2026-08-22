@@ -5,6 +5,7 @@ import type { User, UserRole } from "@/lib/types";
 import { AVATAR_OPTIONS } from "@/lib/types";
 import { UserAvatar } from "./UserAvatar";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { formatStoredDate } from "@/lib/formatDate";
 
 const inputClass =
   "px-3 py-2 rounded-lg retro:rounded-none border border-gray-300 dark:border-gray-600 retro:border-retro-dim bg-white dark:bg-gray-700 retro:bg-retro-bg text-gray-900 dark:text-gray-100 retro:text-retro-green focus:outline-none focus:ring-2 focus:ring-indigo-500 retro:focus:ring-retro-green text-sm";
@@ -14,9 +15,7 @@ interface UsersTabProps {
 }
 
 type Modal =
-  | { type: "none" }
-  | { type: "create" }
-  | { type: "edit"; user: User };
+  { type: "none" } | { type: "create" } | { type: "edit"; user: User };
 
 export function UsersTab({ showError }: UsersTabProps) {
   const [users, setUsers] = useState<User[]>([]);
@@ -123,7 +122,7 @@ export function UsersTab({ showError }: UsersTabProps) {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-gray-500 dark:text-gray-400 retro:text-retro-dim hidden sm:table-cell">
-                  {new Date(user.created_at).toLocaleDateString()}
+                  {formatStoredDate(user.created_at)}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-2">

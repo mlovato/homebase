@@ -7,7 +7,7 @@ const DB_PATH =
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE COLLATE NOCASE,
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('admin','user')),
     avatar TEXT,
@@ -62,8 +62,12 @@ export async function runMigrations(
   db: Database.Database,
   env?: MigrationEnv,
 ): Promise<void> {
-  const adminEmail = env?.adminEmail ?? process.env.ADMIN_EMAIL ?? "";
-  const adminPassword = env?.adminPassword ?? process.env.ADMIN_PASSWORD ?? "";
+  const adminEmail = (env?.adminEmail ?? process.env.ADMIN_EMAIL ?? "").trim();
+  const adminPassword = (
+    env?.adminPassword ??
+    process.env.ADMIN_PASSWORD ??
+    ""
+  ).trim();
 
   // Bootstrap admin user if users table is empty
   if (adminEmail && adminPassword) {
@@ -104,14 +108,25 @@ function hasColumn(
   return cols.some((c) => c.name === column);
 }
 
+function findAdminUser(db: Database.Database): { id: number } | undefined {
+  return db
+    .prepare("SELECT id FROM users WHERE role = ? LIMIT 1")
+    .get("admin") as { id: number } | undefined;
+}
+
+function missingAdminMessage(table: string): string {
+  return (
+    `Cannot migrate ${table}: this database has rows from an older version ` +
+    "that need an owner, but no admin user exists. Set ADMIN_EMAIL and " +
+    "ADMIN_PASSWORD in the environment and restart to create one."
+  );
+}
+
 function migrateAddUserId(db: Database.Database, table: string): void {
   if (hasColumn(db, table, "user_id")) return;
 
-  const adminUser = db
-    .prepare("SELECT id FROM users WHERE role = ? LIMIT 1")
-    .get("admin") as { id: number } | undefined;
-  if (!adminUser)
-    throw new Error(`Cannot migrate ${table}: no admin user found`);
+  const adminUser = findAdminUser(db);
+  if (!adminUser) throw new Error(missingAdminMessage(table));
 
   db.exec(
     `ALTER TABLE ${table} ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE`,
@@ -129,31 +144,33 @@ function migrateAddUrlAlt(db: Database.Database): void {
 function migrateSettings(db: Database.Database): void {
   if (hasColumn(db, "settings", "user_id")) return;
 
-  const adminUser = db
-    .prepare("SELECT id FROM users WHERE role = ? LIMIT 1")
-    .get("admin") as { id: number } | undefined;
-  if (!adminUser)
-    throw new Error("Cannot migrate settings: no admin user found");
+  const adminUser = findAdminUser(db);
+  if (!adminUser) throw new Error(missingAdminMessage("settings"));
 
-  const rows = db.prepare("SELECT key, value FROM settings").all() as {
-    key: string;
-    value: string;
-  }[];
-  db.exec("DROP TABLE settings");
-  db.exec(`
-    CREATE TABLE settings (
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      key TEXT NOT NULL,
-      value TEXT NOT NULL,
-      PRIMARY KEY (user_id, key)
-    )
-  `);
-  const insert = db.prepare(
-    "INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?)",
-  );
-  for (const row of rows) {
-    insert.run(adminUser.id, row.key, row.value);
-  }
+  // This is the only migration that deletes before it writes. Interrupted
+  // between the DROP and the re-inserts it loses every stored setting, and the
+  // recreated table then satisfies the guard above, so it never retries.
+  db.transaction(() => {
+    const rows = db.prepare("SELECT key, value FROM settings").all() as {
+      key: string;
+      value: string;
+    }[];
+    db.exec("DROP TABLE settings");
+    db.exec(`
+      CREATE TABLE settings (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        key TEXT NOT NULL,
+        value TEXT NOT NULL,
+        PRIMARY KEY (user_id, key)
+      )
+    `);
+    const insert = db.prepare(
+      "INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?)",
+    );
+    for (const row of rows) {
+      insert.run(adminUser.id, row.key, row.value);
+    }
+  })();
 }
 
 /** Creates an isolated in-memory DB for tests */

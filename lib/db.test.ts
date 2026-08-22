@@ -224,7 +224,7 @@ describe("runMigrations", () => {
     insertUser(legacy, "plain@test.com", "user");
 
     await expect(runMigrations(legacy)).rejects.toThrow(
-      "Cannot migrate categories: no admin user found",
+      /Cannot migrate categories:[\s\S]*ADMIN_EMAIL and ADMIN_PASSWORD/,
     );
     legacy.close();
   });
@@ -262,7 +262,7 @@ describe("runMigrations", () => {
     insertUser(legacy, "plain@test.com", "user");
 
     await expect(runMigrations(legacy)).rejects.toThrow(
-      "Cannot migrate settings: no admin user found",
+      /Cannot migrate settings:[\s\S]*ADMIN_EMAIL and ADMIN_PASSWORD/,
     );
     legacy.close();
   });

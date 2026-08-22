@@ -8,6 +8,9 @@ services:
     environment:
       - ADMIN_EMAIL=admin@example.com
       - ADMIN_PASSWORD=changeme
+      # Required. Generate with: openssl rand -base64 32
+      # While this is still the example value every request fails with a 500 —
+      # it is a working signing key, so leaving it would let anyone forge admin.
       - JWT_SECRET=change-this-to-a-long-random-secret
       - DATABASE_PATH=/data/homebase.db
     volumes:

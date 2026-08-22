@@ -80,3 +80,43 @@ describe("settings handler", () => {
     expect(handleGetSettings(db, userB).health_check_interval).toBe("30s");
   });
 });
+
+describe("handleUpdateSettings validates before writing", () => {
+  // A rejected request used to leave the interval already applied, so a client
+  // that treats 400 as "nothing changed" showed a stale value.
+  it("does not apply the interval when the shortcut is invalid", () => {
+    const before = handleGetSettings(db, userId).health_check_interval;
+
+    const result = handleUpdateSettings(db, userId, {
+      health_check_interval: "10s",
+      search_shortcut: "mod+ctrl",
+    });
+
+    expect(result).toMatchObject({ status: 400 });
+    expect(handleGetSettings(db, userId).health_check_interval).toBe(before);
+  });
+
+  it("does not apply the shortcut when the interval is invalid", () => {
+    const before = handleGetSettings(db, userId).search_shortcut;
+
+    const result = handleUpdateSettings(db, userId, {
+      health_check_interval: "5m",
+      search_shortcut: "mod+j",
+    });
+
+    expect(result).toMatchObject({ status: 400 });
+    expect(handleGetSettings(db, userId).search_shortcut).toBe(before);
+  });
+
+  it("applies both when both are valid", () => {
+    const result = handleUpdateSettings(db, userId, {
+      health_check_interval: "10s",
+      search_shortcut: "mod+j",
+    });
+    expect(result.status).toBe(200);
+    expect(handleGetSettings(db, userId)).toMatchObject({
+      health_check_interval: "10s",
+      search_shortcut: "mod+j",
+    });
+  });
+});
