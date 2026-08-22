@@ -104,6 +104,24 @@ describe("state-changing API requests from another origin", () => {
     expect(res.status).not.toBe(403);
   });
 
+  // Each hop in a proxy chain appends to x-forwarded-host, so the header arrives
+  // as a comma-separated list. Compared whole, it never equals the browser's
+  // Origin host and every save is refused.
+  it("matches the first forwarded host when proxies chained the header", async () => {
+    const res = await proxy(
+      request("http://internal:7000/api/links", {
+        method: "POST",
+        headers: {
+          origin: "https://home.example.com",
+          host: "internal:7000",
+          "x-forwarded-host": "home.example.com, edge.internal",
+        },
+      }),
+    );
+
+    expect(res.status).not.toBe(403);
+  });
+
   it("allows a request with no Origin header", async () => {
     const res = await proxy(
       request("http://nas.local:7000/api/links", { method: "POST" }),

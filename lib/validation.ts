@@ -46,23 +46,46 @@ export function isOptionalHttpUrl(value: unknown): boolean {
 }
 
 /**
- * A usable sort position.
+ * A number SQLite stores as an integer, in a column that expects one.
  *
- * SQLite keeps a non-numeric value in an INTEGER column as text, and text sorts
- * after every number — so one bad write pins that row to the end of its list
- * forever, and `MAX(sort_order) + 1` then hands the same position to the next
- * row created.
+ * Both fields typed that way need it, for different reasons. SQLite keeps a
+ * non-numeric `sort_order` in its INTEGER column as text, and text sorts after
+ * every number — so one bad write pins that row to the end of its list forever,
+ * and `MAX(sort_order) + 1` then hands the same position to the next row
+ * created. A row id cannot even be bound unless it is one: better-sqlite3
+ * refuses a boolean, an object or an array outright, and that throw reached the
+ * caller as an empty 500 instead of the documented validation error.
  */
-export function isSortOrder(value: unknown): boolean {
+function isWholeNumber(value: unknown): boolean {
   return typeof value === "number" && Number.isSafeInteger(value);
 }
 
-/** The same rule where the field is optional: absent means "append at the end". */
+/** A sort position, where absent means "append at the end". */
 export function isOptionalSortOrder(value: unknown): boolean {
-  return value === undefined || isSortOrder(value);
+  return value === undefined || isWholeNumber(value);
 }
 
 export const SORT_ORDER_ERROR = "sort_order must be a whole number";
+
+/**
+ * A row id the database can look up, or absent/null for "none".
+ *
+ * A numeric-looking string is refused too: SQLite converts it for the
+ * comparison, so `"1a"` answered 404 for a request that was simply malformed.
+ */
+export function isOptionalRowId(value: unknown): boolean {
+  return value == null || isWholeNumber(value);
+}
+
+/**
+ * Text for a column that also accepts NULL — an icon value, for instance.
+ *
+ * Same binding rule as a row id: anything else threw at the write rather than
+ * being refused at the boundary.
+ */
+export function isOptionalText(value: unknown): boolean {
+  return value == null || typeof value === "string";
+}
 
 /**
  * A path segment that is exactly a whole number.

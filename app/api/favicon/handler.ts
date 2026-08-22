@@ -55,20 +55,19 @@ export async function resolveFavicon(
 ): Promise<string | null> {
   let origin: string;
   try {
-    new URL(url);
     origin = new URL(url).origin;
   } catch {
     return null;
   }
 
   try {
-    const res = await withFetchTimeout((signal) => fetchFn(url, { signal }));
-    if (res.ok) {
-      const html = await res.text();
+    const html = await withFetchTimeout(async (signal) => {
+      const res = await fetchFn(url, { signal });
+      return res.ok ? res.text() : null;
+    });
+    if (html) {
       const href = extractFaviconHref(html);
-      if (href) {
-        return resolveHref(href, url);
-      }
+      if (href) return resolveHref(href, url);
     }
   } catch {
     // fall through to /favicon.ico fallback
@@ -107,23 +106,23 @@ export async function fetchFaviconImage(
   faviconUrl: string,
   fetchFn: ImageFetchFn = fetch,
 ): Promise<FaviconImage | null> {
-  const res = await withFetchTimeout((signal) =>
-    fetchFn(faviconUrl, { signal }),
-  );
-  if (!res.ok) return null;
+  return withFetchTimeout(async (signal) => {
+    const res = await fetchFn(faviconUrl, { signal });
+    if (!res.ok) return null;
 
-  if (Number(res.headers.get("content-length")) > MAX_FAVICON_BYTES)
-    return null;
+    if (Number(res.headers.get("content-length")) > MAX_FAVICON_BYTES)
+      return null;
 
-  const contentType = normalizeContentType(res.headers.get("content-type"));
-  if (!PROXYABLE_IMAGE_CONTENT_TYPES.has(contentType)) return null;
+    const contentType = normalizeContentType(res.headers.get("content-type"));
+    if (!PROXYABLE_IMAGE_CONTENT_TYPES.has(contentType)) return null;
 
-  const body = await res.arrayBuffer();
-  if (body.byteLength > MAX_FAVICON_BYTES) return null;
+    const body = await res.arrayBuffer();
+    if (body.byteLength > MAX_FAVICON_BYTES) return null;
 
-  return {
-    body,
-    contentType,
-    etag: `"${createHash("sha1").update(Buffer.from(body)).digest("hex")}"`,
-  };
+    return {
+      body,
+      contentType,
+      etag: `"${createHash("sha1").update(Buffer.from(body)).digest("hex")}"`,
+    };
+  });
 }

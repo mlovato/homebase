@@ -89,6 +89,7 @@ Last updated: v1.5.0
 - [ ] Gray dot appears for URLs with unknown status
 - [ ] Status dots update automatically based on the configured interval
 - [ ] Status dots refresh when the browser tab regains focus
+- [ ] A `/api/health` call that never answers does not stop the other dots from updating
 - [ ] Polling stops while the tab is hidden (no requests in the network log)
 - [ ] Reordering links in the admin panel does not trigger a fresh round of pings
 
@@ -173,6 +174,8 @@ Last updated: v1.5.0
 - [ ] Upload an unsupported file type -- error is shown
 - [ ] After a failed upload, pick the same file again -- the upload is retried
 - [ ] Enter a custom URL -- URL is assigned as the icon source
+- [ ] Create a link and type a name -- a matching builtin icon is suggested and selected
+- [ ] Open edit on a link that has no icon and press Save -- it still has no icon
 
 ### 5.5 Drag-and-Drop Reordering
 
@@ -265,13 +268,15 @@ Last updated: v1.5.0
 - [ ] Click edit on a user -- edit form appears with current values
 - [ ] Change the email -- email is updated
 - [ ] Change the role -- role is updated
+- [ ] Edit the only admin -- the "User" role option is disabled, with a hint saying why
 - [ ] Change the avatar -- avatar is updated
 - [ ] Change the password -- password is updated
 - [ ] Changes are reflected in the user list
 
 ### 7.5 Delete User
 
-- [ ] Click delete on a user -- confirmation dialog appears
+- [ ] Your own row shows no delete button -- the API refuses self-deletion
+- [ ] Click delete on another user -- confirmation dialog appears
 - [ ] Confirm delete -- user is removed from the list
 - [ ] Deleted user's categories and links are cascade-deleted
 - [ ] Deleted user's settings are cascade-deleted
@@ -312,6 +317,7 @@ Last updated: v1.5.0
 - [ ] A url whose favicon answers with HTML or script returns 404, not those bytes
 - [ ] Every 200 carries `X-Content-Type-Options: nosniff` and `Content-Security-Policy: default-src 'none'; sandbox`
 - [ ] Returns an appropriate error for unreachable URLs
+- [ ] A host that answers and then stalls mid-body gets a 502 within ~5 s, rather than holding the request open
 
 ---
 

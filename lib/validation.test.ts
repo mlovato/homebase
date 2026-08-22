@@ -2,8 +2,9 @@ import {
   isFilledString,
   isHttpUrl,
   isOptionalHttpUrl,
+  isOptionalRowId,
   isOptionalSortOrder,
-  isSortOrder,
+  isOptionalText,
   parseRouteId,
 } from "./validation";
 
@@ -66,17 +67,29 @@ describe("isOptionalHttpUrl", () => {
   });
 });
 
-describe("isSortOrder", () => {
-  it.each([0, 1, 42, -1])("accepts %p", (value) => {
-    expect(isSortOrder(value)).toBe(true);
+describe("isOptionalRowId", () => {
+  it.each([0, 1, 42, -1, null, undefined])("accepts %p", (value) => {
+    expect(isOptionalRowId(value)).toBe(true);
   });
 
-  it.each(["0", "zzz", 1.5, NaN, Infinity, null, {}, []])(
+  // A string is the dangerous one: SQLite converts it for the comparison, so a
+  // mangled id answered 404 for a request that was simply malformed.
+  it.each(["0", "1a", "zzz", 1.5, NaN, Infinity, true, {}, []])(
     "rejects %p",
     (value) => {
-      expect(isSortOrder(value)).toBe(false);
+      expect(isOptionalRowId(value)).toBe(false);
     },
   );
+});
+
+describe("isOptionalText", () => {
+  it.each(["", "grafana", null, undefined])("accepts %p", (value) => {
+    expect(isOptionalText(value)).toBe(true);
+  });
+
+  it.each([0, 42, true, {}, []])("rejects %p", (value) => {
+    expect(isOptionalText(value)).toBe(false);
+  });
 });
 
 describe("isOptionalSortOrder", () => {

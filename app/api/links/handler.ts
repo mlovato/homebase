@@ -12,12 +12,16 @@ import {
   isFilledString,
   isHttpUrl,
   isOptionalHttpUrl,
+  isOptionalRowId,
   isOptionalSortOrder,
+  isOptionalText,
   SORT_ORDER_ERROR,
 } from "@/lib/validation";
 
 const URL_ERROR = "URL must start with http:// or https://";
 const ALT_URL_ERROR = "Alternative URL must start with http:// or https://";
+const ICON_VALUE_ERROR = "icon_value must be a string or null";
+const CATEGORY_ID_ERROR = "category_id must be a whole number or null";
 
 /**
  * A link pointing at someone else's category satisfies the foreign key, but the
@@ -55,6 +59,12 @@ export function handleCreateLink(
   }
   if (!body.icon_type || !VALID_ICON_TYPES.includes(body.icon_type)) {
     return { error: "icon_type must be builtin, upload, or url", status: 400 };
+  }
+  if (!isOptionalText(body.icon_value)) {
+    return { error: ICON_VALUE_ERROR, status: 400 };
+  }
+  if (!isOptionalRowId(body.category_id)) {
+    return { error: CATEGORY_ID_ERROR, status: 400 };
   }
   if (!ownsCategory(db, userId, body.category_id)) {
     return { error: "Category not found", status: 404 };
@@ -102,6 +112,12 @@ export function handleUpdateLink(
     !VALID_ICON_TYPES.includes(body.icon_type)
   ) {
     return { error: "icon_type must be builtin, upload, or url", status: 400 };
+  }
+  if (!isOptionalText(body.icon_value)) {
+    return { error: ICON_VALUE_ERROR, status: 400 };
+  }
+  if (!isOptionalRowId(body.category_id)) {
+    return { error: CATEGORY_ID_ERROR, status: 400 };
   }
   if (!ownsCategory(db, userId, body.category_id)) {
     return { error: "Category not found", status: 404 };

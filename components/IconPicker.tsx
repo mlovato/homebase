@@ -21,11 +21,18 @@ interface IconPickerProps {
   value: IconPickerValue;
   onChange: (value: IconPickerValue) => void;
   serviceName: string;
+  /** When false, never chooses an icon on the user's behalf: empty stays empty. */
+  autoSuggest?: boolean;
 }
 
 type Tab = "builtin" | "upload" | "url";
 
-export function IconPicker({ value, onChange, serviceName }: IconPickerProps) {
+export function IconPicker({
+  value,
+  onChange,
+  serviceName,
+  autoSuggest = true,
+}: IconPickerProps) {
   const [tab, setTab] = useState<Tab>(value.icon_type);
   const [slug, setSlug] = useState(
     value.icon_type === "builtin" ? (value.icon_value ?? "") : "",
@@ -39,7 +46,11 @@ export function IconPicker({ value, onChange, serviceName }: IconPickerProps) {
   const [uploading, setUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  const [userEdited, setUserEdited] = useState(!!value.icon_value);
+  // Locked by any of three things: the caller turned suggestions off, a value
+  // is already set, or the user has since chosen one themselves.
+  const [suggestionLocked, setSuggestionLocked] = useState(
+    !autoSuggest || !!value.icon_value,
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   // Stable ref so effects always call the latest onChange without it as a dep
@@ -52,9 +63,9 @@ export function IconPicker({ value, onChange, serviceName }: IconPickerProps) {
 
   // Auto-suggest from service name when user hasn't manually picked an icon
   useEffect(() => {
-    if (userEdited || tab !== "builtin" || !serviceName.trim()) return;
+    if (suggestionLocked || tab !== "builtin" || !serviceName.trim()) return;
     setSearchQuery(serviceName);
-  }, [serviceName, userEdited, tab]);
+  }, [serviceName, suggestionLocked, tab]);
 
   // Auto-select first suggestion from service name auto-search
   const autoSelect = useCallback((slug: string) => {
@@ -63,9 +74,9 @@ export function IconPicker({ value, onChange, serviceName }: IconPickerProps) {
   }, []);
 
   useEffect(() => {
-    if (userEdited || tab !== "builtin") return;
+    if (suggestionLocked || tab !== "builtin") return;
     if (suggestions.length > 0) autoSelect(suggestions[0].slug);
-  }, [suggestions, userEdited, tab, autoSelect]);
+  }, [suggestions, suggestionLocked, tab, autoSelect]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -84,7 +95,7 @@ export function IconPicker({ value, onChange, serviceName }: IconPickerProps) {
   function handleSlugChange(newSlug: string) {
     setSlug(newSlug);
     setSearchQuery(newSlug);
-    setUserEdited(true);
+    setSuggestionLocked(true);
     onChange({ icon_type: "builtin", icon_value: newSlug.trim() || null });
     setSuggestionsOpen(true);
   }
@@ -92,7 +103,7 @@ export function IconPicker({ value, onChange, serviceName }: IconPickerProps) {
   function selectSuggestion(selectedSlug: string) {
     setSlug(selectedSlug);
     setSearchQuery("");
-    setUserEdited(true);
+    setSuggestionLocked(true);
     setSuggestionsOpen(false);
     onChange({ icon_type: "builtin", icon_value: selectedSlug });
   }
@@ -105,7 +116,7 @@ export function IconPicker({ value, onChange, serviceName }: IconPickerProps) {
       onChange({ icon_type: "upload", icon_value: uploadPath });
     if (newTab === "url")
       onChange({ icon_type: "url", icon_value: urlValue.trim() || null });
-    setUserEdited(true);
+    setSuggestionLocked(true);
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {

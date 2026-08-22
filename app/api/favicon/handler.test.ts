@@ -3,6 +3,7 @@ import {
   resolveFavicon,
   MAX_FAVICON_BYTES,
 } from "./handler";
+import { FETCH_TIMEOUT_MS } from "@/lib/fetchTimeout";
 
 function mockFetch(responses: Record<string, { ok: boolean; body?: string }>) {
   return async (url: string) => {
@@ -310,5 +311,57 @@ describe("favicon content types are restricted to images", () => {
       mockImageFetch(new Uint8Array([1]), "image/vnd.microsoft.icon"),
     );
     expect(result?.contentType).toBe("image/vnd.microsoft.icon");
+  });
+});
+
+// The abort timer only ever covered getting the response *headers*: the body was
+// read after the timer had already been cleared, so a host that answers and then
+// stalls held the request open for good and buffered whatever it did send.
+describe("favicon body reads are bounded too", () => {
+  let aborted = false;
+
+  /** A body that only ever settles because the timeout aborted it. */
+  function stallUntilAbort<T>(signal: AbortSignal): Promise<T> {
+    return new Promise<T>((_, reject) => {
+      signal.addEventListener("abort", () => {
+        aborted = true;
+        reject(new Error("aborted"));
+      });
+    });
+  }
+
+  beforeEach(() => {
+    aborted = false;
+    jest.useFakeTimers();
+  });
+  afterEach(() => jest.useRealTimers());
+
+  it("aborts a page whose body never arrives", async () => {
+    const promise = resolveFavicon("http://example.com/", async (url, init) =>
+      url.endsWith("/favicon.ico")
+        ? { ok: false, text: async () => "" }
+        : { ok: true, text: () => stallUntilAbort<string>(init!.signal) },
+    );
+
+    await jest.advanceTimersByTimeAsync(FETCH_TIMEOUT_MS + 1);
+
+    expect(aborted).toBe(true);
+    await expect(promise).resolves.toBeNull();
+  });
+
+  it("aborts an icon whose bytes never arrive", async () => {
+    const settled = fetchFaviconImage(
+      "http://example.com/i.png",
+      async (_url, init) => ({
+        ok: true,
+        headers: { get: () => null },
+        arrayBuffer: () => stallUntilAbort<ArrayBuffer>(init!.signal),
+      }),
+    ).catch(() => "rejected");
+
+    await jest.advanceTimersByTimeAsync(FETCH_TIMEOUT_MS + 1);
+
+    expect(aborted).toBe(true);
+    await expect(settled).resolves.toBe("rejected");
   });
 });

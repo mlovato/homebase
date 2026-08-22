@@ -14,17 +14,20 @@ const inputClass =
 
 interface UsersTabProps {
   showError: (msg: string) => void;
+  /** The signed-in admin, whose own row must not offer delete. */
+  currentUserId: number;
 }
 
 type Modal =
   { type: "none" } | { type: "create" } | { type: "edit"; user: User };
 
-export function UsersTab({ showError }: UsersTabProps) {
+export function UsersTab({ showError, currentUserId }: UsersTabProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<Modal>({ type: "none" });
   const [pendingDelete, setPendingDelete] = useState<User | null>(null);
   const requireSession = useSessionGuard();
+  const adminCount = users.filter((u) => u.role === "admin").length;
 
   const loadUsers = useCallback(async () => {
     try {
@@ -150,25 +153,29 @@ export function UsersTab({ showError }: UsersTabProps) {
                         />
                       </svg>
                     </button>
-                    <button
-                      onClick={() => setPendingDelete(user)}
-                      className="text-gray-400 hover:text-red-500 retro:text-retro-dim retro:hover:text-retro-green transition-colors"
-                      title="Delete"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        viewBox="0 0 24 24"
+                    {/* Deleting your own account is refused by the API, so
+                        offering it here could only ever raise an error. */}
+                    {user.id !== currentUserId && (
+                      <button
+                        onClick={() => setPendingDelete(user)}
+                        className="text-gray-400 hover:text-red-500 retro:text-retro-dim retro:hover:text-retro-green transition-colors"
+                        title="Delete"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -190,6 +197,11 @@ export function UsersTab({ showError }: UsersTabProps) {
       {modal.type !== "none" && (
         <UserFormModal
           modal={modal}
+          isOnlyAdmin={
+            modal.type === "edit" &&
+            modal.user.role === "admin" &&
+            adminCount === 1
+          }
           onClose={() => setModal({ type: "none" })}
           onSaved={() => {
             setModal({ type: "none" });
@@ -215,11 +227,14 @@ export function UsersTab({ showError }: UsersTabProps) {
 
 function UserFormModal({
   modal,
+  isOnlyAdmin,
   onClose,
   onSaved,
   showError,
 }: {
   modal: { type: "create" } | { type: "edit"; user: User };
+  /** The API refuses to demote the last admin; the form must not offer it. */
+  isOnlyAdmin: boolean;
   onClose: () => void;
   onSaved: () => void;
   showError: (msg: string) => void;
@@ -367,9 +382,16 @@ function UserFormModal({
               onChange={(e) => setRole(e.target.value as UserRole)}
               className={inputClass}
             >
-              <option value="user">User</option>
+              <option value="user" disabled={isOnlyAdmin}>
+                User
+              </option>
               <option value="admin">Admin</option>
             </select>
+            {isOnlyAdmin && (
+              <p className="text-xs text-gray-400 dark:text-gray-500 retro:text-retro-dim">
+                The only admin cannot be demoted — promote someone else first.
+              </p>
+            )}
           </div>
           <div className="flex justify-end gap-3 mt-2">
             <button

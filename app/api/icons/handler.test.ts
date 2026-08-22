@@ -3,6 +3,7 @@
  */
 import { searchIcons, clearCache, METADATA_URL } from "./handler";
 import { DASHBOARD_ICONS_CDN as CDN_BASE } from "@/lib/constants";
+import { FETCH_TIMEOUT_MS } from "@/lib/fetchTimeout";
 
 const MOCK_METADATA = {
   plex: { base: "svg", aliases: ["plex media server"], categories: ["Media"] },
@@ -181,6 +182,32 @@ describe("metadata cache lifetime", () => {
     const second = await searchIcons("plex", failing);
     expect(failing).toHaveBeenCalledTimes(1);
     expect(second).toEqual(first);
+  });
+
+  // The timeout only ever covered getting the response headers, so a host that
+  // answered and then stalled left the search request open indefinitely.
+  it("gives up on metadata whose body never arrives", async () => {
+    jest.useFakeTimers();
+    let aborted = false;
+    const stalling = jest.fn(async (_url: string, init?: RequestInit) => ({
+      ok: true,
+      json: () =>
+        new Promise((_, reject) => {
+          init!.signal!.addEventListener("abort", () => {
+            aborted = true;
+            reject(new Error("aborted"));
+          });
+        }),
+    })) as unknown as typeof fetch;
+
+    const settled = searchIcons("plex", stalling).catch(
+      (error: Error) => error.message,
+    );
+    await jest.advanceTimersByTimeAsync(FETCH_TIMEOUT_MS + 1);
+
+    expect(aborted).toBe(true);
+    await expect(settled).resolves.toBe("aborted");
+    jest.useRealTimers();
   });
 
   it("still reports failure when a rejected fetch has no cache to fall back on", async () => {

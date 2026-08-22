@@ -224,7 +224,16 @@ export function AdminLinkForm({
         </select>
       </div>
 
-      <IconPicker value={icon} onChange={setIcon} serviceName={name} />
+      {/* Suggesting an icon from the name is for a link being created. On one
+          that already exists, "no icon" is a choice the user made, and
+          overriding it turned opening this dialog and pressing Save into a
+          silent icon change. */}
+      <IconPicker
+        value={icon}
+        onChange={setIcon}
+        serviceName={name}
+        autoSuggest={!isEdit}
+      />
 
       <div className="flex gap-2 justify-end">
         <button

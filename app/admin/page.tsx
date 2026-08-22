@@ -52,6 +52,7 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [intervalMs, setIntervalMs] = useState<number | null>(null);
   const [currentUser, setCurrentUser] = useState<{
+    userId: number;
     role: UserRole;
     email: string;
     avatar: string | null;
@@ -97,8 +98,11 @@ export default function AdminPage() {
     fetch("/api/auth/me")
       .then((r) => r.json())
       .then((data) => {
-        if (data.role && data.email)
+        // userId gates the self-delete button, and undefined would compare
+        // unequal to every row — restoring the button it exists to remove.
+        if (typeof data.userId === "number" && data.role && data.email)
           setCurrentUser({
+            userId: data.userId,
             role: data.role,
             email: data.email,
             avatar: data.avatar ?? null,
@@ -527,7 +531,10 @@ export default function AdminPage() {
             />
           )}
           {tab === "users" && currentUser?.role === "admin" && (
-            <UsersTab showError={showError} />
+            <UsersTab
+              showError={showError}
+              currentUserId={currentUser.userId}
+            />
           )}
         </main>
       </div>

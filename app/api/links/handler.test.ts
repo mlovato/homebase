@@ -28,6 +28,15 @@ afterEach(() => {
   db.close();
 });
 
+function makeLink() {
+  return createLink(db, userId, {
+    category_id: null,
+    name: "Plex",
+    url: "http://plex.local",
+    icon_type: "builtin",
+  });
+}
+
 describe("handleGetLinks", () => {
   it("returns empty array when no links", () => {
     expect(handleGetLinks(db, userId)).toEqual([]);
@@ -262,15 +271,6 @@ describe("category ownership", () => {
 });
 
 describe("icon_type validation on update", () => {
-  function makeLink() {
-    return createLink(db, userId, {
-      category_id: null,
-      name: "Plex",
-      url: "http://plex.local",
-      icon_type: "builtin",
-    });
-  }
-
   // These are falsy, so they used to skip the guard and hit the schema's CHECK /
   // NOT NULL constraint as an opaque 500.
   it.each([
@@ -304,15 +304,6 @@ describe("icon_type validation on update", () => {
 });
 
 describe("handleUpdateLink required fields", () => {
-  function makeLink() {
-    return createLink(db, userId, {
-      category_id: null,
-      name: "Plex",
-      url: "http://plex.local",
-      icon_type: "builtin",
-    });
-  }
-
   // handleCreateLink rejects both, so accepting them on update leaves a link
   // with no visible label, or an href of "" that navigates to the dashboard.
   it.each([
@@ -433,5 +424,52 @@ describe("link inputs the dashboard could not use", () => {
 
     expect(result.status).toBe(400);
     expect(getLinkById(db, userId, link.id)?.sort_order).toBe(0);
+  });
+});
+
+// A JSON body can type any field as anything, and better-sqlite3 refuses to bind
+// a value that is not a number, string, bigint, buffer or null — which reached
+// the caller as an empty 500 rather than the documented validation error.
+describe("field types the database cannot store", () => {
+  it("refuses a non-string icon_value on create", () => {
+    const result = handleCreateLink(db, userId, {
+      name: "Grafana",
+      url: "http://grafana.local",
+      icon_type: "url",
+      icon_value: { evil: true } as unknown as string,
+    });
+
+    expect(result.status).toBe(400);
+  });
+
+  it("refuses a non-numeric category_id on create", () => {
+    const result = handleCreateLink(db, userId, {
+      name: "Grafana",
+      url: "http://grafana.local",
+      icon_type: "builtin",
+      category_id: true as unknown as number,
+    });
+
+    expect(result.status).toBe(400);
+  });
+
+  it("refuses a non-string icon_value on update", () => {
+    const link = makeLink();
+
+    const result = handleUpdateLink(db, userId, link.id, {
+      icon_value: [] as unknown as string,
+    });
+
+    expect(result.status).toBe(400);
+  });
+
+  it("refuses a non-numeric category_id on update", () => {
+    const link = makeLink();
+
+    const result = handleUpdateLink(db, userId, link.id, {
+      category_id: "1a" as unknown as number,
+    });
+
+    expect(result.status).toBe(400);
   });
 });

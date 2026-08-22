@@ -2,7 +2,7 @@
 
 All API endpoints are under `/api/`. All endpoints except `/api/auth/login`, `/api/public/services` and `/api/openapi` require authentication via a JWT cookie (`homebase_session`). Endpoints that manage users require the `admin` role, and refuse anyone else with **401**.
 
-State-changing requests (POST, PUT, PATCH, DELETE) must come from this instance: if an `Origin` header is present and its host is not this instance's own (`X-Forwarded-Host`, else `Host`), the request is refused with **403 Cross-origin request refused**. `SameSite=lax` alone is not enough — a site does not include the port, so another service on the same host counts as same-site and its pages would otherwise post with the user's cookie. A script or `curl`, which sends no `Origin`, is unaffected.
+State-changing requests (POST, PUT, PATCH, DELETE) must come from this instance: if an `Origin` header is present and its host is not this instance's own, the request is refused with **403 Cross-origin request refused**. This instance's own host is the first value of `X-Forwarded-Host` — each proxy in a chain appends its own, and only the first describes what the browser saw — falling back to `Host` when that header is absent or blank. `SameSite=lax` alone is not enough — a site does not include the port, so another service on the same host counts as same-site and its pages would otherwise post with the user's cookie. A script or `curl`, which sends no `Origin`, is unaffected.
 
 Any `:id` in a path must be a plain whole number. Anything else — `1abc`, `1.5` — is refused with **400 Invalid id** rather than being read up to the first non-digit.
 
@@ -225,8 +225,8 @@ Create a new link.
 | `url`         | string        | Yes      | Link URL; must start with `http://` or `https://` |
 | `url_alt`     | string\|null  | No       | Fallback URL used when the primary is down; blank means none, otherwise `http(s)` |
 | `icon_type`   | string        | Yes      | One of: `builtin`, `upload`, `url`           |
-| `icon_value`  | string        | No       | Icon slug, upload path, or external URL      |
-| `category_id` | number\|null  | No       | Category to place the link in                |
+| `icon_value`  | string\|null  | No       | Icon slug, upload path, or external URL      |
+| `category_id` | number\|null  | No       | Category to place the link in; must be a whole number |
 | `sort_order`  | number        | No       | Sort position; must be a whole number. Defaults to the end of the container |
 
 Only `http(s)` URLs are accepted. A card stored with any other scheme cannot be
@@ -235,7 +235,8 @@ opened — React refuses to render such an href — so it is rejected on the way
 **201 Created** — Returns the created link.
 
 **400 Bad Request** — Validation error (missing name, missing or non-`http(s)`
-URL, invalid `icon_type`, or a non-numeric `sort_order`).
+URL, invalid `icon_type`, an `icon_value` that is not a string or null, a
+`category_id` that is not a whole number or null, or a non-numeric `sort_order`).
 
 ---
 
@@ -251,8 +252,8 @@ Update a link. All fields are optional.
 | `url`         | string        | No       | New URL; must start with `http://` or `https://` |
 | `url_alt`     | string\|null  | No       | New fallback URL; blank clears it  |
 | `icon_type`   | string        | No       | New icon type                      |
-| `icon_value`  | string        | No       | New icon value                     |
-| `category_id` | number\|null  | No       | Move to a different category       |
+| `icon_value`  | string\|null  | No       | New icon value                     |
+| `category_id` | number\|null  | No       | Move to a different category; must be a whole number |
 | `sort_order`  | number        | No       | New sort position; must be a whole number |
 
 A supplied `name` or `url` is trimmed and must not be blank — omit the field to
@@ -261,8 +262,9 @@ leave that value unchanged.
 **200 OK** — Returns the updated link.
 
 **400 Bad Request** — `name` or `url` was supplied but is empty, whitespace only
-or not an `http(s)` URL; `icon_type` is not one of `builtin`, `upload`, `url`; or
-`sort_order` is not a whole number.
+or not an `http(s)` URL; `icon_type` is not one of `builtin`, `upload`, `url`;
+`icon_value` is neither a string nor null; `category_id` is neither a whole
+number nor null; or `sort_order` is not a whole number.
 
 **404 Not Found**
 
@@ -561,8 +563,9 @@ Import data from a previously exported JSON file. This **replaces all existing u
 
 **Request Body**: The full export JSON object (must have `version: 1`). Every link
 must carry a name, an `http(s)` `url` and a valid `icon_type`; any `sort_order`
-present must be a whole number. A file that fails any of these is rejected whole,
-before anything is deleted.
+present must be a whole number, and any `icon_value` present must be a string or
+null. A file that fails any of these is rejected whole, before anything is
+deleted.
 
 **200 OK**
 

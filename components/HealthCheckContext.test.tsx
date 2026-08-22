@@ -10,6 +10,7 @@ import {
 } from "./HealthCheckContext";
 import type { HealthStatus } from "@/app/api/health/handler";
 import type { Checker } from "./HealthCheckContext";
+import { FETCH_TIMEOUT_MS } from "@/lib/fetchTimeout";
 
 function StatusConsumer({ url }: { url: string }) {
   const status = useHealthStatus(url);
@@ -95,6 +96,7 @@ describe("checkHealthClient", () => {
     expect(spy).toHaveBeenNthCalledWith(
       1,
       `/api/health?url=${encodeURIComponent("http://ha.local:8123/path?q=1")}`,
+      { signal: expect.any(AbortSignal) },
     );
     expect(spy).toHaveBeenNthCalledWith(2, "http://ha.local:8123/path?q=1", {
       method: "HEAD",
@@ -132,8 +134,62 @@ describe("checkHealthClient", () => {
       jest.useRealTimers();
     }
   });
-});
 
+  // The browser-side probe was bounded but the gate was not, so one stalled
+  // request left the whole polling chain awaiting it and no dot ever updated.
+  it("gives up on a gate call that never answers", async () => {
+    jest.useFakeTimers();
+    let aborted = false;
+    global.fetch = jest.fn(
+      (_url, init) =>
+        new Promise((_, reject) => {
+          (init as RequestInit).signal!.addEventListener("abort", () => {
+            aborted = true;
+            reject(new Error("aborted"));
+          });
+        }),
+    ) as unknown as typeof fetch;
+
+    const settled = checkHealthClient("http://ha.local");
+    await jest.advanceTimersByTimeAsync(FETCH_TIMEOUT_MS + 3000);
+
+    expect(aborted).toBe(true);
+    await expect(settled).resolves.toBe("down");
+    jest.useRealTimers();
+  });
+
+  // The gate's budget has to outlast the one /api/health gives its own probe.
+  // Equal, it aborts just as the route is answering, and a .local service the
+  // browser can reach but Docker cannot resolve is called down unprobed.
+  it("waits past the server's own probe budget before giving up", async () => {
+    jest.useFakeTimers();
+    global.fetch = jest
+      .fn()
+      .mockImplementationOnce(
+        (_url, init) =>
+          // Answers just after the server's own budget, and honours the signal
+          // the way a real fetch does — so an early abort really does lose it.
+          new Promise((resolve, reject) => {
+            const timer = setTimeout(
+              () =>
+                resolve({ ok: true, json: async () => ({ status: "down" }) }),
+              FETCH_TIMEOUT_MS + 500,
+            );
+            (init as RequestInit).signal!.addEventListener("abort", () => {
+              clearTimeout(timer);
+              reject(new Error("aborted"));
+            });
+          }),
+      )
+      .mockResolvedValueOnce({ ok: true }) as unknown as typeof fetch;
+
+    const settled = checkHealthClient("http://ha.local");
+    await jest.advanceTimersByTimeAsync(FETCH_TIMEOUT_MS + 1000);
+
+    await expect(settled).resolves.toBe("up");
+    jest.useRealTimers();
+  });
+});
 describe("useHealthStatus", () => {
   it("returns unknown when no provider is present", () => {
     render(<StatusConsumer url="http://a.local" />);

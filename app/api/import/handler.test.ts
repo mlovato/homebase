@@ -402,3 +402,27 @@ describe("import reports uploaded icons it could not find", () => {
     expect(result.data).toEqual({ ok: true, missingIcons: 0 });
   });
 });
+
+// "Invalid import format" is the documented answer for a malformed file. An
+// icon_value the database cannot bind threw out of the transaction instead, so
+// the caller got an empty 500 and no idea which field was wrong.
+describe("icon_value the database cannot store", () => {
+  it("refuses the file rather than throwing", () => {
+    const result = handleImport(db, userId, {
+      version: 1,
+      exported_at: "2024-01-01T00:00:00.000Z",
+      categories: [],
+      uncategorized: [
+        {
+          name: "Plex",
+          url: "http://plex",
+          icon_type: "url",
+          icon_value: { evil: true },
+          sort_order: 0,
+        },
+      ],
+    });
+
+    expect(result).toEqual({ error: "Invalid import format", status: 400 });
+  });
+});

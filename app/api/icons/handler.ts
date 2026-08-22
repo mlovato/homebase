@@ -51,15 +51,15 @@ async function loadIcons(fetchFn: typeof fetch): Promise<IconEntry[]> {
   };
 
   try {
-    const res = await withFetchTimeout((signal) =>
-      fetchFn(METADATA_URL, {
+    const raw = await withFetchTimeout(async (signal) => {
+      const res = await fetchFn(METADATA_URL, {
         signal,
         next: { revalidate: CACHE_TTL_MS / 1000 },
-      } as RequestInit),
-    );
-    if (!res.ok) return serveStale();
+      } as RequestInit);
+      return res.ok ? ((await res.json()) as Record<string, RawMeta>) : null;
+    });
+    if (!raw) return serveStale();
 
-    const raw: Record<string, RawMeta> = await res.json();
     const entries = Object.entries(raw).map(([slug, meta]) => {
       const name = slug
         .replace(/-/g, " ")

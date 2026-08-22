@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { COOKIE_NAME, SESSION_TTL_SECONDS } from "@/lib/auth";
 import { jwtSecret } from "@/lib/env";
+import { firstForwardedValue } from "@/lib/forwarded";
 import { handleLogin } from "./handler";
 
 /**
@@ -13,8 +14,10 @@ import { handleLogin } from "./handler";
  * deployment lets the session go out in the clear on any stray http:// request.
  */
 function isSecureRequest(request: NextRequest): boolean {
-  const forwarded = request.headers.get("x-forwarded-proto");
-  if (forwarded) return forwarded.split(",")[0].trim() === "https";
+  const forwarded = firstForwardedValue(
+    request.headers.get("x-forwarded-proto"),
+  );
+  if (forwarded) return forwarded === "https";
   return request.nextUrl.protocol === "https:";
 }
 

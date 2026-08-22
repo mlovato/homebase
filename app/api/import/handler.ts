@@ -9,6 +9,7 @@ import {
   isHttpUrl,
   isOptionalHttpUrl,
   isOptionalSortOrder,
+  isOptionalText,
 } from "@/lib/validation";
 
 /**
@@ -39,6 +40,7 @@ function isValidLink(l: unknown): boolean {
     isHttpUrl(link.url) &&
     isOptionalHttpUrl(link.url_alt) &&
     isOptionalSortOrder(link.sort_order) &&
+    isOptionalText(link.icon_value) &&
     VALID_ICON_TYPES.includes(link.icon_type as IconType)
   );
 }

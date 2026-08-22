@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySessionToken, COOKIE_NAME } from "@/lib/auth";
 import { jwtSecret } from "@/lib/env";
+import { firstForwardedValue } from "@/lib/forwarded";
 
 /** Pages reachable without a session. API routes never reach this check. */
 const PUBLIC_PATHS = ["/admin/login"];
@@ -32,7 +33,8 @@ function isForeignOriginMutation(request: NextRequest): boolean {
   // the user actually visited. A browser cannot set x-forwarded-host on a
   // simple request — a custom header would force a preflight.
   const host =
-    request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+    firstForwardedValue(request.headers.get("x-forwarded-host")) ??
+    request.headers.get("host");
   try {
     return new URL(origin).host !== host;
   } catch {

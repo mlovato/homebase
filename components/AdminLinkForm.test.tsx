@@ -1,4 +1,10 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AdminLinkForm } from "./AdminLinkForm";
 import type { Category } from "@/lib/types";
@@ -436,5 +442,52 @@ describe("double submit", () => {
 
     release();
     await waitFor(() => expect(create).not.toBeDisabled());
+  });
+});
+
+// Auto-suggesting an icon from the service name is for a link being created. On
+// an existing link that has no icon, "no icon" is a choice the user already
+// made — opening the edit dialog and pressing Save used to silently attach the
+// first CDN match for its name.
+describe("editing a link that has no icon", () => {
+  it("does not attach one on save", async () => {
+    jest.useFakeTimers();
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        results: [
+          {
+            slug: "plex",
+            name: "Plex",
+            url: "https://cdn.example.com/plex.svg",
+          },
+        ],
+      }),
+    } as unknown as Response);
+    const onSubmit = jest.fn();
+
+    render(
+      <AdminLinkForm
+        onSubmit={onSubmit}
+        onCancel={jest.fn()}
+        categories={categories}
+        initialValues={{
+          name: "Plex",
+          url: "http://localhost:32400",
+          icon_type: "builtin",
+          icon_value: null,
+          category_id: null,
+        }}
+      />,
+    );
+    await act(async () => {
+      jest.runAllTimers();
+    });
+    jest.useRealTimers();
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0].icon_value).toBeNull();
   });
 });
