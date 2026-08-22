@@ -114,6 +114,24 @@ describe("checkHealthClient", () => {
       .mockRejectedValueOnce(new DOMException("The operation was aborted."));
     expect(await checkHealthClient("http://192.168.1.120:8989")).toBe("down");
   });
+
+  it("clears the abort timer when the browser probe throws", async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ status: "up" }),
+      })
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"));
+
+    jest.useFakeTimers();
+    try {
+      await checkHealthClient("http://192.168.1.120:8989");
+      expect(jest.getTimerCount()).toBe(0);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });
 
 describe("useHealthStatus", () => {

@@ -7,9 +7,11 @@ import {
   createCategory,
   getCategories,
   getCategoryById,
+  getUncategorizedLinks,
   updateCategory,
   deleteCategory,
 } from "./categories";
+import { createLink } from "./links";
 import type Database from "better-sqlite3";
 
 let db: Database.Database;
@@ -130,5 +132,66 @@ describe("user isolation", () => {
     expect(getCategories(db, userId)[0].name).toBe("A cat");
     expect(getCategories(db, userB)).toHaveLength(1);
     expect(getCategories(db, userB)[0].name).toBe("B cat");
+  });
+});
+
+describe("deleteCategory repositioning", () => {
+  it("appends the freed links after the existing uncategorized ones", () => {
+    const media = createCategory(db, userId, { name: "Media" }).id;
+    const mk = (name: string, category: number | null) =>
+      createLink(db, userId, {
+        category_id: category,
+        name,
+        url: `http://${name}.local`,
+        icon_type: "builtin",
+      });
+    // Created first, so they win the id tie-break that used to interleave them.
+    mk("m1", media);
+    mk("m2", media);
+    mk("m3", media);
+    mk("u1", null);
+    mk("u2", null);
+
+    expect(deleteCategory(db, userId, media)).toBe(true);
+
+    expect(getUncategorizedLinks(db, userId).map((l) => l.name)).toEqual([
+      "u1",
+      "u2",
+      "m1",
+      "m2",
+      "m3",
+    ]);
+  });
+
+  it("gives every uncategorized link a distinct position", () => {
+    const media = createCategory(db, userId, { name: "Media" }).id;
+    createLink(db, userId, {
+      category_id: media,
+      name: "m1",
+      url: "http://m1.local",
+      icon_type: "builtin",
+    });
+    createLink(db, userId, {
+      category_id: null,
+      name: "u1",
+      url: "http://u1.local",
+      icon_type: "builtin",
+    });
+
+    deleteCategory(db, userId, media);
+
+    const orders = getUncategorizedLinks(db, userId).map((l) => l.sort_order);
+    expect(new Set(orders).size).toBe(orders.length);
+  });
+
+  it("returns false for a category that is not yours", () => {
+    const other = createUser(db, {
+      email: "other@test.com",
+      password_hash: "h",
+    }).id;
+    const theirs = createCategory(db, other, { name: "Theirs" }).id;
+
+    expect(deleteCategory(db, userId, theirs)).toBe(false);
+    expect(getCategoryById(db, other, theirs)).toBeDefined();
   });
 });

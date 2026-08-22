@@ -5,6 +5,7 @@ import { createTestDb } from "@/lib/db";
 import { createUser } from "@/lib/repositories/users";
 import {
   createCategory,
+  getCategories,
   getCategoriesWithLinks,
   getUncategorizedLinks,
 } from "@/lib/repositories/categories";
@@ -158,5 +159,53 @@ describe("import handler", () => {
     handleImport(db, userId, validPayload);
     const cats = getCategoriesWithLinks(db, userId);
     expect(cats[0].links[0].url_alt).toBeNull();
+  });
+});
+
+describe("handleImport normalization", () => {
+  it("stores an empty alternative URL as null, not as an empty string", () => {
+    handleImport(db, userId, {
+      version: 1,
+      categories: [],
+      uncategorized: [
+        {
+          name: "Plex",
+          url: "http://plex.local",
+          url_alt: "",
+          icon_type: "builtin",
+          icon_value: null,
+          sort_order: 0,
+        },
+      ],
+    });
+
+    expect(getUncategorizedLinks(db, userId)[0].url_alt).toBeNull();
+  });
+
+  it("trims category names so they match what the API would store", () => {
+    handleImport(db, userId, {
+      version: 1,
+      categories: [{ name: "  Media  ", sort_order: 0, links: [] }],
+      uncategorized: [],
+    });
+
+    expect(getCategories(db, userId)[0].name).toBe("Media");
+  });
+
+  it("rejects an import containing two categories with the same name", () => {
+    const result = handleImport(db, userId, {
+      version: 1,
+      categories: [
+        { name: "Media", sort_order: 0, links: [] },
+        { name: " media ", sort_order: 1, links: [] },
+      ],
+      uncategorized: [],
+    });
+
+    expect(result).toMatchObject({
+      error: "Duplicate category names in import",
+      status: 400,
+    });
+    expect(getCategories(db, userId)).toHaveLength(0);
   });
 });

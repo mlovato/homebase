@@ -224,3 +224,46 @@ describe("url_alt resolution", () => {
     );
   });
 });
+
+describe("single-key shortcut does not swallow typing", () => {
+  it("does not close the modal when the shortcut key is typed into the search box", () => {
+    render(<SearchModal links={links} shortcut="s" />);
+    fireEvent.keyDown(document, { key: "s" });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    const input = screen.getByRole("combobox");
+    input.focus();
+    fireEvent.keyDown(input, { key: "s" });
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("lets the shortcut character reach the query", async () => {
+    render(<SearchModal links={links} shortcut="g" />);
+    fireEvent.keyDown(document, { key: "g" });
+
+    const input = screen.getByRole("combobox") as HTMLInputElement;
+    await userEvent.type(input, "g");
+
+    expect(input.value).toBe("g");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("still opens from the shortcut key outside a text field", () => {
+    render(<SearchModal links={links} shortcut="s" />);
+    fireEvent.keyDown(document.body, { key: "s" });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("still honours a mod shortcut while typing, so it can close the modal", () => {
+    render(<SearchModal links={links} shortcut="mod+k" />);
+    fireEvent.keyDown(document, { key: "k", metaKey: true });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    const input = screen.getByRole("combobox");
+    input.focus();
+    fireEvent.keyDown(input, { key: "k", metaKey: true });
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});

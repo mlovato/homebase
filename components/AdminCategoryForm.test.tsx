@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AdminCategoryForm } from "./AdminCategoryForm";
 
@@ -109,5 +109,31 @@ describe("AdminCategoryForm (duplicate detection)", () => {
     );
     await userEvent.type(screen.getByLabelText(/name/i), "Monitoring");
     expect(screen.queryByText(/same name/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("double submit", () => {
+  it("sends only one create while the first is still in flight", async () => {
+    let release: () => void = () => {};
+    const onSubmit = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+
+    render(<AdminCategoryForm onSubmit={onSubmit} onCancel={jest.fn()} />);
+
+    await userEvent.type(screen.getByLabelText(/name/i), "Media");
+
+    const create = screen.getByRole("button", { name: /create/i });
+    fireEvent.click(create);
+    fireEvent.click(create);
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(create).toBeDisabled();
+
+    release();
+    await waitFor(() => expect(create).not.toBeDisabled());
   });
 });

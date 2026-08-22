@@ -98,3 +98,68 @@ describe("SettingsTab", () => {
     expect(await screen.findByText(/password updated/i)).toBeInTheDocument();
   });
 });
+
+describe("import notifies the parent", () => {
+  const payload = JSON.stringify({
+    version: 1,
+    categories: [],
+    uncategorized: [],
+  });
+
+  function selectImportFile(container: HTMLElement) {
+    const input = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    const file = new File([payload], "backup.json", {
+      type: "application/json",
+    });
+    Object.defineProperty(file, "text", { value: async () => payload });
+    fireEvent.change(input, { target: { files: [file] } });
+  }
+
+  it("calls onImported after a successful import", async () => {
+    const onImported = jest.fn();
+    global.fetch = jest.fn(async (url: string | URL | Request) => {
+      if (String(url) === "/api/import") {
+        return { ok: true, json: async () => ({ ok: true }) } as Response;
+      }
+      return { ok: true, json: async () => ({}) } as Response;
+    }) as unknown as typeof fetch;
+
+    const { container } = render(<SettingsTab onImported={onImported} />);
+    selectImportFile(container);
+
+    await waitFor(() =>
+      expect(screen.getByText("Yes, import")).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByText("Yes, import"));
+
+    await waitFor(() => expect(onImported).toHaveBeenCalledTimes(1));
+  });
+
+  it("does not call onImported when the import fails", async () => {
+    const onImported = jest.fn();
+    global.fetch = jest.fn(async (url: string | URL | Request) => {
+      if (String(url) === "/api/import") {
+        return {
+          ok: false,
+          json: async () => ({ error: "Invalid import format" }),
+        } as Response;
+      }
+      return { ok: true, json: async () => ({}) } as Response;
+    }) as unknown as typeof fetch;
+
+    const { container } = render(<SettingsTab onImported={onImported} />);
+    selectImportFile(container);
+
+    await waitFor(() =>
+      expect(screen.getByText("Yes, import")).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByText("Yes, import"));
+
+    await waitFor(() =>
+      expect(screen.getByText("Invalid import format")).toBeInTheDocument(),
+    );
+    expect(onImported).not.toHaveBeenCalled();
+  });
+});

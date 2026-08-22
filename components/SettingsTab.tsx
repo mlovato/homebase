@@ -106,9 +106,14 @@ const inputClass =
 
 interface SettingsTabProps {
   onIntervalChange?: (value: HealthCheckInterval) => void;
+  /** Import replaces every link and category, so the caller's copy is stale. */
+  onImported?: () => void | Promise<void>;
 }
 
-export function SettingsTab({ onIntervalChange }: SettingsTabProps = {}) {
+export function SettingsTab({
+  onIntervalChange,
+  onImported,
+}: SettingsTabProps = {}) {
   const { theme, setTheme } = useTheme();
   const [interval, setInterval] = useState<HealthCheckInterval>("30s");
   const [shortcut, setShortcut] = useState<SearchShortcut>(
@@ -200,6 +205,7 @@ export function SettingsTab({ onIntervalChange }: SettingsTabProps = {}) {
     } else {
       setImportMsg({ ok: true, text: "Imported successfully." });
       msgTimerRef.current = setTimeout(() => setImportMsg(null), 4000);
+      await onImported?.();
     }
   }
 

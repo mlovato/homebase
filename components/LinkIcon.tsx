@@ -49,19 +49,23 @@ function FaviconFallback({
   const attempts = [url, urlAlt]
     .filter((u): u is string => !!u)
     .flatMap(faviconUrls);
-  const [attempt, setAttempt] = useState(0);
+  const target = attempts.join("|");
+  const [attempt, setAttempt] = useState({ key: target, index: 0 });
+  // A corrected URL must retry from the top rather than inherit the exhausted
+  // chain of the URL it replaced.
+  if (attempt.key !== target) setAttempt({ key: target, index: 0 });
 
-  if (attempt >= attempts.length) {
+  if (attempt.index >= attempts.length) {
     return <Avatar name={name} size={size} />;
   }
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={attempts[attempt]}
+      src={attempts[attempt.index]}
       alt={name}
       className={`${SIZE[size].img} object-contain shrink-0`}
-      onError={() => setAttempt((a) => a + 1)}
+      onError={() => setAttempt((a) => ({ ...a, index: a.index + 1 }))}
     />
   );
 }
@@ -80,9 +84,11 @@ function BuiltinIcon({
   urlAlt?: string | null;
 }) {
   const variants = [`${slug}.svg`, `${slug}-light.svg`, `${slug}-dark.svg`];
-  const [attempt, setAttempt] = useState(0);
+  const [attempt, setAttempt] = useState({ key: slug, index: 0 });
+  // A corrected slug must retry the CDN rather than stay fallen through.
+  if (attempt.key !== slug) setAttempt({ key: slug, index: 0 });
 
-  if (attempt >= variants.length) {
+  if (attempt.index >= variants.length) {
     return (
       <FaviconFallback url={url} urlAlt={urlAlt} name={name} size={size} />
     );
@@ -91,10 +97,10 @@ function BuiltinIcon({
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={`${DASHBOARD_ICONS_CDN}/${variants[attempt]}`}
+      src={`${DASHBOARD_ICONS_CDN}/${variants[attempt.index]}`}
       alt={name}
       className={`${SIZE[size].img} object-contain shrink-0`}
-      onError={() => setAttempt((a) => a + 1)}
+      onError={() => setAttempt((a) => ({ ...a, index: a.index + 1 }))}
     />
   );
 }

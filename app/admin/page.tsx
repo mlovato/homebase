@@ -34,6 +34,7 @@ import {
   type LinkContainerState,
   type LinkDropResult,
 } from "@/lib/linkDrop";
+import { persistReorder } from "@/lib/persistReorder";
 
 type Modal = LinksTabProps["modal"];
 type Tab = "links" | "settings" | "users";
@@ -218,7 +219,7 @@ export default function AdminPage() {
     const reordered = arrayMove(categories, oldIndex, newIndex);
     setCategories(reordered);
 
-    await Promise.all(
+    await persistReorder(
       reordered.map((cat, index) =>
         fetch(`/api/categories/${cat.id}`, {
           method: "PUT",
@@ -226,6 +227,7 @@ export default function AdminPage() {
           body: JSON.stringify({ sort_order: index }),
         }),
       ),
+      { onError: showError, resync: loadCategories },
     );
   }
 
@@ -254,11 +256,13 @@ export default function AdminPage() {
         }),
       );
 
-    const requests = [
-      ...patchContainer(result.source),
-      ...(result.target ? patchContainer(result.target) : []),
-    ];
-    await Promise.all(requests);
+    await persistReorder(
+      [
+        ...patchContainer(result.source),
+        ...(result.target ? patchContainer(result.target) : []),
+      ],
+      { onError: showError, resync: loadCategories },
+    );
   }
 
   async function handleLinkDragEnd(event: DragEndEvent) {
@@ -515,6 +519,7 @@ export default function AdminPage() {
           {tab === "settings" && (
             <SettingsTab
               onIntervalChange={(v) => setIntervalMs(INTERVAL_TO_MS[v])}
+              onImported={loadCategories}
             />
           )}
           {tab === "users" && currentUser?.role === "admin" && (

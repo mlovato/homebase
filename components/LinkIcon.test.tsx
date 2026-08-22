@@ -331,3 +331,61 @@ describe("LinkIcon", () => {
     });
   });
 });
+
+describe("fallback state resets when the icon changes", () => {
+  it("retries the CDN after the builtin slug is corrected", () => {
+    const { rerender } = render(
+      <LinkIcon
+        name="Unifi"
+        iconType="builtin"
+        iconValue="unifi-controller"
+        size="lg"
+      />,
+    );
+    // Exhaust all three CDN variants so it has fallen through to the avatar.
+    fireEvent.error(screen.getByRole("img"));
+    fireEvent.error(screen.getByRole("img"));
+    fireEvent.error(screen.getByRole("img"));
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+
+    rerender(
+      <LinkIcon name="Unifi" iconType="builtin" iconValue="unifi" size="lg" />,
+    );
+
+    expect(screen.getByRole("img")).toHaveAttribute(
+      "src",
+      expect.stringContaining("unifi.svg"),
+    );
+  });
+
+  it("retries the favicon after the url is corrected", () => {
+    const { rerender } = render(
+      <LinkIcon
+        name="Svc"
+        iconType="builtin"
+        iconValue={null}
+        size="lg"
+        url="http://typo.local"
+      />,
+    );
+    // Exhaust proxy then direct favicon for the wrong host.
+    fireEvent.error(screen.getByRole("img"));
+    fireEvent.error(screen.getByRole("img"));
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+
+    rerender(
+      <LinkIcon
+        name="Svc"
+        iconType="builtin"
+        iconValue={null}
+        size="lg"
+        url="http://fixed.local"
+      />,
+    );
+
+    expect(screen.getByRole("img")).toHaveAttribute(
+      "src",
+      "/api/favicon?url=http%3A%2F%2Ffixed.local",
+    );
+  });
+});

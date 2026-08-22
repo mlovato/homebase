@@ -152,3 +152,38 @@ describe("LinksTab", () => {
     expect(handleDeleteCategory).toHaveBeenCalledWith(1);
   });
 });
+
+describe("uncategorized drop target", () => {
+  const withCategory: LinksTabProps = {
+    ...baseProps,
+    categories: [
+      {
+        id: 1,
+        name: "Media",
+        sort_order: 0,
+        links: [
+          {
+            id: 10,
+            category_id: 1,
+            name: "Plex",
+            url: "http://plex.local",
+            url_alt: null,
+            icon_type: "builtin",
+            icon_value: null,
+            sort_order: 0,
+          },
+        ],
+      },
+    ],
+    uncategorized: [],
+  };
+
+  it("keeps an Uncategorized drop area when there are no uncategorized links", () => {
+    render(<LinksTab {...withCategory} />);
+
+    expect(
+      screen.getByRole("heading", { name: /uncategorized/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/drop a link here/i)).toBeInTheDocument();
+  });
+});

@@ -2,7 +2,16 @@
  * @jest-environment node
  */
 import { NextRequest } from "next/server";
+import { getAuthenticatedUser } from "@/lib/apiAuth";
 import { GET } from "./route";
+
+jest.mock("@/lib/apiAuth", () => ({
+  getAuthenticatedUser: jest.fn(),
+}));
+
+const mockAuth = getAuthenticatedUser as jest.MockedFunction<
+  typeof getAuthenticatedUser
+>;
 
 const FAVICON_BYTES = new Uint8Array([1, 2, 3, 4]);
 
@@ -42,8 +51,24 @@ function request(ifNoneMatch?: string): NextRequest {
 
 describe("GET /api/favicon", () => {
   const realFetch = global.fetch;
+
+  beforeEach(() => {
+    mockAuth.mockResolvedValue({ userId: 1, role: "admin" });
+  });
+
   afterEach(() => {
     global.fetch = realFetch;
+    mockAuth.mockReset();
+  });
+
+  it("returns 401 without a session", async () => {
+    mockAuth.mockResolvedValue(null);
+    global.fetch = mockFetchSequence(FAVICON_BYTES) as unknown as typeof fetch;
+
+    const res = await GET(request());
+
+    expect(res.status).toBe(401);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it("returns 400 when url is missing", async () => {

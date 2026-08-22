@@ -18,7 +18,7 @@ async function jestConfig(): Promise<Config> {
   const nextConfig = await createJestConfig(customConfig)();
   return {
     ...nextConfig,
-    transformIgnorePatterns: ["/node_modules/(?!(jose)/)"],
+    transformIgnorePatterns: ["/node_modules/(?!(jose|uuid)/)"],
   };
 }
 

@@ -1,7 +1,7 @@
 import type Database from "better-sqlite3";
 import type { Link, CreateLinkInput, UpdateLinkInput } from "@/lib/types";
 
-function getNextSortOrder(
+export function getNextLinkSortOrder(
   db: Database.Database,
   userId: number,
   categoryId: number | null,
@@ -21,6 +21,15 @@ function getNextSortOrder(
   return (row as { current_max: number }).current_max + 1;
 }
 
+/**
+ * An empty alternative URL is "none": stored as "" it passes the `!= null` check
+ * on the dashboard and renders as href="", which navigates to the dashboard
+ * itself instead of the service.
+ */
+function normalizeUrlAlt(value: string | null | undefined): string | null {
+  return value?.trim() || null;
+}
+
 export function createLink(
   db: Database.Database,
   userId: number,
@@ -28,7 +37,7 @@ export function createLink(
 ): Link {
   const categoryId = input.category_id ?? null;
   const sortOrder =
-    input.sort_order ?? getNextSortOrder(db, userId, categoryId);
+    input.sort_order ?? getNextLinkSortOrder(db, userId, categoryId);
   const stmt = db.prepare(`
     INSERT INTO links (user_id, category_id, name, url, url_alt, icon_type, icon_value, sort_order)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -39,7 +48,7 @@ export function createLink(
     categoryId,
     input.name,
     input.url,
-    input.url_alt ?? null,
+    normalizeUrlAlt(input.url_alt),
     input.icon_type,
     input.icon_value ?? null,
     sortOrder,
@@ -88,6 +97,20 @@ export function updateLink(
   if (!existing) return undefined;
 
   const updated = { ...existing, ...input };
+
+  // Moving a link to another category without saying where in it: its old
+  // in-category position would collide with the links already there, so append.
+  const movesContainer =
+    input.category_id !== undefined &&
+    (input.category_id ?? null) !== existing.category_id;
+  if (movesContainer && input.sort_order === undefined) {
+    updated.sort_order = getNextLinkSortOrder(
+      db,
+      userId,
+      updated.category_id ?? null,
+    );
+  }
+
   db.prepare(
     `
     UPDATE links
@@ -98,7 +121,7 @@ export function updateLink(
     updated.category_id ?? null,
     updated.name,
     updated.url,
-    updated.url_alt ?? null,
+    normalizeUrlAlt(updated.url_alt),
     updated.icon_type,
     updated.icon_value ?? null,
     updated.sort_order,

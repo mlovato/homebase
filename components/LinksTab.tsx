@@ -284,8 +284,6 @@ function UncategorizedSection({
     data: { type: "link-container", categoryId: null },
   });
 
-  if (links.length === 0) return null;
-
   return (
     <section className="mb-8 md:mb-10">
       <div className="flex items-center justify-between mb-4">
@@ -298,19 +296,25 @@ function UncategorizedSection({
         items={links.map((l) => l.id)}
         strategy={rectSortingStrategy}
       >
-        <div
-          ref={setNodeRef}
-          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 md:gap-4"
-        >
-          {links.map((link) => (
-            <SortableLinkCard
-              key={link.id}
-              link={link}
-              onEdit={onEditLink}
-              onDelete={onDeleteLink}
-              intervalMs={intervalMs}
-            />
-          ))}
+        <div ref={setNodeRef}>
+          {links.length === 0 ? (
+            <p className="text-sm text-gray-400 dark:text-gray-500 italic px-1 py-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
+              No uncategorized links. Drop a link here to remove it from its
+              category.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 md:gap-4">
+              {links.map((link) => (
+                <SortableLinkCard
+                  key={link.id}
+                  link={link}
+                  onEdit={onEditLink}
+                  onDelete={onDeleteLink}
+                  intervalMs={intervalMs}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </SortableContext>
     </section>

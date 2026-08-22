@@ -16,6 +16,16 @@ function isValidLink(l: unknown): boolean {
   );
 }
 
+function hasDuplicateCategoryNames(categories: { name: string }[]): boolean {
+  const seen = new Set<string>();
+  for (const cat of categories) {
+    const key = cat.name.trim().toLowerCase();
+    if (seen.has(key)) return true;
+    seen.add(key);
+  }
+  return false;
+}
+
 function isValidBody(data: unknown): data is ExportData {
   if (!data || typeof data !== "object") return false;
   const d = data as Record<string, unknown>;
@@ -45,6 +55,10 @@ export function handleImport(
 ) {
   if (!isValidBody(body))
     return { error: "Invalid import format", status: 400 };
+  // The categories API rejects duplicate names, so importing them would create
+  // rows the user can never rename afterwards.
+  if (hasDuplicateCategoryNames(body.categories))
+    return { error: "Duplicate category names in import", status: 400 };
 
   db.transaction(() => {
     db.prepare("DELETE FROM links WHERE user_id = ?").run(userId);
@@ -52,7 +66,7 @@ export function handleImport(
 
     for (const cat of body.categories) {
       const created = createCategory(db, userId, {
-        name: cat.name,
+        name: cat.name.trim(),
         sort_order: cat.sort_order,
       });
       for (const link of cat.links) {

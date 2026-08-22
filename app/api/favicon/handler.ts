@@ -1,10 +1,20 @@
 import { createHash } from "crypto";
+import { withFetchTimeout } from "@/lib/fetchTimeout";
+
+/** Favicons are a few KB; anything past this is not an icon worth proxying. */
+export const MAX_FAVICON_BYTES = 1024 * 1024;
+
+type FetchInit = { signal: AbortSignal };
 
 type FetchFn = (
   url: string,
+  init?: FetchInit,
 ) => Promise<{ ok: boolean; text: () => Promise<string> }>;
 
-type ImageFetchFn = (url: string) => Promise<{
+type ImageFetchFn = (
+  url: string,
+  init?: FetchInit,
+) => Promise<{
   ok: boolean;
   headers: { get: (name: string) => string | null };
   arrayBuffer: () => Promise<ArrayBuffer>;
@@ -47,7 +57,7 @@ export async function resolveFavicon(
   }
 
   try {
-    const res = await fetchFn(url);
+    const res = await withFetchTimeout((signal) => fetchFn(url, { signal }));
     if (res.ok) {
       const html = await res.text();
       const href = extractFaviconHref(html);
@@ -61,7 +71,9 @@ export async function resolveFavicon(
 
   try {
     const fallback = `${origin}/favicon.ico`;
-    const res = await fetchFn(fallback);
+    const res = await withFetchTimeout((signal) =>
+      fetchFn(fallback, { signal }),
+    );
     if (res.ok) return fallback;
   } catch {
     // ignore
@@ -78,10 +90,17 @@ export async function fetchFaviconImage(
   faviconUrl: string,
   fetchFn: ImageFetchFn = fetch,
 ): Promise<FaviconImage | null> {
-  const res = await fetchFn(faviconUrl);
+  const res = await withFetchTimeout((signal) =>
+    fetchFn(faviconUrl, { signal }),
+  );
   if (!res.ok) return null;
 
+  if (Number(res.headers.get("content-length")) > MAX_FAVICON_BYTES)
+    return null;
+
   const body = await res.arrayBuffer();
+  if (body.byteLength > MAX_FAVICON_BYTES) return null;
+
   return {
     body,
     contentType: res.headers.get("content-type") ?? "image/x-icon",

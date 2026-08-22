@@ -1,4 +1,5 @@
 import type Database from "better-sqlite3";
+import { getLinksByCategoryId, getNextLinkSortOrder } from "./links";
 import type {
   Category,
   CategoryWithLinks,
@@ -6,7 +7,10 @@ import type {
   UpdateCategoryInput,
 } from "@/lib/types";
 
-function getNextSortOrder(db: Database.Database, userId: number): number {
+function getNextCategorySortOrder(
+  db: Database.Database,
+  userId: number,
+): number {
   const row = db
     .prepare(
       "SELECT COALESCE(MAX(sort_order), -1) AS current_max FROM categories WHERE user_id = ?",
@@ -20,7 +24,7 @@ export function createCategory(
   userId: number,
   input: CreateCategoryInput,
 ): Category {
-  const sortOrder = input.sort_order ?? getNextSortOrder(db, userId);
+  const sortOrder = input.sort_order ?? getNextCategorySortOrder(db, userId);
   const stmt = db.prepare(
     "INSERT INTO categories (user_id, name, sort_order) VALUES (?, ?, ?) RETURNING id, name, sort_order",
   );
@@ -71,10 +75,25 @@ export function deleteCategory(
   userId: number,
   id: number,
 ): boolean {
-  const result = db
-    .prepare("DELETE FROM categories WHERE id = ? AND user_id = ?")
-    .run(id, userId);
-  return result.changes > 0;
+  return db.transaction(() => {
+    const freed = getLinksByCategoryId(db, userId, id);
+    const result = db
+      .prepare("DELETE FROM categories WHERE id = ? AND user_id = ?")
+      .run(id, userId);
+    if (result.changes === 0) return false;
+
+    // The links survive with category_id set to NULL (ON DELETE SET NULL), but
+    // they keep their in-category positions, which collide with the links
+    // already uncategorized and interleave the two groups. Append them instead.
+    const appendFrom = getNextLinkSortOrder(db, userId, null);
+    const reposition = db.prepare(
+      "UPDATE links SET sort_order = ? WHERE id = ? AND user_id = ?",
+    );
+    freed.forEach((link, index) => {
+      reposition.run(appendFrom + index, link.id, userId);
+    });
+    return true;
+  })();
 }
 
 export function getCategoriesWithLinks(

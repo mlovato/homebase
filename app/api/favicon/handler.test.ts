@@ -1,4 +1,8 @@
-import { fetchFaviconImage, resolveFavicon } from "./handler";
+import {
+  fetchFaviconImage,
+  resolveFavicon,
+  MAX_FAVICON_BYTES,
+} from "./handler";
 
 function mockFetch(responses: Record<string, { ok: boolean; body?: string }>) {
   return async (url: string) => {
@@ -170,5 +174,73 @@ describe("fetchFaviconImage", () => {
       mockImageFetch(null),
     );
     expect(result).toBeNull();
+  });
+});
+
+describe("favicon fetches are bounded", () => {
+  it("passes an abort signal to the page fetch", async () => {
+    const seen: (AbortSignal | undefined)[] = [];
+    await resolveFavicon("http://example.com", async (_url, init) => {
+      seen.push(init?.signal);
+      return { ok: false, text: async () => "" };
+    });
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.every((s) => s instanceof AbortSignal)).toBe(true);
+  });
+
+  it("passes an abort signal to the image fetch", async () => {
+    let signal: AbortSignal | undefined;
+    await fetchFaviconImage("http://example.com/i.png", async (_url, init) => {
+      signal = init?.signal;
+      return {
+        ok: true,
+        headers: { get: () => null },
+        arrayBuffer: async () => new Uint8Array([1]).buffer as ArrayBuffer,
+      };
+    });
+    expect(signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("rejects an icon whose declared size is over the cap", async () => {
+    const result = await fetchFaviconImage(
+      "http://example.com/huge.png",
+      async () => ({
+        ok: true,
+        headers: {
+          get: (n: string) =>
+            n === "content-length" ? String(MAX_FAVICON_BYTES + 1) : null,
+        },
+        arrayBuffer: async () => {
+          throw new Error("must not download an oversized icon");
+        },
+      }),
+    );
+    expect(result).toBeNull();
+  });
+
+  it("rejects an icon whose actual size is over the cap", async () => {
+    const oversized = new Uint8Array(MAX_FAVICON_BYTES + 1);
+    const result = await fetchFaviconImage(
+      "http://example.com/huge.png",
+      async () => ({
+        ok: true,
+        headers: { get: () => null },
+        arrayBuffer: async () => oversized.buffer as ArrayBuffer,
+      }),
+    );
+    expect(result).toBeNull();
+  });
+
+  it("still accepts an icon at the cap", async () => {
+    const atCap = new Uint8Array(MAX_FAVICON_BYTES);
+    const result = await fetchFaviconImage(
+      "http://example.com/ok.png",
+      async () => ({
+        ok: true,
+        headers: { get: () => null },
+        arrayBuffer: async () => atCap.buffer as ArrayBuffer,
+      }),
+    );
+    expect(result).not.toBeNull();
   });
 });

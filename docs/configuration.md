@@ -66,7 +66,7 @@ type SearchShortcut = string; // "mod+k", "mod+j", or single character
 | Constant            | Value    | Location         |
 | ------------------- | -------- | ---------------- |
 | Max icon file size  | 2 MB     | `/api/upload`    |
-| Allowed image types | PNG, JPG, JPEG, GIF, SVG, ICO, WebP | `/api/upload` |
+| Allowed image types | PNG, JPG, JPEG, GIF, ICO, WebP | `/api/upload` |
 | Icon search min     | 2 chars  | `/api/icons`     |
 | Icon search results | 8 max    | `/api/icons`     |
 | Health check timeout| 5 seconds| `/api/health`    |

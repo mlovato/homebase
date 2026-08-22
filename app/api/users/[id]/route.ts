@@ -33,7 +33,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   }
 
   const { id } = await params;
-  const result = handleDeleteUser(getDb(), parseInt(id, 10));
+  const result = handleDeleteUser(getDb(), parseInt(id, 10), user.userId);
 
   if (result.error) {
     return NextResponse.json(

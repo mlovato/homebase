@@ -3,7 +3,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useIconSearch } from "@/lib/hooks/useIconSearch";
 import type { IconType } from "@/lib/types";
-import { DASHBOARD_ICONS_CDN } from "@/lib/constants";
+import {
+  ALLOWED_UPLOAD_EXTENSIONS,
+  DASHBOARD_ICONS_CDN,
+} from "@/lib/constants";
+
+const UPLOAD_TYPE_LABEL = ALLOWED_UPLOAD_EXTENSIONS.map((ext) =>
+  ext.slice(1).toUpperCase(),
+).join(", ");
 
 export interface IconPickerValue {
   icon_type: IconType;
@@ -242,12 +249,12 @@ export function IconPicker({ value, onChange, serviceName }: IconPickerProps) {
             htmlFor="icon-file"
             className="text-sm text-gray-600 dark:text-gray-400"
           >
-            Icon file (PNG, SVG, ICO, WEBP — max 2 MB)
+            Icon file ({UPLOAD_TYPE_LABEL} — max 2 MB)
           </label>
           <input
             id="icon-file"
             type="file"
-            accept=".png,.jpg,.jpeg,.gif,.svg,.ico,.webp"
+            accept={ALLOWED_UPLOAD_EXTENSIONS.join(",")}
             ref={fileInputRef}
             onChange={handleFileChange}
             className="text-sm text-gray-700 dark:text-gray-300"

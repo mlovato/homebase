@@ -5,7 +5,7 @@ import { useState } from "react";
 interface AdminCategoryFormProps {
   initialName?: string;
   existingNames?: string[];
-  onSubmit: (data: { name: string }) => void;
+  onSubmit: (data: { name: string }) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -16,6 +16,9 @@ export function AdminCategoryForm({
   onCancel,
 }: AdminCategoryFormProps) {
   const [name, setName] = useState(initialName ?? "");
+  // Same shape as AdminLinkForm: the dialog closes only after the request
+  // returns, so an unlatched button can submit twice.
+  const [submitting, setSubmitting] = useState(false);
   const isEdit = initialName !== undefined;
 
   const isDuplicate =
@@ -26,10 +29,14 @@ export function AdminCategoryForm({
         (!isEdit || existing.toLowerCase() !== initialName!.toLowerCase()),
     );
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (name.trim() && !isDuplicate) {
-      onSubmit({ name: name.trim() });
+    if (!name.trim() || isDuplicate) return;
+    setSubmitting(true);
+    try {
+      await onSubmit({ name: name.trim() });
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -68,7 +75,8 @@ export function AdminCategoryForm({
         </button>
         <button
           type="submit"
-          className="px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+          disabled={submitting}
+          className="px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 transition-colors"
         >
           {isEdit ? "Save" : "Create"}
         </button>

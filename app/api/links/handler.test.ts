@@ -4,7 +4,7 @@
 import { createTestDb } from "@/lib/db";
 import { createUser } from "@/lib/repositories/users";
 import { createCategory } from "@/lib/repositories/categories";
-import { createLink } from "@/lib/repositories/links";
+import { createLink, getLinkById } from "@/lib/repositories/links";
 import {
   handleGetLinks,
   handleCreateLink,
@@ -192,5 +192,71 @@ describe("url_alt", () => {
     });
     const links = handleGetLinks(db, userId) as { url_alt: string }[];
     expect(links[0].url_alt).toBe("http://plex.remote");
+  });
+});
+
+describe("category ownership", () => {
+  it("refuses to create a link in another user's category", () => {
+    const other = createUser(db, {
+      email: "other@test.com",
+      password_hash: "h",
+    }).id;
+    const theirs = createCategory(db, other, { name: "Theirs" }).id;
+
+    const result = handleCreateLink(db, userId, {
+      category_id: theirs,
+      name: "Plex",
+      url: "http://plex.local",
+      icon_type: "builtin",
+    });
+
+    expect(result).toMatchObject({ error: "Category not found", status: 404 });
+  });
+
+  it("refuses to move a link into another user's category", () => {
+    const other = createUser(db, {
+      email: "other2@test.com",
+      password_hash: "h",
+    }).id;
+    const theirs = createCategory(db, other, { name: "Theirs" }).id;
+    const link = createLink(db, userId, {
+      category_id: null,
+      name: "Plex",
+      url: "http://plex.local",
+      icon_type: "builtin",
+    });
+
+    const result = handleUpdateLink(db, userId, link.id, {
+      category_id: theirs,
+    });
+
+    expect(result).toMatchObject({ error: "Category not found", status: 404 });
+    expect(getLinkById(db, userId, link.id)?.category_id).toBeNull();
+  });
+
+  it("refuses a category id that does not exist instead of failing the foreign key", () => {
+    const link = createLink(db, userId, {
+      category_id: null,
+      name: "Plex",
+      url: "http://plex.local",
+      icon_type: "builtin",
+    });
+
+    expect(
+      handleUpdateLink(db, userId, link.id, { category_id: 99999 }),
+    ).toMatchObject({ error: "Category not found", status: 404 });
+  });
+
+  it("still allows clearing the category", () => {
+    const link = createLink(db, userId, {
+      category_id: categoryId,
+      name: "Plex",
+      url: "http://plex.local",
+      icon_type: "builtin",
+    });
+
+    expect(
+      handleUpdateLink(db, userId, link.id, { category_id: null }).status,
+    ).toBe(200);
   });
 });

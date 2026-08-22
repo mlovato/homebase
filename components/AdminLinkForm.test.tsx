@@ -381,3 +381,37 @@ describe("Alternative URL field", () => {
     expect(screen.getByDisplayValue("http://plex.remote")).toBeInTheDocument();
   });
 });
+
+describe("double submit", () => {
+  it("sends only one create while the first is still in flight", async () => {
+    let release: () => void = () => {};
+    const onSubmit = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+
+    render(
+      <AdminLinkForm
+        onSubmit={onSubmit}
+        onCancel={jest.fn()}
+        categories={categories}
+      />,
+    );
+
+    await userEvent.type(screen.getByLabelText(/name/i), "Plex");
+    await userEvent.type(screen.getByLabelText(/^url$/i), "plex.local");
+
+    const create = screen.getByRole("button", { name: /create/i });
+    fireEvent.click(create);
+    fireEvent.click(create);
+    fireEvent.click(create);
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(create).toBeDisabled();
+
+    release();
+    await waitFor(() => expect(create).not.toBeDisabled());
+  });
+});

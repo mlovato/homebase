@@ -56,6 +56,7 @@ db.pragma("foreign_keys = ON");
 | `category_id` | INTEGER | nullable, FK → categories.id (SET NULL)        | Parent category (null = uncategorized)|
 | `name`        | TEXT    | NOT NULL                                       | Link display name                    |
 | `url`         | TEXT    | NOT NULL                                       | Link URL                             |
+| `url_alt`     | TEXT    | nullable                                       | Fallback URL used when `url` is down |
 | `icon_type`   | TEXT    | NOT NULL, CHECK('builtin','upload','url')      | Icon source type                     |
 | `icon_value`  | TEXT    | nullable                                       | Icon slug, upload path, or URL       |
 | `sort_order`  | INTEGER | DEFAULT 0                                      | Display sort position                |
@@ -83,7 +84,7 @@ Foreign key cascade behavior:
 | users      | settings   | CASCADE (all settings deleted)                |
 | categories | links      | SET NULL (category_id becomes null)           |
 
-Deleting a user removes all their categories, links, and settings. Deleting a category moves its links to uncategorized (sets `category_id` to null).
+Deleting a user removes all their categories, links, and settings. Deleting a category moves its links to uncategorized (sets `category_id` to null) and renumbers them onto the end of the existing uncategorized links, so their positions stay unique instead of colliding with the links already there.
 
 ## Migrations
 
@@ -95,6 +96,7 @@ Migrations are applied automatically on database initialization in `lib/db.ts`. 
 | Add `user_id` to categories/links | Adds user_id column if missing, assigns existing rows to the admin user    |
 | Migrate settings table            | Restructures settings to include user_id as part of the primary key        |
 | Add `avatar` to users             | Adds avatar column to the users table if missing                           |
+| Add `url_alt` to links            | Adds url_alt column to the links table if missing                          |
 | Initial admin creation            | Creates admin user from `ADMIN_EMAIL`/`ADMIN_PASSWORD` env vars if no users exist |
 
 ## Repository Layer

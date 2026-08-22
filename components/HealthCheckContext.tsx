@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useRef } from "react";
 import type { HealthStatus } from "@/app/api/health/handler";
+import { withFetchTimeout } from "@/lib/fetchTimeout";
 
 type StatusMap = Record<string, HealthStatus>;
 
@@ -29,15 +30,14 @@ export async function checkHealthClient(url: string): Promise<HealthStatus> {
   // and handles .local mDNS that Docker cannot resolve (see e23a2d8).
   // Timeout prevents hanging on unreachable private IPs with no route.
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5000);
-    await fetch(url, {
-      method: "HEAD",
-      mode: "no-cors",
-      cache: "no-store",
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
+    await withFetchTimeout((signal) =>
+      fetch(url, {
+        method: "HEAD",
+        mode: "no-cors",
+        cache: "no-store",
+        signal,
+      }),
+    );
     return "up";
   } catch {
     return "down";

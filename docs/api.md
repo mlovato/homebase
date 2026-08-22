@@ -1,6 +1,8 @@
 # API Reference
 
-All API endpoints are under `/api/`. All endpoints except `/api/auth/login` require authentication via a JWT cookie (`homebase_session`). Endpoints that manage users require the `admin` role.
+All API endpoints are under `/api/`. All endpoints except `/api/auth/login` and `/api/public/services` require authentication via a JWT cookie (`homebase_session`). Endpoints that manage users require the `admin` role.
+
+The caller's role is read from the database on every request, not from the session token, so promoting, demoting or deleting an account takes effect on its next request rather than when the token expires.
 
 ## Authentication
 
@@ -391,15 +393,15 @@ Possible status values: `up`, `down`, `unknown`.
 
 ---
 
-### POST /api/health/batch
+### GET /api/health/batch
 
 Check multiple URLs in parallel.
 
-**Request Body**
+**Query Parameters**
 
-```json
-{ "urls": ["http://grafana.local:3000", "http://nas.local:5000"] }
-```
+| Parameter | Type   | Required | Description                                        |
+| --------- | ------ | -------- | -------------------------------------------------- |
+| `url`     | string | Yes      | Repeat once per URL, e.g. `?url=a&url=b` (max 100) |
 
 **200 OK**
 
@@ -409,6 +411,8 @@ Check multiple URLs in parallel.
   "http://nas.local:5000": "down"
 }
 ```
+
+**400 Bad Request** — More than 100 URLs in one request.
 
 ---
 
@@ -474,7 +478,7 @@ Upload a custom icon image.
 
 | Field  | Type | Required | Description                                          |
 | ------ | ---- | -------- | ---------------------------------------------------- |
-| `file` | File | Yes      | Image file (max 2 MB). Allowed: PNG, JPG, JPEG, GIF, SVG, ICO, WebP |
+| `file` | File | Yes      | Image file (max 2 MB). Allowed: PNG, JPG, JPEG, GIF, ICO, WebP |
 
 **200 OK**
 

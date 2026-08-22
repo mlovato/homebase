@@ -157,7 +157,8 @@ Last updated: v1.2.3
 - [ ] Icon picker displays three options: builtin search, file upload, custom URL
 - [ ] Search for a builtin icon (e.g., "github") -- matching icons are shown (min 2 chars)
 - [ ] Select a builtin icon -- icon is assigned to the link
-- [ ] Upload a custom image (PNG/JPG/SVG/WebP/GIF/ICO) -- image is uploaded and assigned
+- [ ] Upload a custom image (PNG/JPG/WebP/GIF/ICO) -- image is uploaded and assigned
+- [ ] Upload an SVG -- rejected as an unsupported file type
 - [ ] Upload a file larger than 2 MB -- error is shown
 - [ ] Upload an unsupported file type -- error is shown
 - [ ] Enter a custom URL -- URL is assigned as the icon source
@@ -368,7 +369,8 @@ Last updated: v1.2.3
 
 ### 12.7 Upload API
 
-- [ ] `POST /api/upload` with valid image (PNG/JPG/SVG/WebP/GIF/ICO) -- uploads and returns path
+- [ ] `POST /api/upload` with valid image (PNG/JPG/WebP/GIF/ICO) -- uploads and returns path
+- [ ] Uploaded icon renders immediately in production (served by `/uploads/[filename]`, no restart needed)
 - [ ] `POST /api/upload` with file > 2 MB -- returns error
 - [ ] `POST /api/upload` with unsupported file type -- returns error
 

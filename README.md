@@ -12,7 +12,7 @@ A self-hosted, multi-user service dashboard. Add links to all your local service
 - **Drag-and-drop** — reorder both categories and links; move links between categories; touch support on mobile
 - **Health checks** — configurable status pings (10 s / 30 s / 60 s / off) with visual up/down/unknown indicators
 - **Quick-launch search** — fuzzy search modal with keyboard navigation; customisable shortcut (default `Cmd+K` / `Ctrl+K`)
-- **Icon picker** — search 3 000+ icons from Dashboard Icons CDN, upload a custom image (PNG, JPG, SVG, WebP, …), or paste a URL
+- **Icon picker** — search 3 000+ icons from Dashboard Icons CDN, upload a custom image (PNG, JPG, WebP, …), or paste a URL
 - **Themes** — light, dark, system, and retro CRT modes
 - **Import / Export** — backup and restore all links and categories as JSON
 - **Password management** — users can change their own password from the settings tab

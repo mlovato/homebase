@@ -356,3 +356,99 @@ describe("url_alt", () => {
     expect(updated?.url_alt).toBeNull();
   });
 });
+
+describe("url_alt normalization", () => {
+  it("stores an empty alternative URL as null on create", () => {
+    const link = createLink(db, userId, {
+      category_id: categoryId,
+      name: "Plex",
+      url: "http://plex.local",
+      url_alt: "",
+      icon_type: "builtin",
+    });
+    expect(link.url_alt).toBeNull();
+  });
+
+  it("stores a whitespace-only alternative URL as null on create", () => {
+    const link = createLink(db, userId, {
+      category_id: categoryId,
+      name: "Plex",
+      url: "http://plex.local",
+      url_alt: "   ",
+      icon_type: "builtin",
+    });
+    expect(link.url_alt).toBeNull();
+  });
+
+  it("clears the alternative URL when updated to empty", () => {
+    const link = createLink(db, userId, {
+      category_id: categoryId,
+      name: "Plex",
+      url: "http://plex.local",
+      url_alt: "http://alt.local",
+      icon_type: "builtin",
+    });
+    expect(
+      updateLink(db, userId, link.id, { url_alt: "" })?.url_alt,
+    ).toBeNull();
+  });
+});
+
+describe("updateLink repositioning", () => {
+  function make(name: string, category: number | null) {
+    return createLink(db, userId, {
+      category_id: category,
+      name,
+      url: `http://${name}.local`,
+      icon_type: "builtin",
+    });
+  }
+
+  it("appends to the end of the target category when no position is given", () => {
+    const tools = createCategory(db, userId, { name: "Tools" }).id;
+    make("a", categoryId);
+    make("b", categoryId);
+    const moved = make("x", tools);
+
+    const result = updateLink(db, userId, moved.id, {
+      category_id: categoryId,
+    });
+
+    expect(result?.sort_order).toBe(2);
+    expect(
+      getLinksByCategoryId(db, userId, categoryId).map((l) => l.name),
+    ).toEqual(["a", "b", "x"]);
+  });
+
+  it("appends to the end of uncategorized when the category is cleared", () => {
+    make("u1", null);
+    make("u2", null);
+    const moved = make("x", categoryId);
+
+    expect(
+      updateLink(db, userId, moved.id, { category_id: null })?.sort_order,
+    ).toBe(2);
+  });
+
+  it("honours an explicit position, as a drag reorder sends", () => {
+    const tools = createCategory(db, userId, { name: "Tools" }).id;
+    make("a", categoryId);
+    const moved = make("x", tools);
+
+    expect(
+      updateLink(db, userId, moved.id, {
+        category_id: categoryId,
+        sort_order: 0,
+      })?.sort_order,
+    ).toBe(0);
+  });
+
+  it("leaves the position alone when the category is unchanged", () => {
+    make("a", categoryId);
+    const second = make("b", categoryId);
+
+    expect(
+      updateLink(db, userId, second.id, { name: "renamed" })?.sort_order,
+    ).toBe(1);
+  });
+});

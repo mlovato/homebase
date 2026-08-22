@@ -23,7 +23,7 @@ interface AdminLinkFormProps {
     icon_type: IconType;
     icon_value: string | null;
     category_id: number | null;
-  }) => void;
+  }) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -46,6 +46,9 @@ export function AdminLinkForm({
   });
   const [urlError, setUrlError] = useState("");
   const [urlAltError, setUrlAltError] = useState("");
+  // The dialog closes only once the request comes back, so the button stays
+  // clickable for the whole round trip and a second click duplicates the link.
+  const [submitting, setSubmitting] = useState(false);
 
   const URL_ERROR = "Please enter a valid URL";
 
@@ -70,7 +73,7 @@ export function AdminLinkForm({
     return isValidUrl(normalizeUrl(trimmed)) ? null : URL_ERROR;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setUrlError("");
     setUrlAltError("");
@@ -85,13 +88,18 @@ export function AdminLinkForm({
       setUrlAltError(altError);
       return;
     }
-    onSubmit({
-      name: name.trim(),
-      url: normalizeUrl(url),
-      url_alt: urlAlt.trim() ? normalizeUrl(urlAlt) : null,
-      ...icon,
-      category_id: categoryId,
-    });
+    setSubmitting(true);
+    try {
+      await onSubmit({
+        name: name.trim(),
+        url: normalizeUrl(url),
+        url_alt: urlAlt.trim() ? normalizeUrl(urlAlt) : null,
+        ...icon,
+        category_id: categoryId,
+      });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -213,7 +221,8 @@ export function AdminLinkForm({
         </button>
         <button
           type="submit"
-          className="px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+          disabled={submitting}
+          className="px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 transition-colors"
         >
           {isEdit ? "Save" : "Create"}
         </button>

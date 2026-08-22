@@ -20,6 +20,14 @@ interface SearchModalProps {
   onOpenChange?: (open: boolean) => void;
 }
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return (
+    target.isContentEditable ||
+    ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)
+  );
+}
+
 function matchesShortcut(e: KeyboardEvent, shortcut: SearchShortcut): boolean {
   const { mod, key } = parseShortcut(shortcut);
   return (
@@ -79,7 +87,12 @@ export function SearchModal({
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (matchesShortcut(e, shortcut)) {
+      // A single-key shortcut is also an ordinary character: without this guard
+      // it toggles the modal (and is swallowed by preventDefault) whenever the
+      // user types it into a field — including the search box itself.
+      const swallowsTyping =
+        !shortcut.startsWith("mod+") && isEditableTarget(e.target);
+      if (!swallowsTyping && matchesShortcut(e, shortcut)) {
         e.preventDefault();
         setOpen(!openRef.current);
         setQuery("");

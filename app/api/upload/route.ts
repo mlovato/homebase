@@ -3,16 +3,8 @@ import { writeFile } from "fs/promises";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { getAuthenticatedUser } from "@/lib/apiAuth";
+import { ALLOWED_UPLOAD_EXTENSIONS, UPLOADS_DIR } from "@/lib/uploads";
 
-const ALLOWED_EXTENSIONS = [
-  ".png",
-  ".jpg",
-  ".jpeg",
-  ".gif",
-  ".svg",
-  ".ico",
-  ".webp",
-];
 const MAX_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
 
 export async function POST(request: NextRequest) {
@@ -39,17 +31,17 @@ export async function POST(request: NextRequest) {
   }
 
   const ext = path.extname(file.name).toLowerCase();
-  if (!ALLOWED_EXTENSIONS.includes(ext)) {
+  if (!ALLOWED_UPLOAD_EXTENSIONS.includes(ext)) {
     return NextResponse.json(
       {
-        error: `Unsupported file type. Allowed: ${ALLOWED_EXTENSIONS.join(", ")}`,
+        error: `Unsupported file type. Allowed: ${ALLOWED_UPLOAD_EXTENSIONS.join(", ")}`,
       },
       { status: 400 },
     );
   }
 
   const filename = `${uuidv4()}${ext}`;
-  const uploadPath = path.join(process.cwd(), "public", "uploads", filename);
+  const uploadPath = path.join(UPLOADS_DIR, filename);
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(uploadPath, buffer);
 

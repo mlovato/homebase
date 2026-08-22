@@ -96,3 +96,10 @@ export function getAdminUser(db: Database.Database): User | undefined {
     )
     .get() as User | undefined;
 }
+
+export function countAdmins(db: Database.Database): number {
+  const row = db
+    .prepare("SELECT COUNT(*) AS count FROM users WHERE role = 'admin'")
+    .get() as { count: number };
+  return row.count;
+}
