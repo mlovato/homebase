@@ -14,6 +14,8 @@ function mockFetch(
 }
 
 describe("checkHealth", () => {
+  afterEach(() => jest.useRealTimers());
+
   it('returns "up" for a 200 response', async () => {
     const result = await checkHealth("http://plex.local:32400", mockFetch(200));
     expect(result).toBe<HealthStatus>("up");
@@ -48,6 +50,15 @@ describe("checkHealth", () => {
       mockFetch(0, { throws: true }),
     );
     expect(result).toBe<HealthStatus>("down");
+  });
+
+  it("clears the abort timer when fetch throws (no leaked handle)", async () => {
+    jest.useFakeTimers();
+    await checkHealth(
+      "http://unreachable.local",
+      mockFetch(0, { throws: true }),
+    );
+    expect(jest.getTimerCount()).toBe(0);
   });
 
   it('returns "unknown" for an empty url', async () => {

@@ -8,19 +8,19 @@ export async function checkHealth(
   if (!url.startsWith("http://") && !url.startsWith("https://"))
     return "unknown";
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5000);
-    const res = await fetchFn(url, {
+    // Any HTTP response means the service is reachable (401/403 = auth required but running)
+    await fetchFn(url, {
       method: "HEAD",
       signal: controller.signal,
       redirect: "follow",
     });
-    clearTimeout(timer);
-    // Any HTTP response means the service is reachable (401/403 = auth required but running)
-    void res;
     return "up";
   } catch {
     return "down";
+  } finally {
+    clearTimeout(timer);
   }
 }

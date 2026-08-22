@@ -454,7 +454,9 @@ Proxy and resolve a website's favicon image.
 | --------- | ------ | -------- | ------------------------- |
 | `url`     | string | Yes      | Website URL               |
 
-**200 OK** — Returns the favicon image bytes with appropriate `Content-Type` header. Cached for 24 hours.
+**200 OK** — Returns the favicon image bytes with appropriate `Content-Type` header, plus an `ETag` over the image bytes and `Cache-Control: public, max-age=0, must-revalidate`.
+
+**304 Not Modified** — The request's `If-None-Match` matches the current favicon; no body is returned.
 
 **404 Not Found** — No favicon could be resolved.
 

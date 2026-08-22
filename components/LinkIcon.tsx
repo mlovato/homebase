@@ -21,8 +21,13 @@ interface LinkIconProps {
 function faviconUrls(url: string): string[] {
   try {
     const { origin } = new URL(url);
+    // A bare trailing slash becomes an encoded "%2F" in the proxy query, which
+    // breaks the request in some serving setups. A root URL has no path to lose,
+    // so drop it. Deeper URLs keep their exact path: resolveFavicon resolves
+    // relative <link rel=icon> hrefs against the URL it is given.
+    const normalized = url === `${origin}/` ? origin : url;
     return [
-      `/api/favicon?url=${encodeURIComponent(url)}`,
+      `/api/favicon?url=${encodeURIComponent(normalized)}`,
       `${origin}/favicon.ico`,
     ];
   } catch {

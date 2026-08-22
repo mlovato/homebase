@@ -1,6 +1,20 @@
+import { createHash } from "crypto";
+
 type FetchFn = (
   url: string,
 ) => Promise<{ ok: boolean; text: () => Promise<string> }>;
+
+type ImageFetchFn = (url: string) => Promise<{
+  ok: boolean;
+  headers: { get: (name: string) => string | null };
+  arrayBuffer: () => Promise<ArrayBuffer>;
+}>;
+
+export interface FaviconImage {
+  body: ArrayBuffer;
+  contentType: string;
+  etag: string;
+}
 
 const ICON_LINK_RE =
   /<link[^>]*\brel=["'](?:shortcut )?icon["'][^>]*\bhref=["']([^"']+)["'][^>]*>/i;
@@ -54,4 +68,23 @@ export async function resolveFavicon(
   }
 
   return null;
+}
+
+/**
+ * Downloads a resolved favicon, tagging it with a hash of its bytes so an
+ * unchanged icon can be answered with a bodiless 304.
+ */
+export async function fetchFaviconImage(
+  faviconUrl: string,
+  fetchFn: ImageFetchFn = fetch,
+): Promise<FaviconImage | null> {
+  const res = await fetchFn(faviconUrl);
+  if (!res.ok) return null;
+
+  const body = await res.arrayBuffer();
+  return {
+    body,
+    contentType: res.headers.get("content-type") ?? "image/x-icon",
+    etag: `"${createHash("sha1").update(Buffer.from(body)).digest("hex")}"`,
+  };
 }

@@ -1,4 +1,4 @@
-import { resolveFavicon } from "./handler";
+import { fetchFaviconImage, resolveFavicon } from "./handler";
 
 function mockFetch(responses: Record<string, { ok: boolean; body?: string }>) {
   return async (url: string) => {
@@ -113,5 +113,62 @@ describe("resolveFavicon", () => {
       }),
     );
     expect(result).toBe("http://example.com/icon.png?v=123");
+  });
+});
+
+function mockImageFetch(
+  bytes: Uint8Array | null,
+  contentType?: string,
+): Parameters<typeof fetchFaviconImage>[1] {
+  return async () => ({
+    ok: bytes !== null,
+    headers: { get: () => contentType ?? null },
+    arrayBuffer: async () => (bytes ?? new Uint8Array()).buffer as ArrayBuffer,
+  });
+}
+
+describe("fetchFaviconImage", () => {
+  it("returns the bytes, content type and an ETag", async () => {
+    const result = await fetchFaviconImage(
+      "http://example.com/icon.png",
+      mockImageFetch(new Uint8Array([1, 2, 3, 4]), "image/png"),
+    );
+    expect(result?.contentType).toBe("image/png");
+    expect(new Uint8Array(result!.body)).toEqual(new Uint8Array([1, 2, 3, 4]));
+    expect(result?.etag).toMatch(/^"[a-f0-9]{40}"$/);
+  });
+
+  it("falls back to image/x-icon when the response has no content type", async () => {
+    const result = await fetchFaviconImage(
+      "http://example.com/favicon.ico",
+      mockImageFetch(new Uint8Array([1])),
+    );
+    expect(result?.contentType).toBe("image/x-icon");
+  });
+
+  it("derives the ETag from the bytes, so identical bytes tag identically", async () => {
+    const bytes = new Uint8Array([7, 7, 7]);
+    const first = await fetchFaviconImage(
+      "http://a.test/i.png",
+      mockImageFetch(bytes),
+    );
+    const second = await fetchFaviconImage(
+      "http://b.test/i.png",
+      mockImageFetch(bytes),
+    );
+    const other = await fetchFaviconImage(
+      "http://a.test/i.png",
+      mockImageFetch(new Uint8Array([8, 8, 8])),
+    );
+    expect(first?.etag).toBe(second?.etag);
+    expect(other?.etag).not.toBe(first?.etag);
+  });
+
+  it("returns null when the favicon cannot be downloaded", async () => {
+    const result = await fetchFaviconImage(
+      "http://example.com/icon.png",
+      mockImageFetch(null),
+    );
+    expect(result).toBeNull();
   });
 });

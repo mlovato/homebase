@@ -152,6 +152,38 @@ describe("LinkIcon", () => {
       );
     });
 
+    it("normalizes a trailing slash so the favicon request matches the slashless URL", () => {
+      render(
+        <LinkIcon
+          name="Svc"
+          iconType="builtin"
+          iconValue={null}
+          size="lg"
+          url="http://192.168.1.120:7890/"
+        />,
+      );
+      expect(screen.getByRole("img", { name: "Svc" })).toHaveAttribute(
+        "src",
+        "/api/favicon?url=http%3A%2F%2F192.168.1.120%3A7890",
+      );
+    });
+
+    it("keeps the path on a deeper URL so relative icon hrefs still resolve", () => {
+      render(
+        <LinkIcon
+          name="Grafana"
+          iconType="builtin"
+          iconValue={null}
+          size="lg"
+          url="http://192.168.1.120:3000/app/"
+        />,
+      );
+      expect(screen.getByRole("img", { name: "Grafana" })).toHaveAttribute(
+        "src",
+        "/api/favicon?url=http%3A%2F%2F192.168.1.120%3A3000%2Fapp%2F",
+      );
+    });
+
     it("tries direct favicon.ico when server proxy fails", () => {
       render(
         <LinkIcon
