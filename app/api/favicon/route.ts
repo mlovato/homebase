@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/apiAuth";
 import { FOREIGN_CONTENT_HEADERS } from "@/lib/constants";
-import { fetchFaviconImage, resolveFavicon } from "./handler";
+import { getFavicon } from "./handler";
 
-// Revalidate on every load so a site's updated favicon is picked up immediately,
-// while an unchanged favicon costs only a bodiless 304 via its ETag.
+// Revalidate on every load so a site's updated favicon is picked up soon after
+// the server refreshes it, while an unchanged favicon costs only a bodiless 304
+// via its ETag.
 const CACHE_CONTROL = "public, max-age=0, must-revalidate";
 
 export async function GET(request: NextRequest) {
@@ -20,32 +21,23 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "url is required" }, { status: 400 });
   }
 
-  const faviconUrl = await resolveFavicon(url);
-  if (!faviconUrl) {
+  const image = await getFavicon(url);
+  if (!image) {
     return new NextResponse(null, { status: 404 });
   }
 
-  try {
-    const image = await fetchFaviconImage(faviconUrl);
-    if (!image) {
-      return new NextResponse(null, { status: 404 });
-    }
-
-    // The handler only hands back allow-listed image types; these headers keep
-    // even those from being treated as a document on this origin.
-    const headers = {
-      ETag: image.etag,
-      "Cache-Control": CACHE_CONTROL,
-      ...FOREIGN_CONTENT_HEADERS,
-    };
-    if (request.headers.get("if-none-match") === image.etag) {
-      return new NextResponse(null, { status: 304, headers });
-    }
-
-    return new NextResponse(image.body, {
-      headers: { ...headers, "Content-Type": image.contentType },
-    });
-  } catch {
-    return new NextResponse(null, { status: 502 });
+  // The handler only hands back allow-listed image types; these headers keep
+  // even those from being treated as a document on this origin.
+  const headers = {
+    ETag: image.etag,
+    "Cache-Control": CACHE_CONTROL,
+    ...FOREIGN_CONTENT_HEADERS,
+  };
+  if (request.headers.get("if-none-match") === image.etag) {
+    return new NextResponse(null, { status: 304, headers });
   }
+
+  return new NextResponse(image.body, {
+    headers: { ...headers, "Content-Type": image.contentType },
+  });
 }

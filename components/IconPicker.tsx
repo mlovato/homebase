@@ -3,10 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useIconSearch } from "@/lib/hooks/useIconSearch";
 import type { IconType } from "@/lib/types";
-import {
-  ALLOWED_UPLOAD_EXTENSIONS,
-  DASHBOARD_ICONS_CDN,
-} from "@/lib/constants";
+import { ALLOWED_UPLOAD_EXTENSIONS } from "@/lib/constants";
+import { dashboardIconSources } from "@/lib/dashboardIcons";
+import { ImageChain } from "./ImageChain";
 
 const UPLOAD_TYPE_LABEL = ALLOWED_UPLOAD_EXTENSIONS.map((ext) =>
   ext.slice(1).toUpperCase(),
@@ -37,6 +36,7 @@ export function IconPicker({
   const [slug, setSlug] = useState(
     value.icon_type === "builtin" ? (value.icon_value ?? "") : "",
   );
+  const trimmedSlug = slug.trim();
   const [urlValue, setUrlValue] = useState(
     value.icon_type === "url" ? (value.icon_value ?? "") : "",
   );
@@ -228,21 +228,16 @@ export function IconPicker({
           </div>
 
           <div className="flex items-center gap-3 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40 min-h-[52px]">
-            {slug.trim() ? (
+            {trimmedSlug ? (
               <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  key={slug.trim()}
-                  src={`${DASHBOARD_ICONS_CDN}/${slug.trim()}.svg`}
+                <ImageChain
+                  sources={dashboardIconSources(trimmedSlug)}
                   alt={slug}
                   className="w-8 h-8 object-contain shrink-0"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display =
-                      "none";
-                  }}
+                  fallback={null}
                 />
                 <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">
-                  {slug.trim()}
+                  {trimmedSlug}
                 </span>
                 <a
                   href={`https://dashboardicons.com/icons?search=${slug}`}

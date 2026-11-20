@@ -97,6 +97,8 @@ describe("LinkCard", () => {
     fireEvent.error(screen.getByRole("img"));
     // Third attempt: unknownservice-dark.svg
     fireEvent.error(screen.getByRole("img"));
+    // Fourth attempt: unknownservice.png
+    fireEvent.error(screen.getByRole("img"));
     // Favicon attempt
     const favicon = screen.getByRole("img", { name: "Plex" });
     expect(favicon).toHaveAttribute(

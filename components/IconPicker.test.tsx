@@ -66,6 +66,25 @@ describe("IconPicker", () => {
     );
   });
 
+  // The preview must try the same files the dashboard tile does, or a slug
+  // that renders fine on the dashboard looks broken while picking it.
+  it("previews the PNG of a slug published without an SVG", () => {
+    render(
+      <IconPicker
+        value={{ icon_type: "builtin", icon_value: "boinc" }}
+        onChange={noOp}
+        serviceName=""
+      />,
+    );
+    fireEvent.error(screen.getByAltText("boinc")); // svg
+    fireEvent.error(screen.getByAltText("boinc")); // -light
+    fireEvent.error(screen.getByAltText("boinc")); // -dark
+    expect(screen.getByAltText("boinc")).toHaveAttribute(
+      "src",
+      expect.stringContaining("png/boinc.png"),
+    );
+  });
+
   it("shows suggestion dropdown when search returns results", async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
@@ -131,13 +150,16 @@ describe("IconPicker", () => {
     const input = screen.getByPlaceholderText(/search icon/i);
 
     fireEvent.change(input, { target: { value: "xx" } });
-    const img = screen.getByAltText("xx");
-    fireEvent.error(img);
-    expect(img.style.display).toBe("none");
+    for (let source = 0; source < 4; source++) {
+      fireEvent.error(screen.getByAltText("xx"));
+    }
+    expect(screen.queryByAltText("xx")).not.toBeInTheDocument();
 
     fireEvent.change(input, { target: { value: "plex" } });
-    const newImg = screen.getByAltText("plex");
-    expect(newImg.style.display).not.toBe("none");
+    expect(screen.getByAltText("plex")).toHaveAttribute(
+      "src",
+      expect.stringContaining("svg/plex.svg"),
+    );
   });
 
   // A file input fires no change event when the same file is picked again, so

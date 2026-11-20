@@ -2,19 +2,35 @@
 
 import { createContext, useContext, useState, useEffect, useRef } from "react";
 import type { HealthStatus } from "@/app/api/health/handler";
-import { FETCH_TIMEOUT_MS, withFetchTimeout } from "@/lib/fetchTimeout";
+import { withFetchTimeout } from "@/lib/fetchTimeout";
 
 type StatusMap = Record<string, HealthStatus>;
 
+let pendingGate: Promise<boolean> | null = null;
+
 /**
- * How long to wait for the offline gate.
+ * The offline gate: whether the browser can reach the dashboard's own server.
  *
- * Deliberately longer than the budget `/api/health` gives its own probe: at the
- * same value the gate aborts just as the route is about to answer, and a service
- * only the browser can reach — a `.local` name Docker cannot resolve — would be
- * called down without ever being probed.
+ * Asked without a url, so the server probes nothing, and shared by every check
+ * that runs while it is in flight. One call per url used to queue dozens on the
+ * browser's six connections to this origin, and the checks behind the slow
+ * ones timed out — showing services that were up as down.
+ *
+ * Bounded, because the poller waits for every url in the round before
+ * scheduling the next one: one unanswered gate call stopped every dot on the
+ * dashboard from ever updating again.
  */
-const GATE_TIMEOUT_MS = FETCH_TIMEOUT_MS + 2000;
+function dashboardReachable(): Promise<boolean> {
+  pendingGate ??= withFetchTimeout((signal) => fetch("/api/health", { signal }))
+    .then(
+      () => true,
+      () => false,
+    )
+    .finally(() => {
+      pendingGate = null;
+    });
+  return pendingGate;
+}
 
 export const HealthCheckContext = createContext<StatusMap>({});
 
@@ -27,20 +43,9 @@ export async function checkHealthClient(url: string): Promise<HealthStatus> {
   if (!url.startsWith("http://") && !url.startsWith("https://"))
     return "unknown";
 
-  // Server call acts as an offline gate — if this fails the browser is
-  // offline and no-cors would give a false positive (see 8586023).
-  // Bounded, because the poller waits for every url in the round before
-  // scheduling the next one: one unanswered gate call stopped every dot on the
-  // dashboard from ever updating again.
-  try {
-    await withFetchTimeout(
-      (signal) =>
-        fetch(`/api/health?url=${encodeURIComponent(url)}`, { signal }),
-      GATE_TIMEOUT_MS,
-    );
-  } catch {
-    return "down";
-  }
+  // If the browser is offline, a no-cors probe could give a false positive
+  // (see 8586023).
+  if (!(await dashboardReachable())) return "down";
 
   // Verify the browser can actually reach the service — catches local-only
   // services the server sees but the browser cannot (e.g. on cellular),

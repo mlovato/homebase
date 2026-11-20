@@ -1,20 +1,20 @@
-import {
-  DASHBOARD_ICONS_CDN,
-  DASHBOARD_ICONS_METADATA_URL,
-} from "@/lib/constants";
+import { DASHBOARD_ICONS_METADATA_URL } from "@/lib/constants";
+import { dashboardIconUrl } from "@/lib/dashboardIcons";
 import { withFetchTimeout } from "@/lib/fetchTimeout";
 import { fuzzyMatches } from "@/lib/fuzzy";
 
 export const METADATA_URL = DASHBOARD_ICONS_METADATA_URL;
-export const CDN_BASE = DASHBOARD_ICONS_CDN;
 
 interface RawMeta {
+  /** The format the icon was published in: "svg", or "png" when it has none. */
+  base?: string;
   aliases?: string[];
 }
 
 interface IconEntry {
   slug: string;
   name: string;
+  url: string;
   /** Lowercased once when the list is cached, not once per search. */
   nameLower: string;
   aliasesLower: string[];
@@ -67,6 +67,7 @@ async function loadIcons(fetchFn: typeof fetch): Promise<IconEntry[]> {
       return {
         slug,
         name,
+        url: dashboardIconUrl(slug, meta.base === "png" ? "png" : "svg"),
         nameLower: name.toLowerCase(),
         aliasesLower: (meta.aliases ?? []).map((a) => a.toLowerCase()),
       };
@@ -119,6 +120,6 @@ export async function searchIcons(
     .map(({ icon }) => ({
       slug: icon.slug,
       name: icon.name,
-      url: `${CDN_BASE}/${icon.slug}.svg`,
+      url: icon.url,
     }));
 }

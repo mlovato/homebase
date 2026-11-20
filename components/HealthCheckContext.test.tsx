@@ -24,51 +24,32 @@ describe("checkHealthClient", () => {
     jest.restoreAllMocks();
   });
 
-  it('returns "up" when server API succeeds and browser can reach service', async () => {
-    global.fetch = jest
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ status: "up" }),
-      })
-      .mockResolvedValueOnce({ ok: true });
-    expect(await checkHealthClient("http://ha.local")).toBe("up");
+  /** The gate answers; what the browser's own probe does decides the status. */
+  function dashboardUpThen(
+    probe: () => Promise<unknown> = async () => ({ ok: true }),
+  ) {
+    global.fetch = jest.fn(async (input: string) =>
+      input === "/api/health" ? { ok: true } : probe(),
+    ) as unknown as typeof fetch;
+    return global.fetch as jest.Mock;
+  }
+
+  const gateCallCount = (spy: jest.Mock) =>
+    spy.mock.calls.filter(([url]) => url === "/api/health").length;
+
+  it('returns "up" when the dashboard answers and the browser reaches the service', async () => {
+    dashboardUpThen();
+    expect(await checkHealthClient("http://192.168.1.120:4000")).toBe("up");
   });
 
-  it('returns "down" when server reports up but browser cannot reach service', async () => {
-    global.fetch = jest
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ status: "up" }),
-      })
-      .mockRejectedValueOnce(new TypeError("Failed to fetch"));
+  it('returns "down" when the dashboard answers but the browser cannot reach the service', async () => {
+    dashboardUpThen(async () => {
+      throw new TypeError("Failed to fetch");
+    });
     expect(await checkHealthClient("http://192.168.1.120:4000")).toBe("down");
   });
 
-  it('returns "up" when server reports down but browser can reach service (.local mDNS)', async () => {
-    global.fetch = jest
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ status: "down" }),
-      })
-      .mockResolvedValueOnce({ ok: true });
-    expect(await checkHealthClient("http://ha.local")).toBe("up");
-  });
-
-  it('returns "down" when server reports down and browser cannot reach service', async () => {
-    global.fetch = jest
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ status: "down" }),
-      })
-      .mockRejectedValueOnce(new TypeError("Failed to fetch"));
-    expect(await checkHealthClient("http://ha.local")).toBe("down");
-  });
-
-  it('returns "down" when browser is offline (server API unreachable)', async () => {
+  it('returns "down" when browser is offline (dashboard unreachable)', async () => {
     global.fetch = jest
       .fn()
       .mockRejectedValue(new TypeError("Failed to fetch"));
@@ -83,21 +64,13 @@ describe("checkHealthClient", () => {
     expect(await checkHealthClient("ftp://something.local")).toBe("unknown");
   });
 
-  it("calls server API then a no-cors HEAD with abort signal", async () => {
-    const spy = jest
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ status: "up" }),
-      })
-      .mockResolvedValueOnce({ ok: true });
-    global.fetch = spy;
+  // The server's own probe of the url was never read.
+  it("asks the dashboard without a url, then sends a no-cors HEAD", async () => {
+    const spy = dashboardUpThen();
     await checkHealthClient("http://ha.local:8123/path?q=1");
-    expect(spy).toHaveBeenNthCalledWith(
-      1,
-      `/api/health?url=${encodeURIComponent("http://ha.local:8123/path?q=1")}`,
-      { signal: expect.any(AbortSignal) },
-    );
+    expect(spy).toHaveBeenNthCalledWith(1, "/api/health", {
+      signal: expect.any(AbortSignal),
+    });
     expect(spy).toHaveBeenNthCalledWith(2, "http://ha.local:8123/path?q=1", {
       method: "HEAD",
       mode: "no-cors",
@@ -106,25 +79,34 @@ describe("checkHealthClient", () => {
     });
   });
 
+  it("shares one gate call between checks that run together", async () => {
+    const spy = dashboardUpThen();
+    const urls = ["http://a.local", "http://b.local", "http://c.local"];
+
+    const statuses = await Promise.all(urls.map(checkHealthClient));
+
+    expect(statuses).toEqual(["up", "up", "up"]);
+    expect(gateCallCount(spy)).toBe(1);
+  });
+
+  it("asks the dashboard again on the next round", async () => {
+    const spy = dashboardUpThen();
+    await checkHealthClient("http://a.local");
+    await checkHealthClient("http://a.local");
+    expect(gateCallCount(spy)).toBe(2);
+  });
+
   it('returns "down" when client check times out on unreachable IP', async () => {
-    global.fetch = jest
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ status: "up" }),
-      })
-      .mockRejectedValueOnce(new DOMException("The operation was aborted."));
+    dashboardUpThen(async () => {
+      throw new DOMException("The operation was aborted.");
+    });
     expect(await checkHealthClient("http://192.168.1.120:8989")).toBe("down");
   });
 
   it("clears the abort timer when the browser probe throws", async () => {
-    global.fetch = jest
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ status: "up" }),
-      })
-      .mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    dashboardUpThen(async () => {
+      throw new TypeError("Failed to fetch");
+    });
 
     jest.useFakeTimers();
     try {
@@ -151,45 +133,14 @@ describe("checkHealthClient", () => {
     ) as unknown as typeof fetch;
 
     const settled = checkHealthClient("http://ha.local");
-    await jest.advanceTimersByTimeAsync(FETCH_TIMEOUT_MS + 3000);
+    await jest.advanceTimersByTimeAsync(FETCH_TIMEOUT_MS + 1);
 
     expect(aborted).toBe(true);
     await expect(settled).resolves.toBe("down");
     jest.useRealTimers();
   });
-
-  // The gate's budget has to outlast the one /api/health gives its own probe.
-  // Equal, it aborts just as the route is answering, and a .local service the
-  // browser can reach but Docker cannot resolve is called down unprobed.
-  it("waits past the server's own probe budget before giving up", async () => {
-    jest.useFakeTimers();
-    global.fetch = jest
-      .fn()
-      .mockImplementationOnce(
-        (_url, init) =>
-          // Answers just after the server's own budget, and honours the signal
-          // the way a real fetch does — so an early abort really does lose it.
-          new Promise((resolve, reject) => {
-            const timer = setTimeout(
-              () =>
-                resolve({ ok: true, json: async () => ({ status: "down" }) }),
-              FETCH_TIMEOUT_MS + 500,
-            );
-            (init as RequestInit).signal!.addEventListener("abort", () => {
-              clearTimeout(timer);
-              reject(new Error("aborted"));
-            });
-          }),
-      )
-      .mockResolvedValueOnce({ ok: true }) as unknown as typeof fetch;
-
-    const settled = checkHealthClient("http://ha.local");
-    await jest.advanceTimersByTimeAsync(FETCH_TIMEOUT_MS + 1000);
-
-    await expect(settled).resolves.toBe("up");
-    jest.useRealTimers();
-  });
 });
+
 describe("useHealthStatus", () => {
   it("returns unknown when no provider is present", () => {
     render(<StatusConsumer url="http://a.local" />);

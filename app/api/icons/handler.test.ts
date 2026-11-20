@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 import { searchIcons, clearCache, METADATA_URL } from "./handler";
-import { DASHBOARD_ICONS_CDN as CDN_BASE } from "@/lib/constants";
+import { dashboardIconUrl } from "@/lib/dashboardIcons";
 import { FETCH_TIMEOUT_MS } from "@/lib/fetchTimeout";
 
 const MOCK_METADATA = {
@@ -46,8 +46,14 @@ describe("searchIcons", () => {
     expect(results[0]).toEqual({
       slug: "sonarr",
       name: "Sonarr",
-      url: `${CDN_BASE}/sonarr.svg`,
+      url: dashboardIconUrl("sonarr"),
     });
+  });
+
+  it("points a slug published only as PNG at its PNG", async () => {
+    const meta = { boinc: { base: "png", aliases: [] } };
+    const results = await searchIcons("boinc", mockFetch(meta));
+    expect(results[0].url).toBe(dashboardIconUrl("boinc", "png"));
   });
 
   it("derives human-readable name from kebab-case slug", async () => {

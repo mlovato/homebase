@@ -9,18 +9,19 @@ export const FETCH_TIMEOUT_MS = 5000;
  * dashboard stops loading behind them.
  *
  * Everything the bound has to cover must happen inside `run`, reading the
- * response body included: the timer is cleared as soon as `run` settles, so a
- * body awaited afterwards is not bounded by anything at all.
+ * response body included: the signal is aborted as soon as `run` settles, so a
+ * body awaited afterwards is cut off. That abort also releases the socket of a
+ * response `run` returned from without reading.
  */
 export async function withFetchTimeout<T>(
   run: (signal: AbortSignal) => Promise<T>,
-  timeoutMs: number = FETCH_TIMEOUT_MS,
 ): Promise<T> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
     return await run(controller.signal);
   } finally {
     clearTimeout(timer);
+    controller.abort();
   }
 }

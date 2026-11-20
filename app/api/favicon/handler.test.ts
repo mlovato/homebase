@@ -1,150 +1,265 @@
+/**
+ * @jest-environment node
+ */
 import {
+  fetchFavicon,
   fetchFaviconImage,
-  resolveFavicon,
+  getFavicon,
   MAX_FAVICON_BYTES,
 } from "./handler";
 import { FETCH_TIMEOUT_MS } from "@/lib/fetchTimeout";
 
-function mockFetch(responses: Record<string, { ok: boolean; body?: string }>) {
-  return async (url: string) => {
-    const resp = responses[url];
-    if (!resp) return { ok: false, status: 404, text: async () => "" };
+/**
+ * A fake web: `pages` answer with HTML, `icons` with an image of the given
+ * type whose bytes spell out its own URL, so a test can read back which
+ * candidate the favicon was finally taken from. Anything else is a 404.
+ */
+function mockSite(
+  pages: Record<string, string>,
+  icons: Record<string, string> = {},
+) {
+  const encoder = new TextEncoder();
+  return jest.fn(async (url: string) => {
+    const html = pages[url];
+    const iconType = icons[url];
+    const body = encoder.encode(html ?? url);
+    const contentType = html !== undefined ? "text/html" : iconType;
     return {
-      ok: resp.ok,
-      status: resp.ok ? 200 : 404,
-      text: async () => resp.body ?? "",
+      ok: html !== undefined || iconType !== undefined,
+      headers: {
+        get: (n: string) => (n === "content-type" ? contentType : null),
+      },
+      text: async () => html ?? "",
+      arrayBuffer: async () => body.buffer as ArrayBuffer,
     };
-  };
+  });
 }
 
-describe("resolveFavicon", () => {
+async function faviconSource(
+  pageUrl: string,
+  site: Parameters<typeof fetchFavicon>[1],
+): Promise<string | null> {
+  const image = await fetchFavicon(pageUrl, site);
+  return image ? new TextDecoder().decode(image.body) : null;
+}
+
+describe("fetchFavicon", () => {
   it("returns null for invalid url", async () => {
-    const result = await resolveFavicon("not-a-url", mockFetch({}));
-    expect(result).toBeNull();
+    expect(await faviconSource("not-a-url", mockSite({}))).toBeNull();
   });
 
   it("finds favicon from link[rel=icon] in HTML", async () => {
-    const html = `<html><head><link rel="icon" href="/icon.png"></head></html>`;
-    const result = await resolveFavicon(
-      "http://example.com",
-      mockFetch({
-        "http://example.com": { ok: true, body: html },
-      }),
+    const site = mockSite(
+      {
+        "http://example.com": `<html><head><link rel="icon" href="/icon.png"></head></html>`,
+      },
+      { "http://example.com/icon.png": "image/png" },
     );
-    expect(result).toBe("http://example.com/icon.png");
+    expect(await faviconSource("http://example.com", site)).toBe(
+      "http://example.com/icon.png",
+    );
   });
 
   it("finds favicon from link[rel='shortcut icon']", async () => {
-    const html = `<html><head><link rel="shortcut icon" href="/fav.ico"></head></html>`;
-    const result = await resolveFavicon(
-      "http://example.com",
-      mockFetch({
-        "http://example.com": { ok: true, body: html },
-      }),
+    const site = mockSite(
+      { "http://example.com": `<link rel="shortcut icon" href="/fav.ico">` },
+      { "http://example.com/fav.ico": "image/x-icon" },
     );
-    expect(result).toBe("http://example.com/fav.ico");
+    expect(await faviconSource("http://example.com", site)).toBe(
+      "http://example.com/fav.ico",
+    );
+  });
+
+  it("reads rel as a list of tokens, in any order and case", async () => {
+    const site = mockSite(
+      { "http://example.com": `<link rel="Icon Shortcut" href="/fav.png">` },
+      { "http://example.com/fav.png": "image/png" },
+    );
+    expect(await faviconSource("http://example.com", site)).toBe(
+      "http://example.com/fav.png",
+    );
+  });
+
+  it("reads unquoted attributes", async () => {
+    const site = mockSite(
+      { "http://example.com": `<link rel=icon href=/fav.png>` },
+      { "http://example.com/fav.png": "image/png" },
+    );
+    expect(await faviconSource("http://example.com", site)).toBe(
+      "http://example.com/fav.png",
+    );
+  });
+
+  // Gmail Tracker declares an inline SVG whose markup uses single quotes. The
+  // value used to end at the first of them, so a truncated data: URI was
+  // fetched, rendered as a broken image and the card fell back to its letter.
+  it("reads a double-quoted href that contains single quotes", async () => {
+    const dataUri =
+      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3C/svg%3E";
+    const site = mockSite(
+      { "http://example.com": `<link rel="icon" href="${dataUri}" />` },
+      { [dataUri]: "image/svg+xml" },
+    );
+    expect(await faviconSource("http://example.com", site)).toBe(dataUri);
+  });
+
+  it("reads an href whose value contains raw markup", async () => {
+    const dataUri =
+      "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><text>H</text></svg>";
+    const site = mockSite(
+      { "http://example.com": `<link rel="icon" href="${dataUri}">` },
+      { [dataUri]: "image/svg+xml" },
+    );
+    expect(await faviconSource("http://example.com", site)).toBe(dataUri);
   });
 
   it("resolves relative href to absolute URL", async () => {
-    const html = `<link rel="icon" href="assets/icon.png">`;
-    const result = await resolveFavicon(
-      "http://example.com/app/",
-      mockFetch({
-        "http://example.com/app/": { ok: true, body: html },
-      }),
+    const site = mockSite(
+      { "http://example.com/app/": `<link rel="icon" href="assets/icon.png">` },
+      { "http://example.com/app/assets/icon.png": "image/png" },
     );
-    expect(result).toBe("http://example.com/app/assets/icon.png");
+    expect(await faviconSource("http://example.com/app/", site)).toBe(
+      "http://example.com/app/assets/icon.png",
+    );
   });
 
   it("preserves absolute href", async () => {
-    const html = `<link rel="icon" href="https://cdn.example.com/icon.png">`;
-    const result = await resolveFavicon(
-      "http://example.com",
-      mockFetch({
-        "http://example.com": { ok: true, body: html },
-      }),
+    const site = mockSite(
+      {
+        "http://example.com": `<link rel="icon" href="https://cdn.example.com/icon.png">`,
+      },
+      { "https://cdn.example.com/icon.png": "image/png" },
     );
-    expect(result).toBe("https://cdn.example.com/icon.png");
+    expect(await faviconSource("http://example.com", site)).toBe(
+      "https://cdn.example.com/icon.png",
+    );
   });
 
   it("falls back to /favicon.ico when no link tag found", async () => {
-    const html = `<html><head><title>Test</title></head></html>`;
-    const result = await resolveFavicon(
-      "http://example.com",
-      mockFetch({
-        "http://example.com": { ok: true, body: html },
-        "http://example.com/favicon.ico": { ok: true },
-      }),
+    const site = mockSite(
+      { "http://example.com": `<html><head><title>Test</title></head></html>` },
+      { "http://example.com/favicon.ico": "image/x-icon" },
     );
-    expect(result).toBe("http://example.com/favicon.ico");
+    expect(await faviconSource("http://example.com", site)).toBe(
+      "http://example.com/favicon.ico",
+    );
+  });
+
+  it("falls back to /favicon.ico when the declared icon cannot be fetched", async () => {
+    const site = mockSite(
+      { "http://example.com": `<link rel="icon" href="/gone.png">` },
+      { "http://example.com/favicon.ico": "image/x-icon" },
+    );
+    expect(await faviconSource("http://example.com", site)).toBe(
+      "http://example.com/favicon.ico",
+    );
+  });
+
+  // Single-page apps answer every path with their index.html, /favicon.ico
+  // included — a 200 that is not an icon.
+  it("returns null when /favicon.ico is the app's HTML shell", async () => {
+    const site = mockSite({
+      "http://example.com": `<title>App</title>`,
+      "http://example.com/favicon.ico": `<title>App</title>`,
+    });
+    expect(await faviconSource("http://example.com", site)).toBeNull();
+  });
+
+  it("does not download /favicon.ico twice when it is the declared icon", async () => {
+    const site = mockSite({
+      "http://example.com": `<link rel="icon" href="/favicon.ico">`,
+    });
+    await fetchFavicon("http://example.com", site);
+    const icoFetches = site.mock.calls.filter(
+      ([url]) => url === "http://example.com/favicon.ico",
+    );
+    expect(icoFetches).toHaveLength(1);
   });
 
   it("returns null when no link tag and /favicon.ico 404s", async () => {
-    const html = `<html><head><title>Test</title></head></html>`;
-    const result = await resolveFavicon(
-      "http://example.com",
-      mockFetch({
-        "http://example.com": { ok: true, body: html },
-        "http://example.com/favicon.ico": { ok: false },
-      }),
-    );
-    expect(result).toBeNull();
+    const site = mockSite({
+      "http://example.com": `<html><head><title>Test</title></head></html>`,
+    });
+    expect(await faviconSource("http://example.com", site)).toBeNull();
   });
 
   it("returns null when page fetch fails entirely", async () => {
-    const result = await resolveFavicon(
-      "http://unreachable.local",
-      mockFetch({}),
-    );
-    expect(result).toBeNull();
+    expect(
+      await faviconSource("http://unreachable.local", mockSite({})),
+    ).toBeNull();
   });
 
   it("falls back to /favicon.ico when page fetch throws a network error", async () => {
-    const throwingFetch = async (url: string) => {
-      if (url === "http://opspilot.local/favicon.ico")
-        return { ok: true, text: async () => "" };
-      throw new Error("ECONNREFUSED");
+    const site = mockSite(
+      {},
+      { "http://opspilot.local/favicon.ico": "image/x-icon" },
+    );
+    const throwingPage = async (url: string) => {
+      if (url === "http://opspilot.local") throw new Error("ECONNREFUSED");
+      return site(url);
     };
-    const result = await resolveFavicon("http://opspilot.local", throwingFetch);
-    expect(result).toBe("http://opspilot.local/favicon.ico");
+    expect(await faviconSource("http://opspilot.local", throwingPage)).toBe(
+      "http://opspilot.local/favicon.ico",
+    );
   });
 
   // github.com ships `data-base-href` in the same <link> as `href`, and a word
   // boundary sits inside it, so the resolver used to pick the extension-less
   // URL — which 404s, leaving the card with a letter avatar instead of an icon.
   it("ignores an attribute that merely ends in href", async () => {
-    const html =
-      `<link rel="icon" class="js-site-favicon" type="image/svg+xml" ` +
-      `href="https://cdn.example.com/favicon.svg" ` +
-      `data-base-href="https://cdn.example.com/favicon">`;
-    const result = await resolveFavicon(
-      "http://example.com",
-      mockFetch({ "http://example.com": { ok: true, body: html } }),
+    const site = mockSite(
+      {
+        "http://example.com":
+          `<link rel="icon" class="js-site-favicon" type="image/svg+xml" ` +
+          `href="https://cdn.example.com/favicon.svg" ` +
+          `data-base-href="https://cdn.example.com/favicon">`,
+      },
+      {
+        "https://cdn.example.com/favicon.svg": "image/svg+xml",
+        "https://cdn.example.com/favicon": "image/svg+xml",
+      },
     );
-    expect(result).toBe("https://cdn.example.com/favicon.svg");
+    expect(await faviconSource("http://example.com", site)).toBe(
+      "https://cdn.example.com/favicon.svg",
+    );
   });
 
   it("ignores an attribute that merely ends in rel", async () => {
-    const html = `<link data-rel="icon" href="/wrong.png">`;
-    const result = await resolveFavicon(
-      "http://example.com",
-      mockFetch({
-        "http://example.com": { ok: true, body: html },
-        "http://example.com/favicon.ico": { ok: true },
-      }),
+    const site = mockSite(
+      { "http://example.com": `<link data-rel="icon" href="/wrong.png">` },
+      {
+        "http://example.com/wrong.png": "image/png",
+        "http://example.com/favicon.ico": "image/x-icon",
+      },
     );
-    expect(result).toBe("http://example.com/favicon.ico");
+    expect(await faviconSource("http://example.com", site)).toBe(
+      "http://example.com/favicon.ico",
+    );
+  });
+
+  it("does not mistake an apple-touch-icon for the favicon", async () => {
+    const site = mockSite(
+      {
+        "http://example.com": `<link rel="apple-touch-icon" href="/touch.png">`,
+      },
+      {
+        "http://example.com/touch.png": "image/png",
+        "http://example.com/favicon.ico": "image/x-icon",
+      },
+    );
+    expect(await faviconSource("http://example.com", site)).toBe(
+      "http://example.com/favicon.ico",
+    );
   });
 
   it("handles query params in favicon href", async () => {
-    const html = `<link rel="icon" href="/icon.png?v=123">`;
-    const result = await resolveFavicon(
-      "http://example.com",
-      mockFetch({
-        "http://example.com": { ok: true, body: html },
-      }),
+    const site = mockSite(
+      { "http://example.com": `<link rel="icon" href="/icon.png?v=123">` },
+      { "http://example.com/icon.png?v=123": "image/png" },
     );
-    expect(result).toBe("http://example.com/icon.png?v=123");
+    expect(await faviconSource("http://example.com", site)).toBe(
+      "http://example.com/icon.png?v=123",
+    );
   });
 });
 
@@ -206,11 +321,12 @@ describe("fetchFaviconImage", () => {
 });
 
 describe("favicon fetches are bounded", () => {
-  it("passes an abort signal to the page fetch", async () => {
+  it("passes an abort signal to every fetch", async () => {
     const seen: (AbortSignal | undefined)[] = [];
-    await resolveFavicon("http://example.com", async (_url, init) => {
+    const site = mockSite({ "http://example.com": `<title>Test</title>` });
+    await fetchFavicon("http://example.com", async (url, init) => {
       seen.push(init?.signal);
-      return { ok: false, text: async () => "" };
+      return site(url);
     });
     expect(seen.length).toBeGreaterThan(0);
     expect(seen.every((s) => s instanceof AbortSignal)).toBe(true);
@@ -337,10 +453,15 @@ describe("favicon body reads are bounded too", () => {
   afterEach(() => jest.useRealTimers());
 
   it("aborts a page whose body never arrives", async () => {
-    const promise = resolveFavicon("http://example.com/", async (url, init) =>
+    const site = mockSite({});
+    const promise = fetchFavicon("http://example.com/", async (url, init) =>
       url.endsWith("/favicon.ico")
-        ? { ok: false, text: async () => "" }
-        : { ok: true, text: () => stallUntilAbort<string>(init!.signal) },
+        ? site(url)
+        : {
+            ...(await site(url)),
+            ok: true,
+            text: () => stallUntilAbort<string>(init!.signal),
+          },
     );
 
     await jest.advanceTimersByTimeAsync(FETCH_TIMEOUT_MS + 1);
@@ -363,5 +484,53 @@ describe("favicon body reads are bounded too", () => {
 
     expect(aborted).toBe(true);
     await expect(settled).resolves.toBe("rejected");
+  });
+});
+
+describe("getFavicon", () => {
+  const realFetch = global.fetch;
+  afterEach(() => {
+    global.fetch = realFetch;
+  });
+
+  // Self-hosted apps share one machine on different ports. Fetching them all at
+  // once made that machine too slow to answer any of them within the timeout.
+  it("limits concurrent fetches per machine, whatever the port", async () => {
+    let inFlight = 0;
+    let peak = 0;
+    global.fetch = jest.fn(async () => {
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight--;
+      return { ok: false, text: async () => "" };
+    }) as unknown as typeof fetch;
+
+    const ports = Array.from({ length: 20 }, (_, i) => 3000 + i);
+    await Promise.all(
+      ports.map((port) => getFavicon(`http://nas.test:${port}`)),
+    );
+
+    expect(peak).toBeGreaterThan(1);
+    expect(peak).toBeLessThanOrEqual(6);
+  });
+
+  // Behind a reverse proxy, one machine answers under many hostnames.
+  it("caps concurrent fetches across hostnames as well", async () => {
+    let inFlight = 0;
+    let peak = 0;
+    global.fetch = jest.fn(async () => {
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight--;
+      return { ok: false, text: async () => "" };
+    }) as unknown as typeof fetch;
+
+    const hosts = Array.from({ length: 30 }, (_, i) => `app-${i}.nas.test`);
+    await Promise.all(hosts.map((host) => getFavicon(`http://${host}`)));
+
+    expect(peak).toBeGreaterThan(6);
+    expect(peak).toBeLessThanOrEqual(12);
   });
 });

@@ -47,4 +47,17 @@ describe("GET /api/health", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ status: "up" });
   });
+
+  // The dashboard's offline gate calls it this way, once per round of checks:
+  // it must answer at once without reaching out to anything.
+  it("answers without probing anything when no url is given", async () => {
+    mockAuth.mockResolvedValue({ userId: 1, role: "user" });
+    global.fetch = jest.fn() as unknown as typeof fetch;
+
+    const res = await GET(new NextRequest("http://localhost/api/health"));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ status: "unknown" });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
 });

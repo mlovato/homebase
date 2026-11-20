@@ -65,8 +65,25 @@ describe("LinkIcon", () => {
     fireEvent.error(img); // base slug fails
     fireEvent.error(screen.getByRole("img")); // -light fails
     fireEvent.error(screen.getByRole("img")); // -dark fails
+    fireEvent.error(screen.getByRole("img")); // png fails
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
     expect(screen.getByText("G")).toBeInTheDocument();
+  });
+
+  // About a quarter of dashboard-icons (boinc, garmin-connect, ...) has no SVG
+  // at all, so a slug picked from search never rendered and the card showed
+  // its letter instead.
+  it("falls back to the PNG build for a slug published without an SVG", () => {
+    render(
+      <LinkIcon name="Boxes" iconType="builtin" iconValue="boinc" size="lg" />,
+    );
+    fireEvent.error(screen.getByRole("img")); // base slug
+    fireEvent.error(screen.getByRole("img")); // -light
+    fireEvent.error(screen.getByRole("img")); // -dark
+    expect(screen.getByRole("img", { name: "Boxes" })).toHaveAttribute(
+      "src",
+      "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/boinc.png",
+    );
   });
 
   it("renders letter avatar when iconType is builtin but iconValue is null", () => {
@@ -248,6 +265,7 @@ describe("LinkIcon", () => {
       fireEvent.error(screen.getByRole("img")); // base slug
       fireEvent.error(screen.getByRole("img")); // -light
       fireEvent.error(screen.getByRole("img")); // -dark
+      fireEvent.error(screen.getByRole("img")); // png
       const img = screen.getByRole("img", { name: "Grafana" });
       expect(img).toHaveAttribute(
         "src",
@@ -342,7 +360,8 @@ describe("fallback state resets when the icon changes", () => {
         size="lg"
       />,
     );
-    // Exhaust all three CDN variants so it has fallen through to the avatar.
+    // Exhaust every CDN variant so it has fallen through to the avatar.
+    fireEvent.error(screen.getByRole("img"));
     fireEvent.error(screen.getByRole("img"));
     fireEvent.error(screen.getByRole("img"));
     fireEvent.error(screen.getByRole("img"));
