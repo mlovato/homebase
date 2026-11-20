@@ -2,7 +2,7 @@
 
 Comprehensive manual testing plan for Homebase.
 Target instance: `localhost:7000` (adjust for your environment)
-Last updated: v1.5.1
+Last updated: v1.6.0
 
 ---
 
